@@ -612,7 +612,15 @@ nav#tabs button.on{color:var(--ink)}
 }
 @keyframes slideUp{from{transform:translateY(60px);opacity:0}to{transform:none;opacity:1}}
 .sheet.dragging{animation:none;transition:none;user-select:none;-webkit-user-select:none;-webkit-overflow-scrolling:auto}
-.sheet .grab{width:40px;height:5px;border-radius:99px;background:var(--line);margin:0 auto 18px;touch-action:none}
+.sheet .grab{
+  width:96px;height:32px;margin:-4px auto 8px;border-radius:99px;background:transparent;
+  position:relative;touch-action:none;cursor:grab;
+}
+.sheet .grab::after{
+  content:"";position:absolute;left:50%;top:11px;transform:translateX(-50%);
+  width:42px;height:5px;border-radius:99px;background:var(--line);
+}
+.sheet.dragging .grab{cursor:grabbing}
 .sheet-close{
   position:absolute;top:13px;right:14px;width:34px;height:34px;border-radius:50%;
   display:flex;align-items:center;justify-content:center;
@@ -634,6 +642,7 @@ nav#tabs button.on{color:var(--ink)}
     radial-gradient(circle at 84% 6%, rgba(130,244,224,.24), transparent 34%),
     linear-gradient(145deg,#123F39,#072824);color:#fff;border-radius:22px;
   padding:20px;margin-bottom:14px;box-shadow:0 16px 38px rgba(8,42,38,.22);position:relative;overflow:hidden;
+  touch-action:none;
 }
 .plus-hero::after{content:"";position:absolute;right:-38px;top:-38px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.10)}
 .plus-hero h2{color:#fff;margin-bottom:7px}
@@ -3158,9 +3167,15 @@ function enableSheetDragDismiss() {
     const canStart = (y, target) => {
       const top = sheet.getBoundingClientRect().top;
       const onGrab = !!target.closest(".grab");
+      if (onGrab) {
+        sheet.scrollTop = 0;
+        return true;
+      }
+      const isPlus = ov?.id === "plus-overlay";
+      const onPlusTop = isPlus && !!target.closest(".plus-hero,.plus-proof");
       const nearTop = y - top < 52;
       const interactive = target.closest("button,input,textarea,select,a,label");
-      return (onGrab || (nearTop && !interactive)) && sheet.scrollTop <= 1;
+      return (onPlusTop || (nearTop && !interactive)) && sheet.scrollTop <= 1;
     };
     const applyDrag = () => {
       raf = 0;
