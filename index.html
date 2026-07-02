@@ -1022,7 +1022,7 @@ nav#tabs button.on{color:var(--ink)}
   <div class="sheet">
     <div class="grab"></div>
     <h2>Nice. What set it off?</h2>
-    <p class="sub">Knowing your triggers is half the fight. +<span id="trigger-reward">5</span> pearls either way.</p>
+    <p class="sub" id="trigger-sub">Knowing your triggers is half the fight. +<span id="trigger-reward">5</span> pearls if you log this.</p>
     <div class="chips" id="trigger-chips" style="margin-bottom:22px"></div>
     <button class="btn" id="trigger-save" disabled>Log it</button>
   </div>
@@ -1198,6 +1198,7 @@ const CONFIG = {
   storageKey: "gillie_v1",
   currencyName: "pearls",
   rewards: { checkin: 10, cravingBeaten: 5, cravingLoggedAfterSlip: 5, milestone: 25 },
+  sos: { rewardDailyCap: 3, rewardCooldownMins: 45, minBreathSecs: 16 },
   plus: {
     monthlyLabel: "$4.99 / month",
     yearlyLabel: "$39.99 / year — best value",
@@ -1361,6 +1362,7 @@ const defaultState = () => ({
   bankedCleanMs: 0,      // clean time accumulated before slips
   slips: [],             // [{at, streakMs}]
   cravings: [],          // [{at, trigger, resisted}]
+  sosRewards: [],         // [{at, resisted}] — capped so SOS cannot farm unlimited pearls
   checkins: [],          // [{date:'YYYY-MM-DD', mood, clean, intensity, note}]
   milestonesSeen: [],
   growthSeen: [],
@@ -1383,6 +1385,10 @@ function save() { localStorage.setItem(CONFIG.storageKey, JSON.stringify(state))
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
 const todayKey = () => new Date().toISOString().slice(0, 10);
+const localDayKey = (time = Date.now()) => {
+  const d = new Date(time);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
 const moodFace = (mood) => ["", "😖", "😕", "😐", "🙂", "😄"][mood] || "😐";
 const cravingLabel = (level = 0) => ["No cravings", "Low cravings", "Medium cravings", "High cravings"][level] || "No cravings";
 const niceDate = (key) => {
@@ -1410,6 +1416,33 @@ const milestoneCopy = (m) => usesNicotineTimeline() ? m : { ...m, ...(CLEAN_MILE
 const moneySaved = () => lifetimeCleanMs() * costPerMs();
 const grant = (n) => { const v = n * (state.premium ? CONFIG.plus.pearlMultiplier : 1); state.pearls += v; setTimeout(() => { try { sparkleBurst(); } catch (e) {} }, 50); return v; };
 const bestStreakMs = () => Math.max(currentStreakMs(), ...state.slips.map((s) => s.streakMs || 0), 0);
+const minutesText = (ms) => {
+  const mins = Math.max(1, Math.ceil(ms / 60000));
+  return `${mins} minute${mins === 1 ? "" : "s"}`;
+};
+function sosRewardStatus(now = Date.now()) {
+  const day = localDayKey(now);
+  const events = (state.sosRewards || []).filter((r) => localDayKey(r.at) === day);
+  const cap = CONFIG.sos.rewardDailyCap;
+  if (events.length >= cap) {
+    return { canReward: false, reason: "cap", eventsToday: events.length, remaining: 0, message: `You've earned all ${cap} SOS pearl rewards today. SOS still works anytime.` };
+  }
+  const lastAt = Math.max(0, ...(state.sosRewards || []).map((r) => r.at || 0));
+  const cooldownMs = CONFIG.sos.rewardCooldownMins * 60000;
+  const waitMs = lastAt ? cooldownMs - (now - lastAt) : 0;
+  if (waitMs > 0) {
+    return { canReward: false, reason: "cooldown", waitMs, eventsToday: events.length, remaining: cap - events.length, message: `SOS pearls cool down for ${minutesText(waitMs)}. Use SOS as much as you need.` };
+  }
+  return { canReward: true, reason: "available", eventsToday: events.length, remaining: cap - events.length, message: `${cap - events.length} SOS reward${cap - events.length === 1 ? "" : "s"} left today.` };
+}
+function grantSosReward(base, resisted) {
+  const status = sosRewardStatus();
+  if (!status.canReward) return { pearls: 0, status };
+  const pearls = grant(base);
+  state.sosRewards = (state.sosRewards || []).filter((r) => Date.now() - (r.at || 0) < 8 * dayMs);
+  state.sosRewards.push({ at: Date.now(), resisted });
+  return { pearls, status };
+}
 
 /* ============================================================
    Axolotl SVG builder — gradient-shaded, multi-layer animation.
@@ -2322,12 +2355,20 @@ const BREATH_PHASES = [
   { label: "Hold", secs: 4, scale: 0.55 },
 ];
 let breathTimer = null;
+let sosReadyTimer = null;
 $("#sos-fab").onclick = openSOS;
 function openSOS() {
   $("#sos-pet-name").textContent = state.petName;
   $("#sos-axo").innerHTML = axoSVG(state.skin, state.hat, "happy", "sos");
   $("#sos-reasons").innerHTML = state.reasons.length
     ? `You're quitting for:<br><strong>${state.reasons.join(" · ")}</strong>` : "";
+  $("#sos-beat").disabled = true;
+  $("#sos-beat").textContent = "Breathe one round with Gillie";
+  clearTimeout(sosReadyTimer);
+  sosReadyTimer = setTimeout(() => {
+    $("#sos-beat").disabled = false;
+    $("#sos-beat").textContent = "The craving passed 💪";
+  }, CONFIG.sos.minBreathSecs * 1000);
   $("#sos-overlay").hidden = false;
   runBreath();
 }
@@ -2349,7 +2390,11 @@ function runBreath() {
     apply();
   }, 1000);
 }
-function closeSOS() { $("#sos-overlay").hidden = true; clearInterval(breathTimer); }
+function closeSOS() {
+  $("#sos-overlay").hidden = true;
+  clearInterval(breathTimer);
+  clearTimeout(sosReadyTimer);
+}
 $("#sos-close").onclick = closeSOS;
 $("#sos-beat").onclick = () => { closeSOS(); openTriggerPicker(true); };
 $("#sos-slipped").onclick = () => { closeSOS(); openSlip(); };
@@ -2359,7 +2404,11 @@ let pendingResisted = true, pendingTrigger = null;
 function openTriggerPicker(resisted) {
   pendingResisted = resisted; pendingTrigger = null;
   const baseReward = resisted ? CONFIG.rewards.cravingBeaten : CONFIG.rewards.cravingLoggedAfterSlip;
-  $("#trigger-reward").textContent = baseReward * (state.premium ? CONFIG.plus.pearlMultiplier : 1);
+  const reward = baseReward * (state.premium ? CONFIG.plus.pearlMultiplier : 1);
+  const status = sosRewardStatus();
+  $("#trigger-sub").innerHTML = status.canReward
+    ? `Knowing your triggers is half the fight. <strong>+<span id="trigger-reward">${reward}</span> pearls</strong> if you log this. ${status.message}`
+    : `${status.message} Log the trigger anyway so Coach and your pattern chart get smarter.`;
   $("#trigger-chips").innerHTML = TRIGGERS.map((t) => `<button data-v="${t}">${t}</button>`).join("");
   $$("#trigger-chips button").forEach((b) => b.onclick = () => {
     $$("#trigger-chips button").forEach((x) => x.classList.remove("on")); b.classList.add("on");
@@ -2370,11 +2419,14 @@ function openTriggerPicker(resisted) {
 }
 $("#trigger-save").onclick = () => {
   state.cravings.push({ at: Date.now(), trigger: pendingTrigger, resisted: pendingResisted });
-  const v = grant(pendingResisted ? CONFIG.rewards.cravingBeaten : CONFIG.rewards.cravingLoggedAfterSlip);
+  const baseReward = pendingResisted ? CONFIG.rewards.cravingBeaten : CONFIG.rewards.cravingLoggedAfterSlip;
+  const reward = grantSosReward(baseReward, pendingResisted);
   save();
   $("#trigger-overlay").hidden = true;
-  if (pendingResisted) { toast("💪", `Craving beaten. +${v} pearls. That's a rep for your brain.`); axoCelebrate(); }
-  else toast("🧭", `Trigger logged. +${v} pearls for learning the pattern.`);
+  if (pendingResisted && reward.pearls) { toast("💪", `Craving beaten. +${reward.pearls} pearls. That's a rep for your brain.`); axoCelebrate(); }
+  else if (pendingResisted) toast("💪", `Craving beaten and logged. ${reward.status.message}`);
+  else if (reward.pearls) toast("🧭", `Trigger logged. +${reward.pearls} pearls for learning the pattern.`);
+  else toast("🧭", `Trigger logged for your pattern. ${reward.status.message}`);
   renderAll();
 };
 
