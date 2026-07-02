@@ -1075,6 +1075,9 @@ nav#tabs button.on{color:var(--ink)}
     <div class="set-group">
       <button class="set-row" id="set-plus"><span class="t">Gillie Plus</span><span class="v" id="set-plus-v">Free plan</span></button>
     </div>
+    <div class="set-group" id="set-qa-group" hidden>
+      <button class="set-row" id="set-qa-reef"><span class="t">Refill Reef tester mode</span><span class="v">99,999</span></button>
+    </div>
     <div class="set-group">
       <button class="set-row" id="set-reminder-checkin"><span class="t">Daily check-in reminder</span><span class="v" id="set-reminder-checkin-v">On</span></button>
       <button class="set-row" id="set-reminder-craving"><span class="t">Craving follow-up nudges</span><span class="v" id="set-reminder-craving-v">On</span></button>
@@ -1603,17 +1606,29 @@ function normalizeState() {
   if (state.onboarded && !state.originalQuitAt) state.originalQuitAt = state.quitAt || Date.now();
 }
 function save() { localStorage.setItem(CONFIG.storageKey, JSON.stringify(state)); }
-function applyReefTestSeed() {
+function isReefTestRequest() {
   const params = new URLSearchParams(location.search);
-  if (params.get("qa") !== "reef" && params.get("test") !== "reef") return false;
+  const hashParams = new URLSearchParams((location.hash || "").replace(/^#/, ""));
+  const href = location.href.toLowerCase();
+  return params.get("qa") === "reef"
+    || params.get("test") === "reef"
+    || hashParams.get("qa") === "reef"
+    || hashParams.get("test") === "reef"
+    || href.includes("qa=reef")
+    || href.includes("test=reef");
+}
+function applyReefTestSeed(force = false) {
+  if (!force && !isReefTestRequest()) return false;
   const maxStreakAt = Date.now() - 366 * dayMs;
   state.onboarded = true;
   state.petName ||= "Gillie";
   state.quitAt = maxStreakAt;
-  state.originalQuitAt = state.originalQuitAt || maxStreakAt;
-  state.bankedCleanMs = Math.max(state.bankedCleanMs || 0, 0);
-  state.pearls = Math.max(state.pearls || 0, 99999);
+  state.originalQuitAt = maxStreakAt;
+  state.bankedCleanMs = 366 * dayMs;
+  state.pearls = 99999;
   state.premium = true;
+  state.qaReefTest = true;
+  state.theme = state.theme || "clear";
   state.growthSeen = GROWTH_STAGES.map((g) => g.id);
   state.milestonesSeen = MILESTONES.map((m) => m.id);
   state.milestonesRewarded = MILESTONES.map((m) => m.id);
@@ -3178,6 +3193,7 @@ function renderSettings() {
   $("#set-name-v").textContent = state.petName;
   $("#set-skin-v").textContent = state.premium ? skinOf(state.skin).name : "Plus 👑";
   $("#set-plus-v").textContent = state.premium ? "Active 👑" : "Free plan";
+  $("#set-qa-group").hidden = !state.qaReefTest && !isReefTestRequest();
   $("#set-reminder-checkin-v").textContent = state.reminders.checkin ? "On" : "Off";
   $("#set-reminder-craving-v").textContent = state.reminders.craving ? "On" : "Off";
   $("#set-integrity-v").textContent = `${(state.milestonesRewarded || []).length} protected`;
@@ -3221,6 +3237,11 @@ $("#ce-save").onclick = () => {
   save(); $("#cost-overlay").hidden = true; renderAll();
 };
 $("#set-plus").onclick = openPlus;
+$("#set-qa-reef").onclick = () => {
+  applyReefTestSeed(true);
+  renderAxo(); renderAll();
+  toast("🧪", "Reef tester mode refilled: Plus, max days, and 99,999 pearls.");
+};
 $("#set-reminder-checkin").onclick = () => {
   state.reminders.checkin = !state.reminders.checkin;
   save(); renderSettings();
