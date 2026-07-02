@@ -262,7 +262,7 @@ input,select{font-family:inherit;font-size:16px}
   85%{opacity:.45}
   100%{transform:translate(var(--mx,20px),var(--my,-40px));opacity:0}
 }
-#axo-shadow{position:absolute;left:50%;bottom:15.5%;width:36%;height:15px;border-radius:50%;z-index:2;pointer-events:none;
+#axo-shadow{position:absolute;left:50%;bottom:15.5%;width:var(--axo-shadow-width,30%);height:15px;border-radius:50%;z-index:2;pointer-events:none;
   background:radial-gradient(ellipse, rgba(9,38,33,.32), transparent 70%);
   animation:shadowPulse 4.8s ease-in-out infinite;transition:left 3.8s ease-in-out,width 3.8s ease-in-out,opacity .8s ease}
 @keyframes shadowPulse{
@@ -277,10 +277,10 @@ input,select{font-family:inherit;font-size:16px}
 .decor-item{position:absolute;z-index:2;bottom:9%}
 
 #axo-wrap{
-  position:absolute;left:50%;top:44%;z-index:4;width:62%;
+  position:absolute;left:50%;top:44%;z-index:4;width:var(--axo-size,50%);
   transform:translate(-50%,-50%);
   animation:float 4.8s ease-in-out infinite;
-  transition:left 3.8s ease-in-out, top 3.8s ease-in-out;
+  transition:left 3.8s ease-in-out, top 3.8s ease-in-out, width 1.2s ease;
   filter:drop-shadow(0 10px 12px rgba(20,55,50,.10));
 }
 @keyframes float{0%,100%{transform:translate(-50%,-52%)}50%{transform:translate(-50%,-46%)}}
@@ -356,6 +356,16 @@ input,select{font-family:inherit;font-size:16px}
 }
 .stat-card .v{font-family:var(--font-display);font-weight:800;font-size:21px;font-variant-numeric:tabular-nums}
 .stat-card .k{font-size:12px;font-weight:700;color:var(--ink-faint);margin-top:3px}
+.growth-card{
+  margin-top:14px;background:var(--card);border-radius:var(--radius);padding:16px 18px;
+  box-shadow:var(--shadow-soft);
+}
+.growth-card .row{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-top:5px}
+.growth-card .gn{font-weight:800;font-size:15.5px}
+.growth-card .gv{font-weight:800;font-size:13.5px;color:var(--good);flex-shrink:0}
+.growth-card .bar{height:8px;border-radius:99px;background:var(--bg-deep);margin-top:10px;overflow:hidden}
+.growth-card .bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--coral),#F6A0B0);transition:width .8s ease}
+.growth-card .eta{font-size:12.5px;color:var(--ink-faint);font-weight:700;margin-top:7px}
 .checkin-card{
   margin-top:16px;background:linear-gradient(120deg,#173F3A,#0E2C28);color:#fff;
   border-radius:var(--radius);padding:18px;display:flex;align-items:center;gap:14px;
@@ -738,6 +748,13 @@ nav#tabs button.on{color:var(--ink)}
       <div class="stat-card"><div class="v" id="stat-cravings">0</div><div class="k">cravings beaten</div></div>
     </div>
 
+    <div class="growth-card" id="growth-card">
+      <div class="eyebrow">Gillie's growth</div>
+      <div class="row"><div class="gn" id="growth-name">Hatchling</div><div class="gv" id="growth-next">—</div></div>
+      <div class="bar"><i id="growth-bar" style="width:0%"></i></div>
+      <div class="eta" id="growth-eta">Stay clean and Gillie grows with you.</div>
+    </div>
+
     <div class="goal-card" id="goal-card" hidden></div>
 
     <div class="checkin-card" id="checkin-card">
@@ -1059,6 +1076,16 @@ const STAGES = [
   { days: 365,   name: "One Year Shine",  murk: 0.00, w1: "#C1F3E4", w2: "#96D8C6", plants: 3, sunny: true,  glow: true,  sparkles: 10 },
 ];
 
+/* GillieGrowthStage: visual size and emotional progression from baby to guardian. */
+const GROWTH_STAGES = [
+  { id: "hatchling", days: 0,  name: "Hatchling",     size: 43, shadow: 22, desc: "Tiny, newly hatched, and counting on you." },
+  { id: "little",    days: 3,  name: "Little Buddy",  size: 50, shadow: 26, desc: "Gillie is stronger after the first rough stretch." },
+  { id: "young",     days: 7,  name: "Young Gillie",  size: 57, shadow: 30, desc: "One clean week has Gillie swimming braver." },
+  { id: "bright",    days: 14, name: "Bright Gillie", size: 63, shadow: 34, desc: "Gillie is filling out as the water clears." },
+  { id: "grown",     days: 30, name: "Grown Gillie",  size: 69, shadow: 38, desc: "A month clean turns Gillie into a full reef friend." },
+  { id: "guardian",  days: 90, name: "Reef Guardian", size: 74, shadow: 42, desc: "Gillie has grown into the guardian of your quit." },
+];
+
 /* Hedged, commonly-reported recovery timeline — not medical claims. */
 const MILESTONES = [
   { id: "m20min", mins: 20,        emoji: "💓", title: "20 minutes",  desc: "Heart rate and blood pressure typically begin settling toward normal." },
@@ -1165,6 +1192,7 @@ const lifetimeCleanMs = () => state.bankedCleanMs + currentStreakMs();
 const bondDays = () => Math.floor(lifetimeCleanMs() / dayMs);
 const costPerMs = () => (state.cost.unitsPerWeek * state.cost.costPerUnit) / (7 * dayMs);
 const stageFor = (ms) => { let s = STAGES[0]; for (const st of STAGES) if (ms >= st.days * dayMs) s = st; return s; };
+const growthFor = (ms) => { let g = GROWTH_STAGES[0]; for (const st of GROWTH_STAGES) if (ms >= st.days * dayMs) g = st; return g; };
 const skinOf = (id) => SKINS.find((s) => s.id === id) || SKINS[0];
 const themeOf = (id) => THEMES.find((t) => t.id === id) || THEMES[0];
 const moneySaved = () => lifetimeCleanMs() * costPerMs();
@@ -1246,6 +1274,7 @@ function axoSVG(skinId, hatId, mood, ns = "main") {
 function renderAxo() {
   const recentSlip = Date.now() - state.justSlippedAt < 6 * 3600000;
   $("#axo-svg").innerHTML = axoSVG(state.skin, state.hat, recentSlip ? "sad" : "happy", "main");
+  $("#axo-svg").dataset.growth = growthFor(currentStreakMs()).id;
 }
 
 /* ============================================================
@@ -1320,8 +1349,11 @@ $$("nav#tabs button").forEach((b) => b.onclick = () => {
 /* ---------- render everything ---------- */
 function renderAll() {
   const stage = stageFor(currentStreakMs());
+  const growth = growthFor(currentStreakMs());
   document.documentElement.style.setProperty("--w1", stage.w1);
   document.documentElement.style.setProperty("--w2", stage.w2);
+  document.documentElement.style.setProperty("--axo-size", growth.size + "%");
+  document.documentElement.style.setProperty("--axo-shadow-width", growth.shadow + "%");
   $("#murk").style.opacity = stage.murk;
   $("#tank").classList.toggle("sunny", stage.sunny);
   $("#tank").classList.toggle("glowing", stage.glow);
@@ -1331,13 +1363,14 @@ function renderAll() {
   $$(".caustic").forEach((c) => c.style.opacity = ((0.18 + clarity * 0.6) * (c.classList.contains("c2") ? 0.7 : 1)).toFixed(2));
   $(".current").style.opacity = (0.22 + clarity * 0.28).toFixed(2);
   $(".surface").style.opacity = (0.76 + clarity * 0.18).toFixed(2);
-  $("#home-stage-name").textContent = stage.name;
+  $("#home-stage-name").textContent = `${stage.name} · ${growth.name}`;
   $("#home-pet-name").textContent = state.petName;
   $("#pearl-balance").textContent = state.pearls;
   $$(".pearl-balance2").forEach((el) => (el.textContent = state.pearls));
-  $("#stage-tag").textContent = `Day ${Math.floor(currentStreakMs() / dayMs)} · ${stage.name}`;
+  $("#stage-tag").textContent = `Day ${Math.floor(currentStreakMs() / dayMs)} · ${growth.name}`;
+  $("#axo-svg").dataset.growth = growth.id;
   $("#stat-cravings").textContent = state.cravings.filter((c) => c.resisted).length;
-  renderSpeech(stage); renderDecor(); renderCheckinCard(); renderCheckinLog(); renderMilestoneList(); renderNextMilestone();
+  renderSpeech(stage); renderDecor(); renderGrowthCard(); renderCheckinCard(); renderCheckinLog(); renderMilestoneList(); renderNextMilestone();
   renderTriggers(); renderShop(); renderSettings();
   applyTheme(); renderGoal(); renderInsights(); renderThemes();
   renderBuddies(); renderBuddyGrid();
@@ -1353,6 +1386,30 @@ function renderSpeech(stage) {
   // stable line per few hours so it doesn't flicker
   const idx = Math.floor(Date.now() / (3 * 3600000)) % pool.length;
   $("#speech").textContent = pool[idx];
+}
+
+function renderGrowthCard() {
+  const ms = currentStreakMs();
+  const growth = growthFor(ms);
+  const next = GROWTH_STAGES.find((g) => ms < g.days * dayMs);
+  $("#growth-name").textContent = growth.name;
+  if (!next) {
+    $("#growth-next").textContent = "Fully grown";
+    $("#growth-bar").style.width = "100%";
+    $("#growth-eta").textContent = growth.desc;
+    return;
+  }
+  const prev = GROWTH_STAGES[GROWTH_STAGES.indexOf(next) - 1] || GROWTH_STAGES[0];
+  const start = prev.days * dayMs;
+  const end = next.days * dayMs;
+  const pct = Math.min(100, Math.max(0, ((ms - start) / (end - start)) * 100));
+  const leftMs = end - ms;
+  const leftDays = Math.ceil(leftMs / dayMs);
+  $("#growth-next").textContent = `Next: ${next.name}`;
+  $("#growth-bar").style.width = pct.toFixed(1) + "%";
+  $("#growth-eta").textContent = leftDays <= 1
+    ? `${next.name} is less than a day away.`
+    : `${leftDays} clean days until ${next.name}.`;
 }
 
 /* ---------- live timer ---------- */
@@ -1516,12 +1573,13 @@ function sparkleBurst() {
 function setAxoDrift(left, top = null) {
   const wrap = $("#axo-wrap"), shadow = $("#axo-shadow");
   if (!wrap || !shadow) return;
+  const growth = growthFor(currentStreakMs());
   wrap.style.left = left + "%";
   shadow.style.left = left + "%";
   if (top !== null) {
     wrap.style.top = top + "%";
     const depth = Math.max(0, Math.min(1, (top - 34) / 18));
-    shadow.style.width = (30 + depth * 12) + "%";
+    shadow.style.setProperty("--axo-shadow-width", (growth.shadow + depth * 6) + "%");
     shadow.style.opacity = (0.38 + depth * 0.38).toFixed(2);
   }
 }
