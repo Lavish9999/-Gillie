@@ -527,6 +527,8 @@ nav#tabs button.on{color:var(--ink)}
 .plan-preview .mini i{width:7px;height:7px;border-radius:50%;background:var(--good);margin-top:5px}
 .plan-preview .tag{background:linear-gradient(120deg,#E7B84B,#D89A2B);color:#fff;
   font-size:10px;font-weight:800;padding:4px 9px;border-radius:99px;letter-spacing:.05em;flex-shrink:0}
+.plan-preview .tag.free{background:rgba(47,156,119,.13);color:var(--good)}
+.plan-preview .upgrade-line{margin-top:10px;padding-top:10px;border-top:1px solid rgba(211,227,222,.9);font-size:12px;font-weight:800;color:var(--ink-faint);line-height:1.35}
 .coach-room .coach-hero{background:linear-gradient(135deg,#173F3A,#0E2C28);color:#fff;border-radius:22px;padding:17px;margin-bottom:14px}
 .coach-room .coach-hero .eyebrow{color:rgba(255,255,255,.62)}
 .coach-room .coach-hero h2{color:#fff;margin:5px 0 6px}
@@ -539,6 +541,7 @@ nav#tabs button.on{color:var(--ink)}
 .today-steps div{background:var(--card);border:1px solid rgba(211,227,222,.9);border-radius:16px;padding:12px 13px;box-shadow:var(--shadow-soft)}
 .today-steps b{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:4px}
 .today-steps span{display:block;font-size:14px;font-weight:750;color:var(--ink);line-height:1.35}
+.today-upgrade-note{background:rgba(223,174,63,.12);border:1px solid rgba(223,174,63,.35);border-radius:16px;padding:12px 13px;margin:-3px 0 14px;font-size:12.5px;font-weight:800;color:var(--ink-soft);line-height:1.35}
 .coach-response{background:var(--card);border-radius:16px;padding:14px;box-shadow:var(--shadow-soft);font-weight:700;color:var(--ink-soft);line-height:1.38}
 .coach-response strong{color:var(--ink)}
 .coach-missions{display:grid;gap:10px}
@@ -675,6 +678,10 @@ nav#tabs button.on{color:var(--ink)}
 .plus-now{display:grid;gap:8px;margin:0 0 14px}
 .plus-now div{background:rgba(255,255,255,.80);border:1px solid rgba(211,227,222,.8);border-radius:15px;padding:11px 12px;font-size:13px;font-weight:750;color:var(--ink-soft);line-height:1.35}
 .plus-now strong{color:var(--ink)}
+.plus-compare{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 14px}
+.plus-compare div{background:rgba(255,255,255,.80);border:1px solid rgba(211,227,222,.85);border-radius:15px;padding:11px 10px;font-size:12.5px;font-weight:750;color:var(--ink-soft);line-height:1.35}
+.plus-compare b{display:block;font-family:var(--font-display);font-size:16px;color:var(--ink);margin-bottom:4px}
+.plus-compare .plus-side{border-color:rgba(223,174,63,.55);box-shadow:0 8px 18px rgba(223,174,63,.10)}
 .plus-perks{
   background:rgba(255,255,255,.88);border-radius:var(--radius-sm);padding:8px 16px;box-shadow:var(--shadow-soft);
   margin-bottom:16px;font-size:14.5px;font-weight:700;line-height:1.48;border:1px solid rgba(255,255,255,.72);
@@ -1044,7 +1051,7 @@ nav#tabs button.on{color:var(--ink)}
     </div><div class="pearl-chip"><span class="pearl-dot"></span><span class="pearl-balance2">0</span></div></div>
     <div class="plus-banner" id="plus-banner">
       <div class="t">Gillie Plus</div>
-      <div class="s">Plan ahead for cravings, find your danger windows, and turn old spending into something real.</div>
+      <div class="s">Free tracks the streak. Plus helps you plan the risky moments before they happen.</div>
       <button id="plus-open">Unlock my quit plan</button>
     </div>
     <div class="section-h" style="margin-top:4px">Tank themes</div>
@@ -1186,6 +1193,7 @@ nav#tabs button.on{color:var(--ink)}
       <div><b>Do now</b><span id="today-move">Protect the next clean stretch.</span></div>
       <div><b>Log later</b><span id="today-log">Check in tonight so tomorrow gets sharper.</span></div>
     </div>
+    <div class="today-upgrade-note" id="today-upgrade-note">Plus turns this quick read into a full daily plan.</div>
     <button class="btn" id="today-checkin-btn">Do today's check-in</button>
     <button class="btn ghost" id="today-coach-btn" style="margin-top:10px">Open Gillie Coach</button>
   </div>
@@ -1259,6 +1267,10 @@ nav#tabs button.on{color:var(--ink)}
       <div><b>Plan</b><span>daily moves</span></div>
       <div><b>Predict</b><span>danger hours</span></div>
       <div><b>Recover</b><span>after slips</span></div>
+    </div>
+    <div class="plus-compare">
+      <div><b>Free</b>Track your streak, check in, use SOS, and protect the next clean minute.</div>
+      <div class="plus-side"><b>Plus</b>Get a plan for danger hours, triggers, slips, savings, and Coach missions.</div>
     </div>
     <div class="plus-now" id="plus-now"></div>
     <div class="plus-perks" id="plus-perks"></div>
@@ -1386,12 +1398,12 @@ const CONFIG = {
     yearlyLabel: "$39.99 / year — best value",
     pearlMultiplier: 2,
     perks: [
-      "Daily quit plan built from your check-ins, cravings, slips, and danger windows",
-      "SOS playbooks for stress, boredom, scrolling, drinking, food, and social pressure",
-      "Danger-hour forecast so you can prepare before the urge gets loud",
-      "Slip recovery coach that turns setbacks into a next-time plan",
+      "A daily quit plan built from your check-ins, cravings, slips, and danger windows",
+      "Trigger playbooks for stress, boredom, scrolling, drinking, food, and social pressure",
+      "Danger-hour forecasts so you can prepare before the urge gets loud",
+      "Slip recovery that turns setbacks into a next-time plan instead of shame",
       "Deeper insights: mood trend, win rate, best streak, trigger patterns, and lessons",
-      "Savings goal that turns old habit spending into something real",
+      "Savings goals that turn old habit spending into something real",
       "Premium tank themes, rare Gillie colors, tank mates, and 2x pearls",
     ],
     // NOTE: purchase buttons are stubs. In the Capacitor build, wire these
@@ -1924,9 +1936,10 @@ function renderTodayPlanPreview() {
   }
   card.className = "plan-preview";
   card.innerHTML = `<div class="eyebrow">Today preview</div>
-    <div class="row"><div class="t">Know the risky moment first</div><span class="tag">PLUS</span></div>
+    <div class="row"><div class="t">Your free next step</div><span class="tag free">FREE</span></div>
     <div class="s">${escapeHTML(forecast)}</div>
-    <div class="mini"><i></i><span>Plus turns this into a daily plan with trigger moves, danger windows, and recovery steps.</span></div>`;
+    <div class="mini"><i></i><span>${escapeHTML(quickMove)}</span></div>
+    <div class="upgrade-line">Plus unlocks the full plan: trigger playbooks, danger windows, slip recovery, and Coach missions.</div>`;
   card.onclick = openTodayPlan;
 }
 
@@ -1969,10 +1982,15 @@ function openTodayPlan() {
   if (!ov) return;
   const { forecast, quickMove, logStep } = buildTodayPlanData();
   const checkedIn = state.checkins.some((c) => c.date === todayKey());
-  $("#today-plan-copy").textContent = "A quick plan for the next clean decision. Coach is the deeper room when you need tools.";
+  $("#today-plan-copy").textContent = state.premium
+    ? "Your fast daily read. Coach is the deeper room when you need tools."
+    : "Free gives you one clear next step. Plus builds the full plan around your patterns.";
   $("#today-watch").textContent = forecast;
   $("#today-move").textContent = quickMove;
   $("#today-log").textContent = logStep;
+  $("#today-upgrade-note").textContent = state.premium
+    ? "Plus active: open Coach when you need playbooks, missions, and review memory."
+    : "Plus adds danger-hour planning, trigger playbooks, slip recovery, and Coach missions.";
   $("#today-checkin-btn").textContent = checkedIn ? "Check-in done today" : "Do today's check-in";
   $("#today-checkin-btn").disabled = checkedIn;
   $("#today-coach-btn").textContent = state.premium ? "Open Gillie Coach" : "Unlock the full Plus plan";
@@ -2064,8 +2082,8 @@ function renderCoachCard() {
     card.className = "coach-card locked";
     card.innerHTML = `<div class="eyebrow">Gillie Coach</div>
       <div class="row"><div class="t">Personal quit plan</div><span class="tag">PLUS</span></div>
-      <div class="s">Daily moves built from your real triggers, danger windows, and check-ins.</div>
-      <div class="coach-list"><div>Unlock your next best move before the urge gets loud.</div></div>`;
+      <div class="s">Free keeps the streak visible. Plus helps you plan the moments that usually break it.</div>
+      <div class="coach-list"><div>Unlock missions, crisis moves, trigger playbooks, and review memory.</div></div>`;
     card.onclick = openPlus;
     return;
   }
@@ -3113,8 +3131,8 @@ function openPlus() {
       : `Your first plan starts with ${profile.name} cues, craving level, and one replacement routine.`;
   $("#plus-now").innerHTML = [
     `<div><strong>Today:</strong> ${escapeHTML(planLine)}</div>`,
-    `<div><strong>This week:</strong> turn slips, cravings, and check-ins into a pattern you can plan around.</div>`,
-    `<div><strong>Motivation:</strong> connect old spending to a savings goal and make the tank feel like yours.</div>`,
+    `<div><strong>When it gets hard:</strong> Coach gives you a specific move instead of another generic tip.</div>`,
+    `<div><strong>Over time:</strong> Gillie turns check-ins, slips, cravings, and savings into a plan that feels personal.</div>`,
   ].join("");
   $("#plus-perks").innerHTML = CONFIG.plus.perks.map((perk) => `<div><span>✓</span><span>${escapeHTML(perk)}</span></div>`).join("");
   $("#plus-yearly").textContent = CONFIG.plus.yearlyLabel;
