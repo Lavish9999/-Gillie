@@ -1889,30 +1889,42 @@ function renderTodayPlanPreview() {
   const danger = dangerWindow();
   const trigger = topTrigger();
   const today = state.checkins.find((c) => c.date === todayKey());
+  const days = Math.floor(currentStreakMs() / dayMs);
   const fallback = currentStreakMs() < 3 * dayMs
-    ? "Early quit days are loud. Plus can turn today into a simple hour-by-hour plan."
-    : "Plus can turn your check-ins and cravings into a daily plan that gets sharper over time.";
-  const prediction = danger
-    ? `${danger.label} is your hottest logged window. Set up water, gum, distance, or movement before then.`
+    ? "Early quit days are loud. Keep the next hour simple and make the old habit harder to reach."
+    : "Your streak is moving. Keep today focused on one clean decision at a time.";
+  const forecast = danger
+    ? `${danger.label} looks like your highest-risk window.`
     : trigger
-      ? `${trigger} shows up most. Plus can build a counter-move before it hits again.`
+      ? `${trigger} is the pattern Gillie is watching.`
       : today
-        ? `${cravingLabel(today.intensity)} today. Plus can protect the next risky window.`
+        ? `${cravingLabel(today.intensity)} today.`
         : fallback;
+  const quickMove = danger
+    ? "Before that window, set up water, gum, distance, or a 5-minute walk."
+    : trigger
+      ? "Put one counter-move in place now so the trigger has less room later."
+      : today
+        ? today.clean
+          ? "Protect the win: log one note tonight so tomorrow starts sharper."
+          : "Reset the next hour: open SOS before the urge gets loud again."
+        : days < 1
+          ? "Start tiny: protect the next 20 minutes and let the timer do the counting."
+          : "Check in tonight so Gillie can spot tomorrow's risk faster.";
   if (state.premium) {
     card.className = "plan-preview";
     card.innerHTML = `<div class="eyebrow">Today's plan</div>
-      <div class="row"><div class="t">Your next best move</div><span class="tag">COACH</span></div>
-      <div class="s">${escapeHTML(prediction)}</div>
-      <div class="mini"><i></i><span>${escapeHTML(buildCoachPlan()[0] || "Open Coach for your full plan.")}</span></div>`;
+      <div class="row"><div class="t">Today's risk read</div><span class="tag">LIVE</span></div>
+      <div class="s">${escapeHTML(forecast)}</div>
+      <div class="mini"><i></i><span>${escapeHTML(quickMove)}</span></div>`;
     card.onclick = () => { $("#coach-response").dataset.touched = ""; $("#coach-overlay").hidden = false; renderCoachRoom(); };
     return;
   }
   card.className = "plan-preview";
   card.innerHTML = `<div class="eyebrow">Today preview</div>
     <div class="row"><div class="t">Know the risky moment first</div><span class="tag">PLUS</span></div>
-    <div class="s">${escapeHTML(prediction)}</div>
-    <div class="mini"><i></i><span>Unlock a daily quit plan, danger-hour forecast, and slip recovery moves.</span></div>`;
+    <div class="s">${escapeHTML(forecast)}</div>
+    <div class="mini"><i></i><span>Plus turns this into a daily plan with trigger moves, danger windows, and recovery steps.</span></div>`;
   card.onclick = openPlus;
 }
 
@@ -2006,12 +2018,15 @@ function renderCoachCard() {
     card.onclick = openPlus;
     return;
   }
-  const plan = buildCoachPlan();
   card.className = "coach-card";
   card.innerHTML = `<div class="eyebrow">Gillie Coach</div>
     <div class="row"><div class="t">Open Coach Room</div><span class="tag">PLUS</span></div>
     <div class="s">Missions, crisis moves, trigger playbooks, and review memory.</div>
-    <div class="coach-list">${plan.map((item) => `<div>${escapeHTML(item)}</div>`).join("")}</div>`;
+    <div class="coach-list">
+      <div>Run today's mission and mark the quit move you completed.</div>
+      <div>Open a trigger playbook when stress, boredom, food, or scrolling hits.</div>
+      <div>Review patterns from cravings, slips, check-ins, and wins.</div>
+    </div>`;
   card.onclick = openCoachRoom;
 }
 
