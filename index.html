@@ -1,0 +1,1935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Gillie — Quit Vaping</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   GILLIE — design tokens
+   Aquarium-glass palette: mist, deep-sea teal ink, axolotl coral.
+   ============================================================ */
+:root{
+  --bg:#E8F2EF;
+  --bg-deep:#DCEAE6;
+  --ink:#11332F;
+  --ink-soft:#48645E;
+  --ink-faint:#7E958F;
+  --card:#FFFFFF;
+  --card-glass:rgba(255,255,255,.72);
+  --line:#D3E3DE;
+  --axo-skin:#FFAEBB;
+  --axo-belly:#FFD6DD;
+  --axo-cheek:#F693A6;
+  --coral:#F2708A;
+  --coral-deep:#E2536F;
+  --gold:#DFAE3F;
+  --good:#2F9C77;
+  --murk-color:92,122,114;
+  --w1:#8FBDB2; /* water top — set by JS per stage */
+  --w2:#5E978C; /* water bottom */
+  --sand:#EDDDBC;
+  --radius:24px;
+  --radius-sm:16px;
+  --shadow:0 10px 30px rgba(17,51,47,.10);
+  --shadow-soft:0 4px 14px rgba(17,51,47,.08);
+  --font-display:"Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --font-body:"Figtree", -apple-system, "Helvetica Neue", system-ui, sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{height:100%}
+body{
+  font-family:var(--font-body);
+  background:var(--bg);
+  color:var(--ink);
+  min-height:100dvh;
+  line-height:1.45;
+  -webkit-font-smoothing:antialiased;
+}
+button{font-family:inherit;border:none;background:none;color:inherit;cursor:pointer}
+input,select{font-family:inherit;font-size:16px}
+[hidden]{display:none !important}
+
+#app{
+  max-width:440px;margin:0 auto;min-height:100dvh;position:relative;
+  background:var(--bg);
+  display:flex;flex-direction:column;
+}
+
+/* ---------- shared bits ---------- */
+.h-display{font-family:var(--font-display);font-weight:700;letter-spacing:-.01em;line-height:1.12}
+.btn{
+  display:block;width:100%;padding:16px 20px;border-radius:999px;
+  font-weight:700;font-size:17px;text-align:center;
+  background:var(--ink);color:#fff;transition:transform .12s ease, opacity .2s;
+}
+.btn:active{transform:scale(.97)}
+.btn.coral{background:var(--coral-deep)}
+.btn.ghost{background:transparent;color:var(--ink-soft);font-weight:600;box-shadow:inset 0 0 0 1.5px var(--line)}
+.btn.small{padding:11px 18px;font-size:15px;width:auto;display:inline-block}
+.btn:disabled{opacity:.35;pointer-events:none}
+.eyebrow{
+  font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--ink-faint);
+}
+.pearl-chip{
+  display:inline-flex;align-items:center;gap:6px;font-weight:800;font-size:14px;
+  background:var(--card);border-radius:999px;padding:7px 13px;box-shadow:var(--shadow-soft);
+}
+.pearl-dot{width:12px;height:12px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%, #fff 0 25%, #F3E3C0 55%, var(--gold));
+  box-shadow:0 1px 2px rgba(0,0,0,.15)}
+
+/* ---------- onboarding ---------- */
+#onboarding{flex:1;display:flex;flex-direction:column;padding:max(24px, env(safe-area-inset-top)) 24px 32px}
+.ob-step{flex:1;display:flex;flex-direction:column;animation:fadeUp .4s ease both}
+.ob-dots{display:flex;gap:6px;justify-content:center;margin-bottom:26px}
+.ob-dots i{width:7px;height:7px;border-radius:50%;background:var(--line);transition:all .3s}
+.ob-dots i.on{background:var(--ink);width:20px;border-radius:99px}
+.ob-title{font-size:32px;margin-bottom:10px}
+.ob-sub{color:var(--ink-soft);font-size:16.5px;margin-bottom:26px}
+.ob-body{flex:1}
+.ob-foot{margin-top:24px}
+.ob-hero{display:flex;justify-content:center;margin:18px 0 26px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+.field{margin-bottom:18px}
+.field label{display:block;font-weight:700;font-size:14.5px;margin-bottom:8px}
+.field .hint{font-weight:500;color:var(--ink-faint);font-size:13px;margin-top:6px}
+.field input[type=text],.field input[type=number],.field select{
+  width:100%;padding:15px 16px;border-radius:var(--radius-sm);
+  border:1.5px solid var(--line);background:var(--card);color:var(--ink);
+  font-weight:600;outline:none;
+}
+.field input:focus,.field select:focus{border-color:var(--ink)}
+.seg{display:flex;background:var(--card);border-radius:var(--radius-sm);padding:5px;border:1.5px solid var(--line)}
+.seg button{flex:1;padding:11px;border-radius:12px;font-weight:700;font-size:14.5px;color:var(--ink-faint)}
+.seg button.on{background:var(--ink);color:#fff}
+.chips{display:flex;flex-wrap:wrap;gap:10px}
+.chips button{
+  padding:11px 16px;border-radius:999px;background:var(--card);
+  border:1.5px solid var(--line);font-weight:700;font-size:14.5px;color:var(--ink-soft);
+  transition:all .15s;
+}
+.chips button.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.skin-row{display:flex;gap:14px;justify-content:center;margin-top:8px}
+.skin-swatch{width:56px;height:56px;border-radius:50%;position:relative;border:3px solid transparent;transition:all .15s}
+.skin-swatch.on{border-color:var(--ink);transform:scale(1.08)}
+.skin-swatch .lock{position:absolute;right:-4px;bottom:-4px;background:var(--ink);color:#fff;
+  font-size:10px;border-radius:99px;padding:3px 7px;font-weight:800}
+
+.egg-wrap{position:relative;animation:eggRock 2.6s ease-in-out infinite;transform-origin:50% 90%}
+@keyframes eggRock{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(4deg)}}
+
+/* ---------- main shell ---------- */
+#main{flex:1;display:flex;flex-direction:column;min-height:100dvh}
+.view{flex:1;overflow-y:auto;padding:max(16px, env(safe-area-inset-top)) 18px 130px;animation:fadeUp .3s ease both}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.topbar .who .eyebrow{margin-bottom:2px}
+.topbar .who .name{font-family:var(--font-display);font-weight:800;font-size:22px;line-height:1}
+
+/* ---------- the tank (signature element) ---------- */
+.tank{
+  position:relative;border-radius:28px;overflow:hidden;
+  aspect-ratio:1/1.06;box-shadow:var(--shadow), inset 0 0 0 1px rgba(255,255,255,.35);
+  background:linear-gradient(180deg,var(--w1),var(--w2) 78%,var(--sand) 78.5%);
+  transition:background 1.2s ease;
+}
+.tank::after{ /* glass sheen */
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:
+    linear-gradient(115deg, rgba(255,255,255,.30) 0%, rgba(255,255,255,0) 22%),
+    linear-gradient(295deg, rgba(255,255,255,.14) 0%, rgba(255,255,255,0) 18%);
+}
+.murk{
+  position:absolute;inset:0;pointer-events:none;z-index:3;
+  background:
+    radial-gradient(120% 90% at 50% 20%, rgba(var(--murk-color),.55), rgba(var(--murk-color),.9));
+  opacity:.55;transition:opacity 1.6s ease;
+  mix-blend-mode:multiply;
+}
+.sun-shafts{position:absolute;inset:0;z-index:1;pointer-events:none;opacity:0;transition:opacity 2s;
+  transform-origin:50% 0%;animation:shaftSway 14s ease-in-out infinite;
+  background:
+   linear-gradient(100deg, transparent 30%, rgba(255,255,240,.22) 33%, transparent 37%),
+   linear-gradient(100deg, transparent 55%, rgba(255,255,240,.16) 58%, transparent 63%);
+}
+@keyframes shaftSway{0%,100%{transform:skewX(0deg)}50%{transform:skewX(-3.5deg)}}
+.tank.sunny .sun-shafts{opacity:1}
+/* AnimatedWaterLayer: parallax reef silhouettes + slow horizontal current */
+.reef-bg{position:absolute;left:-6%;right:-6%;bottom:14%;height:44%;z-index:0;pointer-events:none;
+  filter:blur(6px);opacity:.3;animation:reefSway 18s ease-in-out infinite}
+@keyframes reefSway{0%,100%{transform:translateX(0)}50%{transform:translateX(-14px)}}
+.current{position:absolute;inset:0 -90px 0 0;z-index:1;pointer-events:none;opacity:.35;filter:blur(12px);
+  background:repeating-linear-gradient(88deg, transparent 0 70px, rgba(255,255,255,.14) 70px 130px);
+  animation:currentDrift 16s linear infinite}
+@keyframes currentDrift{to{transform:translateX(130px)}}
+.sand-tex{position:absolute;left:0;right:0;bottom:0;height:22.5%;z-index:1;pointer-events:none;
+  background:
+    radial-gradient(ellipse 60% 26% at 30% 12%, rgba(255,255,255,.30), transparent 70%),
+    radial-gradient(circle 2px at 18% 45%, rgba(120,100,70,.28) 40%, transparent 55%),
+    radial-gradient(circle 2px at 44% 70%, rgba(120,100,70,.22) 40%, transparent 55%),
+    radial-gradient(circle 2.5px at 66% 40%, rgba(120,100,70,.26) 40%, transparent 55%),
+    radial-gradient(circle 2px at 84% 62%, rgba(120,100,70,.22) 40%, transparent 55%),
+    radial-gradient(circle 1.6px at 30% 82%, rgba(120,100,70,.2) 40%, transparent 55%)}
+.sparkle{position:absolute;z-index:2;pointer-events:none;color:#fff;font-size:11px;
+  text-shadow:0 0 8px rgba(255,255,255,.9);animation:twinkle ease-in-out infinite}
+@keyframes twinkle{0%,100%{opacity:.1;transform:scale(.7)}50%{opacity:.85;transform:scale(1.15)}}
+.burst-spark{position:absolute;z-index:5;pointer-events:none;color:#FFE9A8;font-size:13px;
+  text-shadow:0 0 8px rgba(255,230,150,.9);animation:sparkFly .9s ease-out forwards}
+@keyframes sparkFly{
+  0%{transform:translate(0,0) scale(.5);opacity:0}
+  20%{opacity:1}
+  100%{transform:translate(var(--sx,20px),var(--sy,-34px)) scale(1.1);opacity:0}}
+.stage-tag{
+  position:absolute;top:14px;left:14px;z-index:5;
+  background:rgba(9,38,34,.45);backdrop-filter:blur(6px);color:#fff;
+  font-size:12.5px;font-weight:700;padding:7px 13px;border-radius:999px;letter-spacing:.02em;
+}
+.bubble{
+  position:absolute;bottom:16%;z-index:2;pointer-events:none;
+  animation:rise linear forwards;
+}
+.bubble i{
+  display:block;width:100%;height:100%;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%, rgba(255,255,255,.95), rgba(255,255,255,.2) 55%, rgba(255,255,255,.04));
+  box-shadow:inset -1px -2px 3px rgba(255,255,255,.35);
+  animation:wobble 1.5s ease-in-out infinite alternate;
+}
+@keyframes rise{
+  0%{transform:translateY(0);opacity:0}
+  10%{opacity:.9}
+  100%{transform:translateY(-46vh);opacity:0}
+}
+@keyframes wobble{from{transform:translateX(-4px)}to{transform:translateX(4px)}}
+.caustic{position:absolute;inset:-22%;z-index:1;pointer-events:none;mix-blend-mode:overlay;filter:blur(5px)}
+.caustic.c1{
+  background-image:radial-gradient(circle, rgba(255,255,255,.6) 0 10px, transparent 36px);
+  background-size:112px 92px;animation:causticMove1 12s linear infinite;
+}
+.caustic.c2{
+  background-image:radial-gradient(circle, rgba(255,255,255,.45) 0 7px, transparent 27px);
+  background-size:76px 62px;animation:causticMove2 8s linear infinite;
+}
+@keyframes causticMove1{to{transform:translate(112px,92px)}}
+@keyframes causticMove2{to{transform:translate(-76px,62px)}}
+.surface{position:absolute;top:0;left:0;right:0;height:13%;z-index:2;pointer-events:none;overflow:hidden;
+  background:linear-gradient(180deg, rgba(255,255,255,.38), transparent)}
+.surface::before{content:"";position:absolute;inset:0 -80px 0 0;
+  background:repeating-linear-gradient(94deg, transparent 0 34px, rgba(255,255,255,.3) 34px 66px);
+  filter:blur(9px);opacity:.55;animation:surfaceSlide 7s linear infinite}
+@keyframes surfaceSlide{to{transform:translateX(66px)}}
+.depth{position:absolute;inset:0;z-index:2;pointer-events:none;
+  background:linear-gradient(180deg, transparent 52%, rgba(9,38,33,.28) 100%)}
+.mote{position:absolute;border-radius:50%;background:rgba(255,255,255,.55);z-index:2;pointer-events:none;
+  animation:moteDrift linear infinite}
+@keyframes moteDrift{
+  0%{transform:translate(0,0);opacity:0}
+  15%{opacity:.7}
+  85%{opacity:.45}
+  100%{transform:translate(var(--mx,20px),var(--my,-40px));opacity:0}
+}
+#axo-shadow{position:absolute;left:50%;bottom:15.5%;width:36%;height:15px;border-radius:50%;z-index:2;pointer-events:none;
+  background:radial-gradient(ellipse, rgba(9,38,33,.32), transparent 70%);
+  animation:shadowPulse 4.8s ease-in-out infinite}
+@keyframes shadowPulse{
+  0%,100%{transform:translateX(-50%) scale(1);opacity:.85}
+  50%{transform:translateX(-50%) scale(.8);opacity:.45}
+}
+.plant{position:absolute;bottom:14%;z-index:2;transform-origin:50% 100%;opacity:0;transition:opacity 1.5s}
+.plant.show{opacity:1;animation:sway 5.5s ease-in-out infinite}
+.plant.p2{animation-delay:-2.2s}
+.plant.p3{animation-delay:-3.8s}
+@keyframes sway{0%,100%{transform:rotate(-3.5deg)}50%{transform:rotate(3.5deg)}}
+.decor-item{position:absolute;z-index:2;bottom:9%}
+
+#axo-wrap{
+  position:absolute;left:50%;top:44%;z-index:4;width:62%;
+  transform:translate(-50%,-50%);
+  animation:float 4.8s ease-in-out infinite;
+  transition:left 3.8s ease-in-out;
+}
+@keyframes float{0%,100%{transform:translate(-50%,-52%)}50%{transform:translate(-50%,-46%)}}
+#axo-svg{display:block;transition:transform .7s ease}
+#axo-svg.flip{transform:scaleX(-1)}
+#axo-svg.swim{transform:rotate(-5deg)}
+#axo-svg.flip.swim{transform:scaleX(-1) rotate(-5deg)}
+#axo-svg.swim .axo-tail{animation-duration:1.5s}
+#axo-svg.celebrate{animation:celebrate .95s cubic-bezier(.35,.8,.35,1)}
+#axo-svg.tapjoy{animation:tapBounce .7s cubic-bezier(.35,.9,.4,1)}
+@keyframes tapBounce{
+  0%{transform:scale(1,1)}
+  30%{transform:scale(1.12,.86)}
+  60%{transform:scale(.93,1.1)}
+  100%{transform:scale(1,1)}
+}
+@keyframes celebrate{
+  0%{transform:rotate(0) scale(1)}
+  35%{transform:rotate(150deg) scale(1.1)}
+  100%{transform:rotate(360deg) scale(1)}
+}
+.axo-leg{transform-origin:70% 20%;animation:legFlutter 2.2s ease-in-out infinite}
+@keyframes legFlutter{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(5deg)}}
+.axo-mouth{transform-origin:50% 50%;animation:mouthPlay 6.5s ease-in-out infinite}
+@keyframes mouthPlay{0%,88%,100%{transform:scale(1)}93%{transform:scale(1.08,1.12)}}
+.axo-tail{transform-origin:62% 62%;animation:tailSwish 3.4s ease-in-out infinite}
+@keyframes tailSwish{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(7deg)}}
+.axo-core{transform-origin:50% 80%;animation:breathe 3.9s ease-in-out infinite}
+@keyframes breathe{0%,100%{transform:scale(1,1)}50%{transform:scale(1.014,1.045)}}
+.gill{transform-origin:100% 50%;animation:gillWave 2.8s ease-in-out infinite}
+.gill.r{transform-origin:0% 50%}
+.gill.g2{animation-delay:-.5s}.gill.g3{animation-delay:-1s}
+@keyframes gillWave{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(7deg)}}
+.axo-eye{animation:blink 5.2s infinite;transform-origin:center 62%}
+@keyframes blink{0%,94%,100%{transform:scaleY(1)}96.5%{transform:scaleY(.08)}}
+#axo-glow{opacity:0;transition:opacity 2s}
+.tank.glowing #axo-glow{opacity:.5}
+#buddy-layer .buddy{position:absolute;width:32%;z-index:3;animation:floatB 5.8s ease-in-out infinite}
+#buddy-layer .buddy.b1{left:8%;top:22%}
+#buddy-layer .buddy.b2{right:6%;top:52%;animation-delay:-2.9s}
+#buddy-layer .buddy svg.flip{transform:scaleX(-1)}
+@keyframes floatB{0%,100%{transform:translateY(0)}50%{transform:translateY(9px)}}
+.decor-item.jelly-float{bottom:auto;top:16%;animation:jellyBob 6.5s ease-in-out infinite}
+@keyframes jellyBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-16px)}}
+.jelly-tent{animation:tentWave 2.6s ease-in-out infinite;transform-origin:50% 0%}
+.jelly-tent.t2{animation-delay:-.9s}.jelly-tent.t3{animation-delay:-1.7s}
+@keyframes tentWave{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(6deg)}}
+.volc-bubble{animation:volcRise 2.4s ease-in infinite;opacity:0}
+.volc-bubble.v2{animation-delay:-.8s}.volc-bubble.v3{animation-delay:-1.6s}
+@keyframes volcRise{0%{transform:translateY(0);opacity:0}15%{opacity:.9}100%{transform:translateY(-52px);opacity:0}}
+.coral-glow{animation:coralPulse 3.5s ease-in-out infinite}
+@keyframes coralPulse{0%,100%{opacity:.35}50%{opacity:.7}}
+.speech{
+  position:absolute;left:50%;bottom:6%;transform:translateX(-50%);z-index:6;width:86%;
+  background:rgba(255,255,255,.92);backdrop-filter:blur(4px);
+  border-radius:16px;padding:11px 14px;font-size:14px;font-weight:600;color:var(--ink);
+  text-align:center;box-shadow:var(--shadow-soft);
+}
+
+/* ---------- home stats ---------- */
+.streak-block{text-align:center;margin:22px 0 6px}
+.streak-time{
+  font-family:var(--font-display);font-weight:800;font-size:clamp(34px,10vw,44px);
+  letter-spacing:.01em;font-variant-numeric:tabular-nums;line-height:1;
+}
+.streak-time .u{font-size:.42em;font-weight:700;color:var(--ink-faint);margin:0 6px 0 2px}
+.streak-label{color:var(--ink-soft);font-weight:600;font-size:14.5px;margin-top:7px}
+.stat-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:18px}
+.stat-card{
+  background:var(--card);border-radius:var(--radius-sm);padding:14px 12px;text-align:center;
+  box-shadow:var(--shadow-soft);
+}
+.stat-card .v{font-family:var(--font-display);font-weight:800;font-size:21px;font-variant-numeric:tabular-nums}
+.stat-card .k{font-size:12px;font-weight:700;color:var(--ink-faint);margin-top:3px}
+.checkin-card{
+  margin-top:16px;background:linear-gradient(120deg,#173F3A,#0E2C28);color:#fff;
+  border-radius:var(--radius);padding:18px;display:flex;align-items:center;gap:14px;
+  box-shadow:var(--shadow);
+}
+.checkin-card .t{font-weight:800;font-size:16.5px}
+.checkin-card .s{opacity:.75;font-size:13.5px;margin-top:2px}
+.checkin-card button{margin-left:auto;background:#fff;color:var(--ink);border-radius:999px;
+  padding:11px 18px;font-weight:800;font-size:14px;flex-shrink:0}
+.next-milestone{
+  margin-top:14px;background:var(--card);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow-soft);
+}
+.next-milestone .bar{height:8px;border-radius:99px;background:var(--bg-deep);margin-top:10px;overflow:hidden}
+.next-milestone .bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--good),#4FC79E);transition:width .8s ease}
+
+/* ---------- SOS button + nav ---------- */
+#sos-fab{
+  position:fixed;left:50%;transform:translateX(-50%);bottom:calc(86px + env(safe-area-inset-bottom));
+  z-index:40;background:var(--coral-deep);color:#fff;font-weight:800;font-size:16px;
+  padding:15px 30px;border-radius:999px;box-shadow:0 12px 28px rgba(226,83,111,.45);
+  display:flex;align-items:center;gap:9px;
+  animation:pulse 2.6s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{box-shadow:0 12px 28px rgba(226,83,111,.45)}50%{box-shadow:0 12px 38px rgba(226,83,111,.7)}}
+nav#tabs{
+  position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:100%;max-width:440px;z-index:39;
+  background:rgba(255,255,255,.88);backdrop-filter:blur(14px);
+  border-top:1px solid var(--line);
+  display:flex;padding:8px 6px calc(8px + env(safe-area-inset-bottom));
+}
+nav#tabs button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+  font-size:11px;font-weight:700;color:var(--ink-faint);padding:6px 0}
+nav#tabs button svg{width:23px;height:23px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+nav#tabs button.on{color:var(--ink)}
+
+/* ---------- progress view ---------- */
+.section-h{font-size:20px;margin:22px 0 12px;font-family:var(--font-display);font-weight:800}
+.ms-card{
+  background:var(--card);border-radius:var(--radius-sm);padding:15px 16px;margin-bottom:10px;
+  display:flex;gap:13px;align-items:flex-start;box-shadow:var(--shadow-soft);
+}
+.ms-card.locked{opacity:.55;box-shadow:none;background:transparent;border:1.5px dashed var(--line)}
+.ms-badge{
+  width:42px;height:42px;border-radius:14px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  font-size:20px;background:var(--bg-deep);
+}
+.ms-card.done .ms-badge{background:linear-gradient(135deg,#3FBF8F,#2F9C77);color:#fff}
+.ms-card .t{font-weight:800;font-size:15px}
+.ms-card .d{font-size:13.5px;color:var(--ink-soft);margin-top:2px}
+.ms-card .when{font-size:12px;color:var(--ink-faint);font-weight:700;margin-top:5px}
+.trig-row{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.trig-row .n{width:96px;font-size:13.5px;font-weight:700;color:var(--ink-soft);flex-shrink:0}
+.trig-row .bar{flex:1;height:12px;background:var(--bg-deep);border-radius:99px;overflow:hidden}
+.trig-row .bar i{display:block;height:100%;background:var(--coral);border-radius:99px}
+.trig-row .c{font-size:13px;font-weight:800;width:24px;text-align:right}
+
+/* ---------- reef shop ---------- */
+.shop-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.shop-card{background:var(--card);border-radius:var(--radius-sm);padding:14px;box-shadow:var(--shadow-soft);text-align:center;position:relative}
+.shop-card .art{height:70px;display:flex;align-items:center;justify-content:center;margin-bottom:8px}
+.shop-card .t{font-weight:800;font-size:14px}
+.shop-card .price{display:flex;align-items:center;justify-content:center;gap:5px;font-weight:800;font-size:13px;color:var(--ink-soft);margin:4px 0 10px}
+.shop-card .req{font-size:11.5px;color:var(--ink-faint);font-weight:700;margin-top:-6px;margin-bottom:8px}
+.shop-card button{width:100%;padding:9px;border-radius:999px;font-weight:800;font-size:13px;background:var(--ink);color:#fff}
+.shop-card button.owned{background:var(--bg-deep);color:var(--ink)}
+.shop-card button.equipped{background:var(--good);color:#fff}
+.shop-card .plus-tag{position:absolute;top:10px;right:10px;background:linear-gradient(120deg,#E7B84B,#D89A2B);
+  color:#fff;font-size:10px;font-weight:800;padding:4px 8px;border-radius:99px;letter-spacing:.05em}
+.plus-banner{
+  background:linear-gradient(120deg,#183F3A,#0D2A26);border-radius:var(--radius);color:#fff;
+  padding:20px;margin-bottom:18px;box-shadow:var(--shadow);position:relative;overflow:hidden;
+}
+.plus-banner .t{font-family:var(--font-display);font-weight:800;font-size:20px}
+.plus-banner .s{opacity:.8;font-size:13.5px;margin:6px 0 14px}
+.plus-banner button{background:var(--gold);color:#1E1503;font-weight:800;border-radius:999px;padding:11px 20px;font-size:14px}
+
+/* ---------- goal, insights, themes (Plus) ---------- */
+.goal-card{
+  margin-top:14px;background:var(--card);border-radius:var(--radius);padding:16px 18px;
+  box-shadow:var(--shadow-soft);width:100%;text-align:left;display:block;
+}
+.goal-card .row{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-top:5px}
+.goal-card .gn{font-weight:800;font-size:15.5px}
+.goal-card .gv{font-weight:800;font-size:13.5px;color:var(--good);font-variant-numeric:tabular-nums;flex-shrink:0}
+.goal-card .bar{height:9px;border-radius:99px;background:var(--bg-deep);margin-top:10px;overflow:hidden}
+.goal-card .bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--gold),#F2CB6B);transition:width .8s ease}
+.goal-card .eta{font-size:12.5px;color:var(--ink-faint);font-weight:700;margin-top:7px}
+.locked-teaser{
+  display:flex;align-items:center;gap:12px;width:100%;text-align:left;
+  border:1.5px dashed var(--line);border-radius:var(--radius);padding:15px 16px;color:var(--ink-soft);
+}
+.locked-teaser .ic{font-size:20px}
+.locked-teaser .t{font-weight:800;font-size:14.5px;color:var(--ink)}
+.locked-teaser .s{font-size:12.5px;color:var(--ink-faint);font-weight:600}
+.locked-teaser .tag{margin-left:auto;background:linear-gradient(120deg,#E7B84B,#D89A2B);color:#fff;
+  font-size:10px;font-weight:800;padding:4px 9px;border-radius:99px;letter-spacing:.05em;flex-shrink:0}
+.insights{background:var(--card);border-radius:var(--radius-sm);padding:16px;box-shadow:var(--shadow-soft)}
+.insights .kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.insights .kpi{background:var(--bg);border-radius:12px;padding:11px 12px}
+.insights .kpi .v{font-family:var(--font-display);font-weight:800;font-size:18px}
+.insights .kpi .k{font-size:11.5px;font-weight:700;color:var(--ink-faint);margin-top:2px}
+.insights .sub-h{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);margin:14px 0 9px}
+.hour-bars{display:flex;align-items:flex-end;gap:6px;height:70px}
+.hour-bars .hb{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;height:100%;justify-content:flex-end}
+.hour-bars .hb i{width:100%;border-radius:6px 6px 3px 3px;background:var(--coral);min-height:3px}
+.hour-bars .hb.hot i{background:var(--coral-deep)}
+.hour-bars .hb b{font-size:9.5px;font-weight:700;color:var(--ink-faint);white-space:nowrap}
+.mood-bars{display:flex;align-items:flex-end;gap:4px;height:52px}
+.mood-bars i{flex:1;border-radius:5px 5px 2px 2px;background:linear-gradient(180deg,#4FC79E,var(--good));min-height:4px}
+.theme-row{display:flex;gap:10px;overflow-x:auto;padding:2px 2px 6px;scrollbar-width:none}
+.theme-chip{flex-shrink:0;width:96px;background:var(--card);border-radius:var(--radius-sm);padding:10px;
+  text-align:center;box-shadow:var(--shadow-soft);border:2px solid transparent;position:relative}
+.theme-chip.on{border-color:var(--ink)}
+.theme-chip .swatch{height:44px;border-radius:10px;margin-bottom:7px;background:linear-gradient(180deg,var(--w1),var(--w2))}
+.theme-chip .t{font-size:11.5px;font-weight:800}
+.theme-chip .plus-tag{position:absolute;top:6px;right:6px;background:linear-gradient(120deg,#E7B84B,#D89A2B);
+  color:#fff;font-size:9px;font-weight:800;padding:3px 7px;border-radius:99px}
+.theme-tint{position:absolute;inset:0;z-index:2;pointer-events:none;transition:opacity 1s}
+.buddy-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.buddy-card{background:var(--card);border-radius:var(--radius-sm);padding:14px;box-shadow:var(--shadow-soft);
+  text-align:center;position:relative}
+.buddy-card .art{height:64px;display:flex;align-items:center;justify-content:center;margin-bottom:6px}
+.buddy-card .t{font-weight:800;font-size:14px}
+.buddy-card .s{font-size:11.5px;color:var(--ink-faint);font-weight:700;margin-top:2px}
+.buddy-card.add{border:1.5px dashed var(--line);background:transparent;box-shadow:none;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:120px;color:var(--ink-soft)}
+.buddy-card.add .plus-ic{font-size:26px}
+
+/* ---------- settings ---------- */
+.set-group{background:var(--card);border-radius:var(--radius-sm);box-shadow:var(--shadow-soft);margin-bottom:16px;overflow:hidden}
+.set-row{display:flex;align-items:center;gap:12px;padding:16px;border-bottom:1px solid var(--bg-deep);width:100%;text-align:left}
+.set-row:last-child{border-bottom:none}
+.set-row .t{font-weight:700;font-size:15px;flex:1}
+.set-row .v{color:var(--ink-faint);font-weight:600;font-size:14px}
+.set-row.danger .t{color:var(--coral-deep)}
+
+/* ---------- overlays ---------- */
+.overlay{
+  position:fixed;inset:0;z-index:60;display:flex;align-items:flex-end;justify-content:center;
+  background:rgba(10,30,27,.5);backdrop-filter:blur(3px);animation:fadeIn .25s ease both;
+}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.sheet{
+  width:100%;max-width:440px;background:var(--bg);border-radius:28px 28px 0 0;
+  padding:12px 22px calc(28px + env(safe-area-inset-bottom));max-height:92dvh;overflow-y:auto;
+  animation:slideUp .35s cubic-bezier(.2,.9,.3,1) both;
+}
+@keyframes slideUp{from{transform:translateY(60px);opacity:0}to{transform:none;opacity:1}}
+.sheet .grab{width:40px;height:5px;border-radius:99px;background:var(--line);margin:0 auto 18px}
+.sheet h2{font-family:var(--font-display);font-weight:800;font-size:24px;margin-bottom:8px}
+.sheet .sub{color:var(--ink-soft);font-size:15px;margin-bottom:20px}
+.mood-row{display:flex;justify-content:space-between;margin:6px 0 22px}
+.mood-row button{font-size:34px;padding:8px;border-radius:16px;filter:grayscale(.75);opacity:.6;transition:all .15s;transform:scale(.92)}
+.mood-row button.on{filter:none;opacity:1;transform:scale(1.12);background:var(--card);box-shadow:var(--shadow-soft)}
+
+/* SOS breathing */
+#sos-overlay{align-items:center;background:linear-gradient(180deg,#0E2C28,#123A35)}
+.sos-box{text-align:center;color:#fff;padding:24px;width:100%;max-width:440px}
+.breath-ring{
+  width:230px;height:230px;margin:26px auto;border-radius:50%;position:relative;
+  display:flex;align-items:center;justify-content:center;
+}
+.breath-ring::before{
+  content:"";position:absolute;inset:0;border-radius:50%;
+  background:radial-gradient(circle, rgba(255,174,187,.35), rgba(255,174,187,.06) 70%);
+  transform:scale(var(--breath,.7));transition:transform 3.6s cubic-bezier(.4,0,.4,1);
+}
+.breath-ring svg{width:120px;position:relative;z-index:2}
+#breath-phase{font-family:var(--font-display);font-weight:800;font-size:26px;min-height:34px}
+#breath-count{font-size:15px;opacity:.7;margin-top:6px;min-height:20px}
+.sos-reasons{margin:18px 0;font-size:14.5px;opacity:.85;line-height:1.7}
+.sos-actions{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+.sos-actions .btn{background:#fff;color:var(--ink)}
+.sos-actions .btn.ghost{background:transparent;color:rgba(255,255,255,.75);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.25)}
+
+/* milestone toast */
+#toast{
+  position:fixed;top:calc(14px + env(safe-area-inset-top));left:50%;transform:translateX(-50%) translateY(-140%);
+  z-index:80;background:var(--ink);color:#fff;border-radius:18px;padding:14px 20px;
+  font-weight:700;font-size:14.5px;box-shadow:var(--shadow);width:calc(100% - 40px);max-width:400px;
+  transition:transform .45s cubic-bezier(.2,.9,.3,1);display:flex;gap:12px;align-items:center;
+}
+#toast.show{transform:translateX(-50%) translateY(0)}
+#toast .em{font-size:22px}
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.001s !important;animation-iteration-count:1 !important;transition-duration:.001s !important}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- ================= ONBOARDING ================= -->
+<section id="onboarding">
+  <div class="ob-dots" id="ob-dots"></div>
+
+  <!-- step 1: hook -->
+  <div class="ob-step" data-step="0">
+    <div class="ob-body">
+      <div class="ob-hero">
+        <div class="egg-wrap">
+          <svg width="150" height="180" viewBox="0 0 150 180">
+            <ellipse cx="75" cy="100" rx="58" ry="72" fill="#FFEFF2" stroke="#F4C3CC" stroke-width="3"/>
+            <path d="M40 78 q10 -12 20 0 q10 12 20 0 q10 -12 20 0 q8 10 16 2" fill="none" stroke="#F4C3CC" stroke-width="3" stroke-linecap="round"/>
+            <circle cx="55" cy="120" r="5" fill="#F4C3CC"/><circle cx="92" cy="132" r="4" fill="#F4C3CC"/>
+          </svg>
+        </div>
+      </div>
+      <h1 class="ob-title h-display">Someone small<br>needs your help.</h1>
+      <p class="ob-sub">Inside this egg is an axolotl — a little creature that can regrow almost any part of itself. It heals. So do you. Every hour you stay off nicotine, its water gets clearer.</p>
+    </div>
+    <div class="ob-foot"><button class="btn" data-next>Meet them</button></div>
+  </div>
+
+  <!-- step 2: usage -->
+  <div class="ob-step" data-step="1" hidden>
+    <div class="ob-body">
+      <h1 class="ob-title h-display">Your vape, honestly.</h1>
+      <p class="ob-sub">No judgment — this just calibrates your savings and progress. Rough guesses are fine.</p>
+      <div class="field">
+        <label>What do you use?</label>
+        <div class="seg" id="ob-style">
+          <button data-v="disposables" class="on">Disposables</button>
+          <button data-v="pods">Pod kit</button>
+        </div>
+      </div>
+      <div class="field">
+        <label id="ob-units-label">Disposables per week</label>
+        <input type="number" id="ob-units" inputmode="decimal" value="2" min="0.1" step="0.5">
+      </div>
+      <div class="field">
+        <label id="ob-cost-label">Cost per disposable ($)</label>
+        <input type="number" id="ob-cost" inputmode="decimal" value="15" min="0.5" step="0.5">
+      </div>
+      <div class="field">
+        <label>Puffs on a typical day</label>
+        <input type="number" id="ob-puffs" inputmode="numeric" value="200" min="10" step="10">
+        <div class="hint">Most people underestimate. A heavy day on a disposable can be 300–600.</div>
+      </div>
+    </div>
+    <div class="ob-foot"><button class="btn" data-next>Next</button></div>
+  </div>
+
+  <!-- step 3: reasons -->
+  <div class="ob-step" data-step="2" hidden>
+    <div class="ob-body">
+      <h1 class="ob-title h-display">Why are you quitting?</h1>
+      <p class="ob-sub">Pick everything that's true. We'll show these back to you when a craving hits hard.</p>
+      <div class="chips" id="ob-reasons">
+        <button data-v="My health">My health</button>
+        <button data-v="Money">Money</button>
+        <button data-v="Freedom from the crutch">Freedom</button>
+        <button data-v="Fitness &amp; breathing">Fitness</button>
+        <button data-v="The people I love">People I love</button>
+        <button data-v="My skin &amp; sleep">Skin &amp; sleep</button>
+        <button data-v="Proving I can">Proving I can</button>
+      </div>
+    </div>
+    <div class="ob-foot"><button class="btn" data-next id="ob-reasons-next" disabled>Next</button></div>
+  </div>
+
+  <!-- step 4: name + skin -->
+  <div class="ob-step" data-step="3" hidden>
+    <div class="ob-body">
+      <h1 class="ob-title h-display">Name your axolotl.</h1>
+      <p class="ob-sub">They'll be with you the whole way. Their healing follows yours.</p>
+      <div class="field">
+        <label>Name</label>
+        <input type="text" id="ob-name" maxlength="14" value="Gillie" autocomplete="off">
+      </div>
+      <div class="field">
+        <label>Color</label>
+        <div class="skin-row" id="ob-skins"></div>
+      </div>
+    </div>
+    <div class="ob-foot"><button class="btn" data-next>Next</button></div>
+  </div>
+
+  <!-- step 5: hatch -->
+  <div class="ob-step" data-step="4" hidden>
+    <div class="ob-body">
+      <div class="ob-hero" style="margin-top:30px">
+        <svg width="190" height="150" viewBox="0 0 200 160" id="ob-axo-preview"></svg>
+      </div>
+      <h1 class="ob-title h-display" style="text-align:center" id="ob-hatch-title">Ready when you are.</h1>
+      <p class="ob-sub" style="text-align:center">The moment you tap the button, your quit begins and the timer starts. One tap. That's the whole ceremony.</p>
+    </div>
+    <div class="ob-foot"><button class="btn coral" id="ob-hatch">My quit starts now</button></div>
+  </div>
+</section>
+
+<!-- ================= MAIN APP ================= -->
+<main id="main" hidden>
+
+  <!-- HOME -->
+  <div class="view" id="view-home">
+    <div class="topbar">
+      <div class="who">
+        <div class="eyebrow" id="home-stage-name">—</div>
+        <div class="name" id="home-pet-name">—</div>
+      </div>
+      <div class="pearl-chip"><span class="pearl-dot"></span><span id="pearl-balance">0</span></div>
+    </div>
+
+    <div class="tank" id="tank">
+      <svg class="reef-bg" viewBox="0 0 400 160" preserveAspectRatio="none">
+        <path d="M0 160 Q18 96 42 108 Q50 70 72 84 Q86 40 104 78 Q124 58 136 96 Q160 88 168 160z" fill="#2E5A50"/>
+        <path d="M210 160 Q222 100 244 116 Q252 66 276 92 Q298 54 312 100 Q336 84 348 122 Q372 108 400 160z" fill="#2E5A50" opacity=".8"/>
+        <circle cx="120" cy="112" r="16" fill="#2E5A50" opacity=".7"/>
+        <circle cx="308" cy="126" r="20" fill="#2E5A50" opacity=".6"/>
+      </svg>
+      <div class="caustic c1"></div>
+      <div class="caustic c2"></div>
+      <div class="current"></div>
+      <div class="sun-shafts"></div>
+      <div class="sand-tex"></div>
+      <div class="surface"></div>
+      <div class="stage-tag" id="stage-tag">Day 0</div>
+      <svg class="plant p1" width="70" height="110" viewBox="0 0 70 110" style="left:8%">
+        <path d="M35 110 C20 80 42 62 30 34 M35 110 C48 84 26 70 44 44" stroke="#2E7D64" stroke-width="7" fill="none" stroke-linecap="round"/>
+      </svg>
+      <svg class="plant p2" width="60" height="90" viewBox="0 0 60 90" style="right:10%">
+        <path d="M30 90 C18 66 38 52 26 28 M30 90 C40 70 22 58 36 36" stroke="#3B9478" stroke-width="6" fill="none" stroke-linecap="round"/>
+      </svg>
+      <svg class="plant p3" width="54" height="76" viewBox="0 0 54 76" style="left:28%">
+        <path d="M27 76 C18 56 34 46 24 26 M27 76 C36 60 20 50 32 32" stroke="#57B08F" stroke-width="5.5" fill="none" stroke-linecap="round"/>
+      </svg>
+      <div id="decor-layer"></div>
+      <div id="axo-shadow"></div>
+      <div id="buddy-layer"></div>
+      <div class="theme-tint" id="theme-tint"></div>
+      <div class="depth"></div>
+      <div id="axo-wrap">
+        <svg viewBox="0 0 200 160" id="axo-svg"></svg>
+      </div>
+      <div class="murk" id="murk"></div>
+      <div class="speech" id="speech">…</div>
+    </div>
+
+    <div class="streak-block">
+      <div class="streak-time" id="streak-time">0<span class="u">d</span>00<span class="u">h</span>00<span class="u">m</span>00<span class="u">s</span></div>
+      <div class="streak-label">nicotine-free — every second counts here</div>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-card"><div class="v" id="stat-money">$0</div><div class="k">not vaped away</div></div>
+      <div class="stat-card"><div class="v" id="stat-puffs">0</div><div class="k">puffs skipped</div></div>
+      <div class="stat-card"><div class="v" id="stat-cravings">0</div><div class="k">cravings beaten</div></div>
+    </div>
+
+    <div class="goal-card" id="goal-card" hidden></div>
+
+    <div class="checkin-card" id="checkin-card">
+      <div>
+        <div class="t">Daily check-in</div>
+        <div class="s" id="checkin-sub">30 seconds. Your friend is waiting.</div>
+      </div>
+      <button id="checkin-open">Check in</button>
+    </div>
+
+    <div class="next-milestone" id="next-milestone">
+      <div class="eyebrow">Next milestone</div>
+      <div style="font-weight:800;font-size:15.5px;margin-top:5px" id="nm-title">—</div>
+      <div class="bar"><i id="nm-bar" style="width:0%"></i></div>
+      <div style="font-size:12.5px;color:var(--ink-faint);font-weight:700;margin-top:7px" id="nm-eta">—</div>
+    </div>
+  </div>
+
+  <!-- PROGRESS -->
+  <div class="view" id="view-progress" hidden>
+    <div class="topbar"><div class="who">
+      <div class="eyebrow">Your recovery</div><div class="name">Progress</div>
+    </div><div class="pearl-chip"><span class="pearl-dot"></span><span class="pearl-balance2">0</span></div></div>
+    <div class="section-h">Your insights</div>
+    <div id="insights-box"></div>
+    <div class="section-h">Healing timeline</div>
+    <div id="ms-list"></div>
+    <div class="section-h">Craving triggers</div>
+    <div style="background:var(--card);border-radius:var(--radius-sm);padding:16px;box-shadow:var(--shadow-soft)" id="trigger-chart">
+      <div style="color:var(--ink-faint);font-weight:600;font-size:14px">No cravings logged yet. When one hits, use Craving SOS — beating it in the app is how it gets counted.</div>
+    </div>
+    <p style="font-size:12px;color:var(--ink-faint);margin:18px 4px 0">Timeline reflects commonly reported recovery experiences after stopping nicotine. It's general wellness information, not medical advice.</p>
+  </div>
+
+  <!-- REEF (shop) -->
+  <div class="view" id="view-reef" hidden>
+    <div class="topbar"><div class="who">
+      <div class="eyebrow">Spend your pearls</div><div class="name">The Reef</div>
+    </div><div class="pearl-chip"><span class="pearl-dot"></span><span class="pearl-balance2">0</span></div></div>
+    <div class="plus-banner" id="plus-banner">
+      <div class="t">Gillie Plus</div>
+      <div class="s">Savings goals, personal insights, tank themes, rare skins — and 2× pearls on everything you already do.</div>
+      <button id="plus-open">See what's inside</button>
+    </div>
+    <div class="section-h" style="margin-top:4px">Tank themes</div>
+    <div class="theme-row" id="theme-row"></div>
+    <div class="section-h">Tank mates</div>
+    <div class="buddy-grid" id="buddy-grid"></div>
+    <div class="section-h">Decor &amp; hats</div>
+    <div class="shop-grid" id="shop-grid"></div>
+  </div>
+
+  <!-- YOU (settings) -->
+  <div class="view" id="view-you" hidden>
+    <div class="topbar"><div class="who">
+      <div class="eyebrow">Settings</div><div class="name">You</div>
+    </div></div>
+    <div class="set-group">
+      <button class="set-row" id="set-name"><span class="t">Pet name</span><span class="v" id="set-name-v">—</span></button>
+      <button class="set-row" id="set-skin"><span class="t">Gillie's color</span><span class="v" id="set-skin-v">—</span></button>
+      <button class="set-row" id="set-cost"><span class="t">Vape cost &amp; usage</span><span class="v">Edit</span></button>
+    </div>
+    <div class="set-group">
+      <button class="set-row" id="set-plus"><span class="t">Gillie Plus</span><span class="v" id="set-plus-v">Free plan</span></button>
+    </div>
+    <div class="set-group">
+      <button class="set-row" id="set-slip"><span class="t">I vaped — reset my streak</span><span class="v">It's okay</span></button>
+      <button class="set-row danger" id="set-reset"><span class="t">Erase everything</span></button>
+    </div>
+    <p style="font-size:12px;color:var(--ink-faint);margin:4px 6px">Gillie supports habit change. It isn't medical care — if you want extra help quitting, your doctor or local quitline is a great ally.</p>
+  </div>
+
+  <button id="sos-fab">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M12 3c-3 4-6 6.5-6 10a6 6 0 0 0 12 0c0-3.5-3-6-6-10z"/></svg>
+    Craving SOS
+  </button>
+
+  <nav id="tabs">
+    <button data-view="home" class="on">
+      <svg viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9h13v-9"/></svg>Home</button>
+    <button data-view="progress">
+      <svg viewBox="0 0 24 24"><path d="M4 19h16"/><path d="M7 19v-6M12 19V8M17 19v-9"/></svg>Progress</button>
+    <button data-view="reef">
+      <svg viewBox="0 0 24 24"><path d="M12 4a8 8 0 0 1 8 8H4a8 8 0 0 1 8-8z"/><path d="M12 4v8M8 5.1 10 12M16 5.1 14 12"/><path d="M9 16c1 2 5 2 6 0"/></svg>Reef</button>
+    <button data-view="you">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 20c1.2-3.5 4-5 7-5s5.8 1.5 7 5"/></svg>You</button>
+  </nav>
+</main>
+
+<!-- ================= OVERLAYS ================= -->
+
+<!-- Craving SOS -->
+<div class="overlay" id="sos-overlay" hidden>
+  <div class="sos-box">
+    <h2 class="h-display" style="font-size:26px">Ride it out with <span id="sos-pet-name">Gillie</span>.</h2>
+    <p style="opacity:.75;font-size:14.5px;margin-top:6px">Cravings crest and pass in a few minutes. Breathe with them until it does.</p>
+    <div class="breath-ring" id="breath-ring">
+      <svg viewBox="0 0 200 160" id="sos-axo"></svg>
+    </div>
+    <div id="breath-phase">Breathe in</div>
+    <div id="breath-count"></div>
+    <div class="sos-reasons" id="sos-reasons"></div>
+    <div class="sos-actions">
+      <button class="btn" id="sos-beat">The craving passed 💪</button>
+      <button class="btn ghost" id="sos-slipped">I vaped</button>
+      <button class="btn ghost" id="sos-close" style="box-shadow:none;opacity:.6">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Craving trigger picker -->
+<div class="overlay" id="trigger-overlay" hidden>
+  <div class="sheet">
+    <div class="grab"></div>
+    <h2>Nice. What set it off?</h2>
+    <p class="sub">Knowing your triggers is half the fight. +<span id="trigger-reward">5</span> pearls either way.</p>
+    <div class="chips" id="trigger-chips" style="margin-bottom:22px"></div>
+    <button class="btn" id="trigger-save" disabled>Log it</button>
+  </div>
+</div>
+
+<!-- Daily check-in -->
+<div class="overlay" id="checkin-overlay" hidden>
+  <div class="sheet">
+    <div class="grab"></div>
+    <h2 id="checkin-title">How was today?</h2>
+    <p class="sub">Honest answers only — your friend can tell.</p>
+    <div class="mood-row" id="mood-row">
+      <button data-v="1">😖</button><button data-v="2">😕</button><button data-v="3">😐</button><button data-v="4">🙂</button><button data-v="5">😄</button>
+    </div>
+    <div class="field"><label>Any puffs today?</label>
+      <div class="seg" id="checkin-clean">
+        <button data-v="clean" class="on">Zero — stayed clean</button>
+        <button data-v="slipped">I slipped</button>
+      </div>
+    </div>
+    <button class="btn" id="checkin-save" disabled>Finish check-in</button>
+  </div>
+</div>
+
+<!-- Slip / compassion -->
+<div class="overlay" id="slip-overlay" hidden>
+  <div class="sheet">
+    <div class="grab"></div>
+    <h2>Hey. It's a slip, not a collapse.</h2>
+    <p class="sub" id="slip-copy">A slip clouds the water a little — it doesn't drain the tank. Everything your body already healed is still healed, and every pearl, every clean day you've banked stays yours. The streak restarts; the story doesn't.</p>
+    <button class="btn" id="slip-confirm">Restart my streak — we go again</button>
+    <button class="btn ghost" id="slip-cancel" style="margin-top:10px">Cancel — I didn't vape</button>
+  </div>
+</div>
+
+<!-- Paywall -->
+<div class="overlay" id="plus-overlay" hidden>
+  <div class="sheet">
+    <div class="grab"></div>
+    <h2>Gillie Plus</h2>
+    <p class="sub">The core quit tools are free, forever. Plus is the fun stuff on top.</p>
+    <div style="background:var(--card);border-radius:var(--radius-sm);padding:16px;box-shadow:var(--shadow-soft);margin-bottom:18px;font-size:14.5px;font-weight:600;line-height:2" id="plus-perks"></div>
+    <button class="btn" id="plus-yearly">—</button>
+    <button class="btn ghost" id="plus-monthly" style="margin-top:10px">—</button>
+    <p style="font-size:11.5px;color:var(--ink-faint);text-align:center;margin-top:12px">Cancel anytime in the App Store.</p>
+  </div>
+</div>
+
+<!-- Skin recolor (Plus) -->
+<div class="overlay" id="skin-overlay" hidden>
+  <div class="sheet">
+    <div class="grab"></div>
+    <h2 id="skin-title">Restyle your friend</h2>
+    <p class="sub">Same soul, new shimmer. Applies instantly.</p>
+    <div class="ob-hero" style="margin:0 0 14px"><svg width="150" height="118" viewBox="0 0 200 160" id="skin-preview"></svg></div>
+    <div class="field"><div class="skin-row" id="sc-skins"></div></div>
+    <button class="btn" id="sc-done" style="margin-top:8px">Done</button>
+  </div>
+</div>
+
+<!-- Buddy adoption (Plus) -->
+<div class="overlay" id="buddy-overlay" hidden>
+  <div class="sheet">
+    <div class="grab"></div>
+    <h2 id="buddy-title">Adopt a tank mate</h2>
+    <p class="sub" id="buddy-sub">A little friend for your friend. They'll swim alongside you both.</p>
+    <div class="field"><label>Name</label><input type="text" id="bd-name" maxlength="14" placeholder="Mochi, Bubbles, Kevin…"></div>
+    <div class="field"><label>Color</label><div class="skin-row" id="bd-skins"></div></div>
+    <button class="btn" id="bd-save">Adopt</button>
+    <button class="btn ghost" id="bd-release" style="margin-top:10px" hidden>Release into the wild</button>
+  </div>
+</div>
+
+<!-- Savings goal editor -->
+<div class="overlay" id="goal-overlay" hidden>
+  <div class="sheet">
+    <div class="grab"></div>
+    <h2>Savings goal</h2>
+    <p class="sub">Every dollar you don't vape goes here, on a progress bar you'll see daily. Make it something you actually want.</p>
+    <div class="field"><label>I'm saving for</label><input type="text" id="ge-name" maxlength="30" placeholder="PS5, Japan trip, Chrome Hearts ring…"></div>
+    <div class="field"><label>It costs ($)</label><input type="number" id="ge-price" inputmode="decimal" min="1" step="1"></div>
+    <button class="btn" id="ge-save">Set goal</button>
+    <button class="btn ghost" id="ge-remove" style="margin-top:10px" hidden>Remove goal</button>
+  </div>
+</div>
+
+<!-- Cost editor -->
+<div class="overlay" id="cost-overlay" hidden>
+  <div class="sheet">
+    <div class="grab"></div>
+    <h2>Cost &amp; usage</h2>
+    <p class="sub">Used to compute money saved and puffs skipped.</p>
+    <div class="field"><label id="ce-units-label">Units per week</label><input type="number" id="ce-units" inputmode="decimal" step="0.5"></div>
+    <div class="field"><label>Cost per unit ($)</label><input type="number" id="ce-cost" inputmode="decimal" step="0.5"></div>
+    <div class="field"><label>Puffs per day (before quitting)</label><input type="number" id="ce-puffs" inputmode="numeric" step="10"></div>
+    <button class="btn" id="ce-save">Save</button>
+  </div>
+</div>
+
+<div id="toast"><span class="em">🌊</span><span id="toast-msg"></span></div>
+
+</div><!-- /#app -->
+<script>
+/* ============================================================
+   GILLIE — all editable content lives in these constants.
+   ============================================================ */
+const CONFIG = {
+  appName: "Gillie",
+  storageKey: "gillie_v1",
+  currencyName: "pearls",
+  rewards: { checkin: 10, cravingBeaten: 5, cravingLoggedAfterSlip: 5, milestone: 25 },
+  plus: {
+    monthlyLabel: "$4.99 / month",
+    yearlyLabel: "$29.99 / year — save 50%",
+    pearlMultiplier: 2,
+    perks: [
+      "🐣 Tank mates — adopt up to 2 buddy axolotls",
+      "🎯 Savings Goal — point your unspent vape money at something real",
+      "📊 Insights — your danger hours, mood trend & best streak",
+      "🎨 Tank themes: Sunset Lagoon, Abyss, Sakura",
+      "🦎 Recolor Gillie anytime — incl. Lavender, Golden, Midnight",
+      "🫧 2× pearls on every check-in, craving & milestone",
+    ],
+    // NOTE: purchase buttons are stubs. In the Capacitor build, wire these
+    // to RevenueCat / StoreKit and set state.premium on entitlement.
+  },
+};
+
+const THEMES = [
+  { id: "clear",  name: "Clearwater",    tint: "transparent", blend: "normal",     sand: "#EDDDBC", premium: false },
+  { id: "sunset", name: "Sunset Lagoon", tint: "linear-gradient(180deg, rgba(255,158,92,.5), rgba(242,112,138,.35))", blend: "soft-light", sand: "#F2D2A8", premium: true },
+  { id: "abyss",  name: "Abyss",         tint: "linear-gradient(180deg, rgba(24,46,92,.45), rgba(10,22,54,.55))",     blend: "multiply",   sand: "#9AA4B8", premium: true },
+  { id: "sakura", name: "Sakura",        tint: "linear-gradient(180deg, rgba(255,190,214,.5), rgba(255,150,190,.3))", blend: "soft-light", sand: "#F6DCCB", premium: true },
+];
+
+const SKINS = [
+  { id: "pink",     name: "Leucistic Pink", body: "#FFAEBB", belly: "#FFD9E0", gill: "#F2708A", shade: "#E98CA0", gillDeep: "#D9506F", premium: false },
+  { id: "lavender", name: "Lavender",       body: "#C9B8F0", belly: "#E7DFFB", gill: "#9F86E0", shade: "#A995DE", gillDeep: "#7D63C4", premium: true },
+  { id: "golden",   name: "Golden Albino",  body: "#FFD98A", belly: "#FFEEC9", gill: "#F2B33D", shade: "#EBBE63", gillDeep: "#D69422", premium: true },
+  { id: "midnight", name: "Midnight",       body: "#5A6B85", belly: "#8FA0BA", gill: "#66779A", shade: "#47566E", gillDeep: "#39465E", premium: true },
+];
+
+/* TankCleanlinessStage: water state derived from current clean streak */
+const STAGES = [
+  { days: 0,     name: "Day Zero",        murk: 0.55, w1: "#7FA79C", w2: "#4E7A70", plants: 0, sunny: false, glow: false, sparkles: 0 },
+  { days: 0.042, name: "First Hour",      murk: 0.47, w1: "#84AEA3", w2: "#528078", plants: 0, sunny: false, glow: false, sparkles: 0 },
+  { days: 1,     name: "First Light",     murk: 0.40, w1: "#87B2A6", w2: "#54857A", plants: 0, sunny: false, glow: false, sparkles: 0 },
+  { days: 3,     name: "Nicotine's Out",  murk: 0.30, w1: "#8FBDB2", w2: "#5E978C", plants: 1, sunny: true,  glow: false, sparkles: 0 },
+  { days: 7,     name: "One Week Clear",  murk: 0.20, w1: "#96C7BB", w2: "#67A395", plants: 1, sunny: true,  glow: false, sparkles: 0 },
+  { days: 14,    name: "Fresh Current",   murk: 0.12, w1: "#9DD1C4", w2: "#6FAF9F", plants: 2, sunny: true,  glow: false, sparkles: 1 },
+  { days: 30,    name: "Clearwater",      murk: 0.06, w1: "#A6DBCD", w2: "#78BAA9", plants: 2, sunny: true,  glow: true,  sparkles: 3 },
+  { days: 60,    name: "Glass Tide",      murk: 0.02, w1: "#AFE4D6", w2: "#82C4B2", plants: 3, sunny: true,  glow: true,  sparkles: 4 },
+  { days: 90,    name: "Crystal Reef",    murk: 0.00, w1: "#B8EDDE", w2: "#8CCEBB", plants: 3, sunny: true,  glow: true,  sparkles: 6 },
+  { days: 365,   name: "One Year Shine",  murk: 0.00, w1: "#C1F3E4", w2: "#96D8C6", plants: 3, sunny: true,  glow: true,  sparkles: 10 },
+];
+
+/* Hedged, commonly-reported recovery timeline — not medical claims. */
+const MILESTONES = [
+  { id: "m20min", mins: 20,        emoji: "💓", title: "20 minutes",  desc: "Heart rate and blood pressure typically begin settling toward normal." },
+  { id: "m24h",   mins: 1440,      emoji: "📉", title: "24 hours",    desc: "Nicotine levels in your body have dropped sharply. Cravings get loud here — that's withdrawal, and it's temporary." },
+  { id: "m72h",   mins: 4320,      emoji: "🧪", title: "3 days",      desc: "Nicotine is essentially out of your system. Cravings usually peak around now, then start easing." },
+  { id: "m1w",    mins: 10080,     emoji: "🌊", title: "1 week",      desc: "For many people, cravings become shorter and less frequent. The hardest stretch is behind you." },
+  { id: "m2w",    mins: 20160,     emoji: "🫁", title: "2 weeks",     desc: "Circulation and lung function are commonly improving. Stairs feel a little different." },
+  { id: "m1m",    mins: 43200,     emoji: "✨", title: "1 month",     desc: "Many people report clearer breathing, better taste and smell, and fewer coughing fits." },
+  { id: "m3m",    mins: 129600,    emoji: "🧠", title: "3 months",    desc: "Dopamine signaling is rebalancing. Day-to-day life without nicotine starts feeling normal." },
+  { id: "m6m",    mins: 259200,    emoji: "🏔️", title: "6 months",   desc: "Most people who make it here report cravings are rare and manageable." },
+  { id: "m1y",    mins: 525600,    emoji: "👑", title: "1 year",      desc: "A full year. Your friend's tank has never been clearer — and neither have you." },
+];
+
+const TRIGGERS = ["Stress", "Boredom", "Social", "After eating", "Drinking", "Phone scrolling", "Other"];
+
+const SHOP_ITEMS = [
+  { id: "pebble",   name: "Pebble Pal",      type: "decor", price: 30,  bondDays: 0,  premium: false },
+  { id: "starfish", name: "Starfish",        type: "decor", price: 40,  bondDays: 0,  premium: false },
+  { id: "sprout",   name: "Sprout Hat",      type: "hat",   price: 45,  bondDays: 1,  premium: false },
+  { id: "kelp",     name: "Kelp Sprout",     type: "decor", price: 50,  bondDays: 1,  premium: false },
+  { id: "leaf",     name: "Leaf Hat",        type: "hat",   price: 60,  bondDays: 3,  premium: false },
+  { id: "sign",     name: "No-Vaping Sign",  type: "decor", price: 70,  bondDays: 1,  premium: false },
+  { id: "bow",      name: "Silk Bow",        type: "hat",   price: 80,  bondDays: 3,  premium: false },
+  { id: "lamp",     name: "Bubble Lamp",     type: "decor", price: 80,  bondDays: 3,  premium: false },
+  { id: "coral",    name: "Glow Coral",      type: "decor", price: 90,  bondDays: 3,  premium: false },
+  { id: "party",    name: "Party Hat",       type: "hat",   price: 100, bondDays: 7,  premium: false },
+  { id: "clam",     name: "Pearl Clam",      type: "decor", price: 120, bondDays: 7,  premium: false },
+  { id: "crown",    name: "Tiny Crown",      type: "hat",   price: 150, bondDays: 14, premium: false },
+  { id: "chest",    name: "Treasure Chest",  type: "decor", price: 160, bondDays: 7,  premium: false },
+  { id: "wizard",   name: "Wizard Hat",      type: "hat",   price: 180, bondDays: 14, premium: false },
+  { id: "snail",    name: "Snail Roommate",  type: "decor", price: 200, bondDays: 30, premium: true },
+  { id: "moai",     name: "Mini Moai",       type: "decor", price: 220, bondDays: 14, premium: false },
+  { id: "halo",     name: "Halo",            type: "hat",   price: 250, bondDays: 30, premium: true },
+  { id: "castle",   name: "Sand Castle",     type: "decor", price: 260, bondDays: 21, premium: false },
+  { id: "ship",     name: "Sunken Ship",     type: "decor", price: 300, bondDays: 30, premium: true },
+  { id: "jelly",    name: "Jellyfish Pal",   type: "decor", price: 350, bondDays: 30, premium: false },
+  { id: "volcano",  name: "Bubble Volcano",  type: "decor", price: 400, bondDays: 45, premium: true },
+];
+
+const BUDDIES = { price: 500, max: 2 }; // Plus feature: extra axolotls in the tank
+
+const SPEECH = {
+  fresh:   ["We're doing this. I can already feel it.", "Hour one is a real hour. It counts.", "Stay close. We've got each other."],
+  early:   ["The water stings a little less today.", "Cravings are just waves. We float.", "I regrow. You recover. Same thing really.", "Proud of you. Loudly."],
+  mid:     ["Look how far the light reaches now.", "Your lungs and my gills — both happier.", "Remember week one? We're not there anymore."],
+  late:    ["Crystal clear in here. Your doing.", "I barely remember the murk.", "You didn't just quit. You built something."],
+  slipped: ["Still here. Still yours. Water's a bit cloudy — we've cleared worse.", "One wave knocked us over. We stand back up."],
+  tap:     ["Hehe. That tickles.", "Hi. I love you. Keep going.", "Blub blub. (That means you've got this.)", "Careful, I'll get used to this.", "More pets, fewer puffs."],
+};
+
+const dayMs = 86400000;
+
+/* ============================================================
+   State
+   ============================================================ */
+const defaultState = () => ({
+  onboarded: false,
+  petName: "Gillie",
+  skin: "pink",
+  hat: null,
+  ownedItems: [],
+  equippedDecor: [],
+  pearls: 0,
+  premium: false,
+  reasons: [],
+  quitAt: null,          // ms — start of current streak
+  bankedCleanMs: 0,      // clean time accumulated before slips
+  slips: [],             // [{at}]
+  cravings: [],          // [{at, trigger, resisted}]
+  checkins: [],          // [{date:'YYYY-MM-DD', mood, clean}]
+  milestonesSeen: [],
+  cost: { style: "disposables", unitsPerWeek: 2, costPerUnit: 15, puffsPerDay: 200 },
+  goal: null,            // {name, price} — Plus feature
+  theme: "clear",        // tank theme id — Plus feature
+  buddies: [],           // [{name, skin}] — Plus feature, max BUDDIES.max
+  justSlippedAt: 0,
+});
+
+let state = load();
+function load() {
+  try {
+    const raw = localStorage.getItem(CONFIG.storageKey);
+    if (raw) return Object.assign(defaultState(), JSON.parse(raw));
+  } catch (e) {}
+  return defaultState();
+}
+function save() { localStorage.setItem(CONFIG.storageKey, JSON.stringify(state)); }
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => [...document.querySelectorAll(s)];
+const todayKey = () => new Date().toISOString().slice(0, 10);
+
+/* derived */
+const currentStreakMs = () => (state.quitAt ? Date.now() - state.quitAt : 0);
+const lifetimeCleanMs = () => state.bankedCleanMs + currentStreakMs();
+const bondDays = () => Math.floor(lifetimeCleanMs() / dayMs);
+const costPerMs = () => (state.cost.unitsPerWeek * state.cost.costPerUnit) / (7 * dayMs);
+const stageFor = (ms) => { let s = STAGES[0]; for (const st of STAGES) if (ms >= st.days * dayMs) s = st; return s; };
+const skinOf = (id) => SKINS.find((s) => s.id === id) || SKINS[0];
+const themeOf = (id) => THEMES.find((t) => t.id === id) || THEMES[0];
+const moneySaved = () => lifetimeCleanMs() * costPerMs();
+const grant = (n) => { const v = n * (state.premium ? CONFIG.plus.pearlMultiplier : 1); state.pearls += v; setTimeout(() => { try { sparkleBurst(); } catch (e) {} }, 50); return v; };
+const bestStreakMs = () => Math.max(currentStreakMs(), ...state.slips.map((s) => s.streakMs || 0), 0);
+
+/* ============================================================
+   Axolotl SVG builder — gradient-shaded, multi-layer animation.
+   ns namespaces gradient ids so several axolotls can coexist.
+   ============================================================ */
+function axoSVG(skinId, hatId, mood, ns = "main") {
+  const s = skinOf(skinId);
+  const defs = `
+    <defs>
+      <radialGradient id="${ns}-body" cx="38%" cy="30%" r="85%">
+        <stop offset="0%" stop-color="${s.belly}"/>
+        <stop offset="52%" stop-color="${s.body}"/>
+        <stop offset="100%" stop-color="${s.shade}"/>
+      </radialGradient>
+      <linearGradient id="${ns}-gill" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="${s.gill}"/>
+        <stop offset="100%" stop-color="${s.gillDeep}"/>
+      </linearGradient>
+      <linearGradient id="${ns}-fin" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="${s.gill}" stop-opacity=".85"/>
+        <stop offset="100%" stop-color="${s.gillDeep}" stop-opacity=".55"/>
+      </linearGradient>
+    </defs>`;
+  const frond = (x, y, rot, len, cls) => `
+    <g class="${cls}" transform="translate(${x} ${y}) rotate(${rot})">
+      <path d="M0 0 q${-len * .55} -12 ${-len} -4 q${-6} 4 ${-4} 9 q3 8 ${len * .62} 6 q${len * .3} -2 ${len * .42} -11z" fill="url(#${ns}-gill)"/>
+      <path d="M${-len * .16} 1 q${-len * .4} -7 ${-len * .68} -2" stroke="${s.belly}" stroke-width="2.4" fill="none" stroke-linecap="round" opacity=".55"/>
+    </g>`;
+  const gillsL = frond(44, 50, -34, 34, "gill g1") + frond(38, 68, -6, 38, "gill g2") + frond(42, 86, 24, 33, "gill g3");
+  const gillsR = frond(104, 50, 214, 34, "gill r g1") + frond(112, 68, 186, 38, "gill r g2") + frond(106, 86, 156, 33, "gill r g3");
+  const mouth = mood === "sad"
+    ? `<g class="axo-mouth"><path d="M64 92 q10 -8 21 0" stroke="#B4536B" stroke-width="3.6" fill="none" stroke-linecap="round"/></g>`
+    : `<g class="axo-mouth"><path d="M63 88 q11 9 22 0" stroke="#B4536B" stroke-width="3.6" fill="none" stroke-linecap="round"/></g>`;
+  const eye = (cx) => `
+    <g class="axo-eye">
+      <circle cx="${cx}" cy="64" r="7" fill="#2A2320"/>
+      <circle cx="${cx + 2.4}" cy="61.5" r="2.6" fill="#fff"/>
+      <circle cx="${cx - 2.6}" cy="66.5" r="1.3" fill="#fff" opacity=".85"/>
+    </g>`;
+  const hats = {
+    leaf:   `<g transform="translate(56,14) rotate(-8)"><path d="M0 14 Q14 -8 34 2 Q22 20 0 14z" fill="#3B9478"/><path d="M4 12 Q16 2 30 4" stroke="#2E7D64" stroke-width="2.5" fill="none"/></g>`,
+    party:  `<g transform="translate(60,-2)"><path d="M14 0 L30 30 L-2 30 Z" fill="#F2708A"/><path d="M5 22 L23 22 M9 14 L19 14" stroke="#fff" stroke-width="3"/><circle cx="14" cy="0" r="4.5" fill="#DFAE3F"/></g>`,
+    crown:  `<g transform="translate(56,4)"><path d="M0 22 L0 6 L10 14 L18 2 L26 14 L36 6 L36 22 Z" fill="#DFAE3F"/><circle cx="18" cy="18" r="3" fill="#F2708A"/></g>`,
+    bow:    `<g transform="translate(74,8) rotate(-6)"><path d="M0 8 Q-16 -4 -18 8 Q-16 20 0 12z" fill="#F2708A"/><path d="M4 8 Q20 -4 22 8 Q20 20 4 12z" fill="#F2708A"/><circle cx="2" cy="10" r="5" fill="#D9506F"/></g>`,
+    wizard: `<g transform="translate(52,-14)"><path d="M20 44 L34 0 L48 44 Q34 52 20 44z" fill="#5B4FC7"/><path d="M12 44 Q34 56 56 44 L58 50 Q34 62 10 50z" fill="#4A3FB0"/><circle cx="35" cy="16" r="3" fill="#FFE9A8"/><circle cx="28" cy="30" r="2.2" fill="#FFE9A8"/></g>`,
+    sprout: `<g transform="translate(66,4)"><path d="M8 22 Q8 6 0 0 M8 22 Q8 8 18 2" stroke="#3B9478" stroke-width="4" fill="none" stroke-linecap="round"/><ellipse cx="0" cy="0" rx="7" ry="4.5" fill="#57B08F" transform="rotate(-30)"/><ellipse cx="18" cy="2" rx="7" ry="4.5" fill="#57B08F" transform="rotate(24 18 2)"/></g>`,
+    halo:   `<g transform="translate(50,2)"><ellipse cx="26" cy="6" rx="24" ry="7" fill="none" stroke="#FFDD70" stroke-width="5" opacity=".95"/></g>`,
+  };
+  return defs + `
+    <ellipse id="axo-glow" cx="92" cy="84" rx="88" ry="64" fill="${s.gill}" opacity="0"/>
+    <g class="axo-tail">
+      <path d="M118 92 Q152 62 182 66 Q186 84 168 100 Q188 104 178 122 Q148 132 122 110z" fill="url(#${ns}-fin)"/>
+      <path d="M120 96 q34 -6 52 -18 q4 20 -14 34 q-20 12 -40 0z" fill="url(#${ns}-body)"/>
+      <path d="M128 100 q24 -4 36 -12" stroke="${s.belly}" stroke-width="4" fill="none" stroke-linecap="round" opacity=".6"/>
+    </g>
+    <g class="axo-core">
+      ${gillsL}${gillsR}
+      <ellipse cx="98" cy="122" rx="9" ry="6.5" fill="url(#${ns}-body)"/>
+      <ellipse cx="122" cy="120" rx="8.5" ry="6" fill="url(#${ns}-body)"/>
+      <ellipse cx="96" cy="100" rx="46" ry="31" fill="url(#${ns}-body)"/>
+      <ellipse cx="93" cy="113" rx="29" ry="15" fill="${s.belly}" opacity=".9"/>
+      <g class="axo-leg"><ellipse cx="66" cy="128" rx="9" ry="6.5" fill="url(#${ns}-body)"/>
+        <circle cx="60" cy="131" r="1.6" fill="${s.shade}"/><circle cx="66" cy="133" r="1.6" fill="${s.shade}"/></g>
+      <circle cx="74" cy="70" r="42" fill="url(#${ns}-body)"/>
+      <ellipse cx="58" cy="52" rx="16" ry="10" fill="#fff" opacity=".28" transform="rotate(-24 58 52)"/>
+      <circle cx="52" cy="80" r="7.5" fill="${s.gill}" opacity=".4"/>
+      <circle cx="96" cy="80" r="7.5" fill="${s.gill}" opacity=".4"/>
+      ${eye(56)}${eye(92)}
+      ${mouth}
+      ${hatId && hats[hatId] ? hats[hatId] : ""}
+    </g>
+  `;
+}
+function renderAxo() {
+  const recentSlip = Date.now() - state.justSlippedAt < 6 * 3600000;
+  $("#axo-svg").innerHTML = axoSVG(state.skin, state.hat, recentSlip ? "sad" : "happy", "main");
+}
+
+/* ============================================================
+   Onboarding
+   ============================================================ */
+const ob = { step: 0, total: 5, reasons: [], skin: "pink", style: "disposables" };
+function obRender() {
+  $("#ob-dots").innerHTML = Array.from({ length: ob.total }, (_, i) => `<i class="${i === ob.step ? "on" : ""}"></i>`).join("");
+  $$("#onboarding .ob-step").forEach((el) => (el.hidden = +el.dataset.step !== ob.step));
+  if (ob.step === 3) obRenderSkins();
+  if (ob.step === 4) {
+    $("#ob-axo-preview").innerHTML = axoSVG(ob.skin, null, "happy", "ob");
+    $("#ob-hatch-title").textContent = `${$("#ob-name").value.trim() || "Gillie"} is ready when you are.`;
+  }
+}
+function obRenderSkins() {
+  $("#ob-skins").innerHTML = SKINS.map((s) => `
+    <button class="skin-swatch ${ob.skin === s.id ? "on" : ""}" data-skin="${s.id}" aria-label="${s.name}"
+      style="background:radial-gradient(circle at 35% 30%, ${s.belly}, ${s.body})">
+      ${s.premium ? '<span class="lock">PLUS</span>' : ""}
+    </button>`).join("");
+  $$("#ob-skins .skin-swatch").forEach((b) => b.onclick = () => {
+    const s = SKINS.find((x) => x.id === b.dataset.skin);
+    if (s.premium && !state.premium) { toast("✨", `${s.name} is a Gillie Plus skin — you can unlock it later in the Reef.`); return; }
+    ob.skin = s.id; obRenderSkins();
+  });
+}
+$$("#onboarding [data-next]").forEach((b) => b.onclick = () => { ob.step++; obRender(); });
+$$("#ob-style button").forEach((b) => b.onclick = () => {
+  $$("#ob-style button").forEach((x) => x.classList.remove("on")); b.classList.add("on");
+  ob.style = b.dataset.v;
+  const unit = ob.style === "pods" ? "pod" : "disposable";
+  $("#ob-units-label").textContent = `${unit[0].toUpperCase() + unit.slice(1)}s per week`;
+  $("#ob-cost-label").textContent = `Cost per ${unit} ($)`;
+});
+$$("#ob-reasons button").forEach((b) => b.onclick = () => {
+  b.classList.toggle("on");
+  ob.reasons = $$("#ob-reasons button.on").map((x) => x.dataset.v);
+  $("#ob-reasons-next").disabled = ob.reasons.length === 0;
+});
+$("#ob-hatch").onclick = () => {
+  state.onboarded = true;
+  state.petName = ($("#ob-name").value.trim() || "Gillie").slice(0, 14);
+  state.skin = ob.skin;
+  state.reasons = ob.reasons;
+  state.cost = {
+    style: ob.style,
+    unitsPerWeek: Math.max(0.1, parseFloat($("#ob-units").value) || 2),
+    costPerUnit: Math.max(0.5, parseFloat($("#ob-cost").value) || 15),
+    puffsPerDay: Math.max(10, parseInt($("#ob-puffs").value) || 200),
+  };
+  state.quitAt = Date.now();
+  save();
+  enterMain();
+  toast("🐣", `${state.petName} hatched. Your quit is officially live.`);
+};
+
+/* ============================================================
+   Main shell
+   ============================================================ */
+function enterMain() {
+  $("#onboarding").hidden = true;
+  $("#main").hidden = false;
+  renderAxo(); renderAll(); startTick(); scheduleBubbles(); spawnMotes(); behaviorLoop(); wireTapPlay();
+}
+$$("nav#tabs button").forEach((b) => b.onclick = () => {
+  $$("nav#tabs button").forEach((x) => x.classList.remove("on")); b.classList.add("on");
+  ["home", "progress", "reef", "you"].forEach((v) => ($("#view-" + v).hidden = v !== b.dataset.view));
+  renderAll();
+});
+
+/* ---------- render everything ---------- */
+function renderAll() {
+  const stage = stageFor(currentStreakMs());
+  document.documentElement.style.setProperty("--w1", stage.w1);
+  document.documentElement.style.setProperty("--w2", stage.w2);
+  $("#murk").style.opacity = stage.murk;
+  $("#tank").classList.toggle("sunny", stage.sunny);
+  $("#tank").classList.toggle("glowing", stage.glow);
+  $$(".plant").forEach((p, i) => p.classList.toggle("show", i < stage.plants));
+  renderSparkles(stage);
+  const clarity = 1 - stage.murk;
+  $$(".caustic").forEach((c) => c.style.opacity = ((0.18 + clarity * 0.6) * (c.classList.contains("c2") ? 0.7 : 1)).toFixed(2));
+  $("#home-stage-name").textContent = stage.name;
+  $("#home-pet-name").textContent = state.petName;
+  $("#pearl-balance").textContent = state.pearls;
+  $$(".pearl-balance2").forEach((el) => (el.textContent = state.pearls));
+  $("#stage-tag").textContent = `Day ${Math.floor(currentStreakMs() / dayMs)} · ${stage.name}`;
+  $("#stat-cravings").textContent = state.cravings.filter((c) => c.resisted).length;
+  renderSpeech(stage); renderDecor(); renderCheckinCard(); renderMilestoneList(); renderNextMilestone();
+  renderTriggers(); renderShop(); renderSettings();
+  applyTheme(); renderGoal(); renderInsights(); renderThemes();
+  renderBuddies(); renderBuddyGrid();
+}
+
+function renderSpeech(stage) {
+  const d = currentStreakMs() / dayMs;
+  let pool = SPEECH.fresh;
+  if (Date.now() - state.justSlippedAt < 12 * 3600000) pool = SPEECH.slipped;
+  else if (d >= 30) pool = SPEECH.late;
+  else if (d >= 7) pool = SPEECH.mid;
+  else if (d >= 1) pool = SPEECH.early;
+  // stable line per few hours so it doesn't flicker
+  const idx = Math.floor(Date.now() / (3 * 3600000)) % pool.length;
+  $("#speech").textContent = pool[idx];
+}
+
+/* ---------- live timer ---------- */
+let tickHandle = null;
+function startTick() {
+  clearInterval(tickHandle);
+  tickHandle = setInterval(tick, 1000);
+  tick();
+}
+function tick() {
+  const ms = currentStreakMs();
+  const d = Math.floor(ms / dayMs);
+  const h = Math.floor((ms % dayMs) / 3600000);
+  const m = Math.floor((ms % 3600000) / 60000);
+  const s = Math.floor((ms % 60000) / 1000);
+  const pad = (n) => String(n).padStart(2, "0");
+  $("#streak-time").innerHTML = `${d}<span class="u">d</span>${pad(h)}<span class="u">h</span>${pad(m)}<span class="u">m</span>${pad(s)}<span class="u">s</span>`;
+  const money = lifetimeCleanMs() * costPerMs();
+  $("#stat-money").textContent = money >= 100 ? "$" + Math.round(money) : "$" + money.toFixed(2);
+  $("#stat-puffs").textContent = Math.floor((state.cost.puffsPerDay / dayMs) * lifetimeCleanMs()).toLocaleString();
+  checkMilestones();
+  renderNextMilestone();
+}
+
+/* ---------- milestones ---------- */
+function checkMilestones() {
+  const ms = currentStreakMs();
+  for (const m of MILESTONES) {
+    if (ms >= m.mins * 60000 && !state.milestonesSeen.includes(m.id)) {
+      state.milestonesSeen.push(m.id);
+      const v = grant(CONFIG.rewards.milestone);
+      save();
+      toast(m.emoji, `${m.title} nicotine-free! +${v} pearls. ${state.petName}'s water just got clearer.`);
+      axoCelebrate();
+      renderAll();
+    }
+  }
+}
+function renderNextMilestone() {
+  const ms = currentStreakMs();
+  const next = MILESTONES.find((m) => ms < m.mins * 60000);
+  const box = $("#next-milestone");
+  if (!next) { box.hidden = true; return; }
+  box.hidden = false;
+  const prev = MILESTONES[MILESTONES.indexOf(next) - 1];
+  const start = prev ? prev.mins * 60000 : 0;
+  const pct = Math.min(100, ((ms - start) / (next.mins * 60000 - start)) * 100);
+  $("#nm-title").textContent = `${next.emoji} ${next.title} — ${next.desc.split(".")[0]}.`;
+  $("#nm-bar").style.width = pct.toFixed(1) + "%";
+  const leftMin = Math.ceil((next.mins * 60000 - ms) / 60000);
+  $("#nm-eta").textContent = leftMin > 1440 ? `${Math.ceil(leftMin / 1440)} days to go` : leftMin > 60 ? `${Math.ceil(leftMin / 60)} hours to go` : `${leftMin} min to go`;
+}
+function renderMilestoneList() {
+  const ms = currentStreakMs();
+  $("#ms-list").innerHTML = MILESTONES.map((m) => {
+    const done = ms >= m.mins * 60000;
+    return `<div class="ms-card ${done ? "done" : "locked"}">
+      <div class="ms-badge">${done ? "✓" : m.emoji}</div>
+      <div><div class="t">${m.title}</div><div class="d">${m.desc}</div>
+      ${done ? `<div class="when">Reached ✓</div>` : ""}</div></div>`;
+  }).join("");
+}
+
+/* ---------- bubbles ---------- */
+let bubbleHandle = null;
+function scheduleBubbles() {
+  clearInterval(bubbleHandle);
+  bubbleHandle = setInterval(() => {
+    if ($("#view-home").hidden || document.hidden || REDUCED_MOTION) return;
+    const stage = stageFor(currentStreakMs());
+    const cleanliness = 1 - stage.murk;
+    if (Math.random() > 0.35 + cleanliness * 0.5) return;
+    const b = document.createElement("div");
+    b.className = "bubble";
+    b.innerHTML = "<i></i>";
+    const size = 5 + Math.random() * 11;
+    b.style.width = b.style.height = size + "px";
+    b.style.left = 12 + Math.random() * 76 + "%";
+    b.style.animationDuration = 3.2 + Math.random() * 2.5 + "s";
+    b.querySelector("i").style.animationDuration = 1.1 + Math.random() * 0.9 + "s";
+    $("#tank").appendChild(b);
+    setTimeout(() => b.remove(), 6200);
+  }, 900);
+}
+
+/* ---------- decor in tank ---------- */
+const DECOR_SVGS = {
+  pebble: `<svg width="52" height="30" viewBox="0 0 52 30"><ellipse cx="18" cy="20" rx="16" ry="9" fill="#B9AA96"/><ellipse cx="38" cy="23" rx="11" ry="6" fill="#CBBFAE"/><ellipse cx="14" cy="16" rx="6" ry="3" fill="#D4C8B6" opacity=".8"/></svg>`,
+  kelp:   `<svg width="44" height="86" viewBox="0 0 44 86"><path d="M22 86 C10 62 32 50 20 26 C16 16 24 8 22 0" stroke="#2E8F6E" stroke-width="7" fill="none" stroke-linecap="round"/></svg>`,
+  lamp:   `<svg width="40" height="70" viewBox="0 0 40 70"><rect x="17" y="26" width="6" height="42" rx="3" fill="#7B8B86"/><circle cx="20" cy="16" r="13" fill="#FFE9A8" opacity=".95"/><circle cx="20" cy="16" r="19" fill="#FFE9A8" opacity=".25" class="coral-glow"/></svg>`,
+  clam:   `<svg width="56" height="40" viewBox="0 0 56 40"><path d="M4 30 a24 20 0 0 1 48 0 z" fill="#E0A3B0"/><circle cx="28" cy="24" r="7" fill="#FDF6EC"/><path d="M4 30 h48" stroke="#C7869A" stroke-width="3"/></svg>`,
+  snail:  `<svg width="48" height="36" viewBox="0 0 48 36"><circle cx="28" cy="18" r="13" fill="#DFAE3F"/><circle cx="28" cy="18" r="7" fill="#C7952B"/><path d="M8 32 q8 -12 18 -4" stroke="#8F9E5B" stroke-width="7" fill="none" stroke-linecap="round"/><circle cx="8" cy="24" r="2" fill="#26221F"/></svg>`,
+  ship:   `<svg width="86" height="60" viewBox="0 0 86 60"><path d="M6 40 L80 34 L66 56 L18 58 Z" fill="#8B6B4A" transform="rotate(-8 43 46)"/><rect x="38" y="8" width="5" height="30" fill="#6E5238" transform="rotate(-8 40 23)"/><path d="M43 10 L66 20 L43 26 Z" fill="#D8CDBB" transform="rotate(-8 50 18)"/></svg>`,
+  starfish:`<svg width="42" height="40" viewBox="0 0 42 40"><path d="M21 2 L26 15 L40 16 L29 25 L33 39 L21 31 L9 39 L13 25 L2 16 L16 15 Z" fill="#F2925E" transform="rotate(12 21 20)"/><circle cx="18" cy="18" r="1.6" fill="#D97440"/><circle cx="25" cy="20" r="1.6" fill="#D97440"/><circle cx="21" cy="26" r="1.6" fill="#D97440"/></svg>`,
+  sign:   `<svg width="52" height="64" viewBox="0 0 52 64"><rect x="23" y="26" width="6" height="36" rx="3" fill="#8B6B4A"/><rect x="4" y="2" width="44" height="28" rx="7" fill="#FDF6EC" stroke="#C9B9A2" stroke-width="2"/><rect x="16" y="13" width="20" height="6" rx="3" fill="#7E958F"/><circle cx="26" cy="16" r="12" fill="none" stroke="#E2536F" stroke-width="3.5"/><line x1="17" y1="7" x2="35" y2="25" stroke="#E2536F" stroke-width="3.5" stroke-linecap="round"/></svg>`,
+  coral:  `<svg width="58" height="62" viewBox="0 0 58 62"><circle cx="29" cy="30" r="26" fill="#F2708A" opacity=".3" class="coral-glow"/><path d="M29 62 V30 M29 42 Q16 38 14 22 M29 36 Q42 34 46 18 M29 30 Q24 20 28 8" stroke="#F2708A" stroke-width="6" fill="none" stroke-linecap="round"/><circle cx="14" cy="20" r="4" fill="#FFAEBB"/><circle cx="46" cy="16" r="4" fill="#FFAEBB"/><circle cx="28" cy="7" r="4" fill="#FFAEBB"/></svg>`,
+  chest:  `<svg width="62" height="46" viewBox="0 0 62 46"><path d="M6 20 h50 v22 a4 4 0 0 1 -4 4 h-42 a4 4 0 0 1 -4 -4z" fill="#8B6B4A"/><path d="M6 20 a25 14 0 0 1 50 0 z" fill="#A07E58"/><ellipse cx="31" cy="20" rx="22" ry="5" fill="#FFDD70" class="coral-glow"/><rect x="27" y="16" width="8" height="12" rx="2" fill="#DFAE3F"/><circle cx="31" cy="22" r="2" fill="#8B6B4A"/></svg>`,
+  moai:   `<svg width="42" height="58" viewBox="0 0 42 58"><path d="M8 58 V16 Q8 2 21 2 Q34 2 34 16 V58 Z" fill="#95A19C"/><path d="M12 22 h8 M23 22 h8" stroke="#6F7E78" stroke-width="3.5" stroke-linecap="round"/><path d="M19 26 q3 6 0 14" stroke="#6F7E78" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M14 48 h14" stroke="#6F7E78" stroke-width="3" stroke-linecap="round"/></svg>`,
+  castle: `<svg width="72" height="66" viewBox="0 0 72 66"><rect x="8" y="26" width="16" height="40" rx="2" fill="#EBD9AE"/><rect x="48" y="26" width="16" height="40" rx="2" fill="#EBD9AE"/><rect x="22" y="36" width="28" height="30" fill="#F2E4BE"/><path d="M8 26 l4 -8 4 8 M48 26 l4 -8 4 8" fill="#E0CB96"/><rect x="32" y="48" width="8" height="18" rx="4" fill="#8B6B4A"/><rect x="12" y="34" width="5" height="8" rx="2" fill="#8B6B4A"/><rect x="52" y="34" width="5" height="8" rx="2" fill="#8B6B4A"/><path d="M36 18 v12" stroke="#8B6B4A" stroke-width="2.5"/><path d="M36 18 l10 3 -10 3z" fill="#F2708A"/></svg>`,
+  jelly:  `<svg width="52" height="66" viewBox="0 0 52 66"><path d="M4 28 a22 22 0 0 1 44 0 q0 6 -6 6 h-32 q-6 0 -6 -6z" fill="#C9B8F0" opacity=".9"/><ellipse cx="18" cy="20" rx="6" ry="9" fill="#E7DFFB" opacity=".7"/><path class="jelly-tent t1" d="M14 34 q-4 12 2 24" stroke="#9F86E0" stroke-width="4" fill="none" stroke-linecap="round"/><path class="jelly-tent t2" d="M26 34 q4 14 -2 28" stroke="#9F86E0" stroke-width="4" fill="none" stroke-linecap="round"/><path class="jelly-tent t3" d="M38 34 q4 12 -2 22" stroke="#9F86E0" stroke-width="4" fill="none" stroke-linecap="round"/><circle cx="20" cy="24" r="2" fill="#5B4FC7"/><circle cx="31" cy="24" r="2" fill="#5B4FC7"/></svg>`,
+  volcano:`<svg width="72" height="66" viewBox="0 0 72 66"><path d="M26 12 h20 l16 54 h-52 z" fill="#7A6458"/><path d="M26 12 h20 l4 14 q-14 6 -28 0 z" fill="#8F7668"/><ellipse cx="36" cy="12" rx="10" ry="4" fill="#4A3A32"/><circle class="volc-bubble v1" cx="32" cy="8" r="4"  fill="rgba(255,255,255,.7)"/><circle class="volc-bubble v2" cx="40" cy="8" r="3"  fill="rgba(255,255,255,.6)"/><circle class="volc-bubble v3" cx="36" cy="8" r="2.5" fill="rgba(255,255,255,.65)"/></svg>`,
+};
+const DECOR_POS = {
+  pebble: "left:14%", kelp: "right:22%;bottom:12%", lamp: "left:34%", clam: "right:8%",
+  snail: "left:56%", ship: "left:3%;bottom:10%", starfish: "left:45%", sign: "right:3%;bottom:11%",
+  coral: "left:22%;bottom:11%", chest: "right:30%", moai: "left:66%;bottom:10%",
+  castle: "right:14%;bottom:10%", jelly: "left:68%", volcano: "left:6%;bottom:11%",
+};
+const DECOR_CLS = { jelly: "jelly-float" };
+function renderDecor() {
+  $("#decor-layer").innerHTML = state.equippedDecor
+    .map((id) => `<div class="decor-item ${DECOR_CLS[id] || ""}" style="${DECOR_POS[id] || "left:20%"}">${DECOR_SVGS[id] || ""}</div>`).join("");
+}
+
+/* ---------- buddies (Plus): extra axolotls in the tank ---------- */
+function renderBuddies() {
+  $("#buddy-layer").innerHTML = (state.premium ? state.buddies : [])
+    .map((b, i) => `<div class="buddy b${i + 1}">
+      <svg viewBox="0 0 200 160" class="${i % 2 ? "flip" : ""}">${axoSVG(b.skin, null, "happy", "bud" + i)}</svg>
+    </div>`).join("");
+}
+
+/* ---------- motion & delight layer ---------- */
+const REDUCED_MOTION = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* ambient sparkles (stage-driven magic shimmer) */
+function renderSparkles(stage) {
+  $$("#tank .sparkle").forEach((s) => s.remove());
+  if (REDUCED_MOTION) return;
+  for (let i = 0; i < (stage.sparkles || 0); i++) {
+    const s = document.createElement("div");
+    s.className = "sparkle";
+    s.textContent = "✦";
+    s.style.left = 8 + Math.random() * 84 + "%";
+    s.style.top = 10 + Math.random() * 60 + "%";
+    s.style.animationDuration = 2.8 + Math.random() * 3 + "s";
+    s.style.animationDelay = -Math.random() * 3 + "s";
+    s.style.fontSize = 8 + Math.random() * 6 + "px";
+    $("#tank").appendChild(s);
+  }
+}
+
+/* sparkle burst near Gillie when pearls are earned */
+function sparkleBurst() {
+  const tank = $("#tank"), wrap = $("#axo-wrap");
+  if (!tank || !wrap || REDUCED_MOTION || $("#view-home").hidden) return;
+  const left = parseFloat(wrap.style.left) || 50;
+  for (let i = 0; i < 6; i++) {
+    const s = document.createElement("div");
+    s.className = "burst-spark";
+    s.textContent = "✦";
+    s.style.left = (left - 6 + Math.random() * 12) + "%";
+    s.style.top = 34 + Math.random() * 14 + "%";
+    s.style.setProperty("--sx", (Math.random() * 70 - 35) + "px");
+    s.style.setProperty("--sy", (-16 - Math.random() * 40) + "px");
+    tank.appendChild(s);
+    setTimeout(() => s.remove(), 950);
+  }
+}
+
+/* tap-to-play: happy squish, bubble puff, a little affection back */
+function bubblePuff(count) {
+  const wrap = $("#axo-wrap"), left = parseFloat(wrap.style.left) || 50;
+  for (let i = 0; i < count; i++) {
+    const b = document.createElement("div");
+    b.className = "bubble";
+    b.innerHTML = "<i></i>";
+    const size = 4 + Math.random() * 7;
+    b.style.width = b.style.height = size + "px";
+    b.style.left = (left - 8 + Math.random() * 16) + "%";
+    b.style.bottom = "46%";
+    b.style.animationDuration = 2 + Math.random() * 1.4 + "s";
+    $("#tank").appendChild(b);
+    setTimeout(() => b.remove(), 3600);
+  }
+}
+function wireTapPlay() {
+  $("#axo-wrap").addEventListener("pointerdown", () => {
+    const s = $("#axo-svg");
+    s.classList.remove("tapjoy"); void s.offsetWidth; s.classList.add("tapjoy");
+    if (!REDUCED_MOTION) bubblePuff(4);
+    $("#speech").textContent = SPEECH.tap[Math.floor(Math.random() * SPEECH.tap.length)];
+  });
+}
+
+/* skin recolor (Plus) */
+let scSkin = null;
+function openSkinEditor() {
+  if (!state.premium) return openPlus();
+  scSkin = state.skin;
+  renderSkinEditor();
+  $("#skin-overlay").hidden = false;
+}
+function renderSkinEditor() {
+  $("#skin-preview").innerHTML = axoSVG(scSkin, state.hat, "happy", "sc");
+  $("#sc-skins").innerHTML = SKINS.map((s) => `
+    <button class="skin-swatch ${scSkin === s.id ? "on" : ""}" data-skin="${s.id}" aria-label="${s.name}"
+      style="background:radial-gradient(circle at 35% 30%, ${s.belly}, ${s.body})"></button>`).join("");
+  $$("#sc-skins .skin-swatch").forEach((b) => b.onclick = () => {
+    scSkin = b.dataset.skin;
+    state.skin = scSkin; save(); renderAxo(); renderAll();
+    renderSkinEditor();
+  });
+}
+$("#sc-done").onclick = () => ($("#skin-overlay").hidden = true);
+
+/* ---------- buddy adoption UI ---------- */
+let buddyEditIdx = null, buddySkin = "pink";
+function renderBuddyGrid() {
+  const cards = (state.premium ? state.buddies : []).map((b, i) => `
+    <button class="buddy-card" data-buddy="${i}">
+      <div class="art"><svg viewBox="0 0 200 160" width="76" height="60">${axoSVG(b.skin, null, "happy", "bcard" + i)}</svg></div>
+      <div class="t">${b.name}</div><div class="s">${skinOf(b.skin).name}</div>
+    </button>`).join("");
+  let add = "";
+  if (!state.premium) {
+    add = `<button class="buddy-card add" id="buddy-add"><span class="plus-ic">🐣</span>
+      <span class="t">Tank mates</span><span class="s">Adopt up to ${BUDDIES.max} buddies</span><span style="background:linear-gradient(120deg,#E7B84B,#D89A2B);color:#fff;font-size:10px;font-weight:800;padding:4px 9px;border-radius:99px">PLUS</span></button>`;
+  } else if (state.buddies.length < BUDDIES.max) {
+    add = `<button class="buddy-card add" id="buddy-add"><span class="plus-ic">＋</span>
+      <span class="t">Adopt a buddy</span><span class="s"><span class="pearl-dot" style="display:inline-block;vertical-align:-1px"></span> ${BUDDIES.price} pearls</span></button>`;
+  }
+  $("#buddy-grid").innerHTML = cards + add;
+  const addBtn = $("#buddy-add");
+  if (addBtn) addBtn.onclick = () => {
+    if (!state.premium) return openPlus();
+    if (state.pearls < BUDDIES.price) return toast("🫧", `Adopting takes ${BUDDIES.price} pearls — you have ${state.pearls}. Check-ins and beaten cravings add up fast.`);
+    openBuddyEditor(null);
+  };
+  $$("#buddy-grid [data-buddy]").forEach((b) => b.onclick = () => openBuddyEditor(+b.dataset.buddy));
+}
+function renderBuddySkins() {
+  $("#bd-skins").innerHTML = SKINS.map((s) => `
+    <button class="skin-swatch ${buddySkin === s.id ? "on" : ""}" data-skin="${s.id}" aria-label="${s.name}"
+      style="background:radial-gradient(circle at 35% 30%, ${s.belly}, ${s.body})"></button>`).join("");
+  $$("#bd-skins .skin-swatch").forEach((b) => b.onclick = () => { buddySkin = b.dataset.skin; renderBuddySkins(); });
+}
+function openBuddyEditor(idx) {
+  buddyEditIdx = idx;
+  const editing = idx !== null;
+  buddySkin = editing ? state.buddies[idx].skin : "pink";
+  $("#buddy-title").textContent = editing ? "Your tank mate" : "Adopt a tank mate";
+  $("#buddy-sub").textContent = editing ? "Rename them, restyle them, or set them free." :
+    `A little friend for ${state.petName}. Costs ${BUDDIES.price} pearls, swims forever.`;
+  $("#bd-name").value = editing ? state.buddies[idx].name : "";
+  $("#bd-save").textContent = editing ? "Save" : `Adopt — ${BUDDIES.price} pearls`;
+  $("#bd-release").hidden = !editing;
+  renderBuddySkins();
+  $("#buddy-overlay").hidden = false;
+}
+$("#bd-save").onclick = () => {
+  const name = ($("#bd-name").value.trim() || "Buddy").slice(0, 14);
+  if (buddyEditIdx === null) {
+    if (state.pearls < BUDDIES.price || state.buddies.length >= BUDDIES.max) return;
+    state.pearls -= BUDDIES.price;
+    state.buddies.push({ name, skin: buddySkin });
+    toast("🐣", `${name} just moved in. ${state.petName} is thrilled.`);
+    axoCelebrate();
+  } else {
+    state.buddies[buddyEditIdx] = { name, skin: buddySkin };
+  }
+  save(); $("#buddy-overlay").hidden = true; renderAll();
+};
+$("#bd-release").onclick = () => {
+  const b = state.buddies[buddyEditIdx];
+  if (confirm(`Release ${b.name} into a nice wild pond? (No pearl refund — adoption is forever-ish.)`)) {
+    state.buddies.splice(buddyEditIdx, 1);
+    save(); $("#buddy-overlay").hidden = true; renderAll();
+  }
+};
+
+/* ---------- idle behaviors: drifting, flipping, occasional spin ---------- */
+let behaviorTimer = null;
+function axoCelebrate() {
+  const s = $("#axo-svg");
+  if (!s) return;
+  s.classList.remove("celebrate"); void s.offsetWidth; s.classList.add("celebrate");
+}
+function behaviorLoop() {
+  if (REDUCED_MOTION) return;
+  clearTimeout(behaviorTimer);
+  behaviorTimer = setTimeout(() => {
+    if (!$("#view-home").hidden && !document.hidden) {
+      const r = Math.random(), wrap = $("#axo-wrap"), svg = $("#axo-svg");
+      if (r < 0.5) {
+        const cur = parseFloat(wrap.style.left) || 50;
+        const x = 34 + Math.random() * 32;
+        svg.classList.toggle("flip", x > cur);
+        svg.classList.add("swim");
+        wrap.style.left = x + "%";
+        setTimeout(() => svg.classList.remove("swim"), 3800);
+      } else if (r < 0.62) {
+        axoCelebrate();
+      }
+    }
+    behaviorLoop();
+  }, 5200 + Math.random() * 7000);
+}
+
+/* ---------- drifting light motes ---------- */
+let motesSpawned = false;
+function spawnMotes() {
+  if (motesSpawned || REDUCED_MOTION) return; motesSpawned = true;
+  for (let i = 0; i < 12; i++) {
+    const m = document.createElement("div");
+    m.className = "mote";
+    const sz = 2 + Math.random() * 2.5;
+    m.style.width = m.style.height = sz + "px";
+    m.style.left = 5 + Math.random() * 90 + "%";
+    m.style.top = 12 + Math.random() * 65 + "%";
+    m.style.setProperty("--mx", (Math.random() * 50 - 25) + "px");
+    m.style.setProperty("--my", (-20 - Math.random() * 40) + "px");
+    m.style.animationDuration = 9 + Math.random() * 9 + "s";
+    m.style.animationDelay = -Math.random() * 9 + "s";
+    $("#tank").appendChild(m);
+  }
+}
+
+/* ============================================================
+   Plus features: tank themes, savings goal, insights
+   ============================================================ */
+function applyTheme() {
+  const t = state.premium ? themeOf(state.theme) : THEMES[0];
+  const el = $("#theme-tint");
+  el.style.background = t.tint;
+  el.style.mixBlendMode = t.blend;
+  document.documentElement.style.setProperty("--sand", t.sand);
+}
+function renderThemes() {
+  $("#theme-row").innerHTML = THEMES.map((t) => {
+    const on = (state.premium ? state.theme : "clear") === t.id;
+    const sw = t.id === "clear"
+      ? "linear-gradient(180deg,#9DD1C4,#6FAF9F)"
+      : `${t.tint}, linear-gradient(180deg,#9DD1C4,#6FAF9F)`;
+    return `<button class="theme-chip ${on ? "on" : ""}" data-theme="${t.id}">
+      ${t.premium ? '<span class="plus-tag">PLUS</span>' : ""}
+      <div class="swatch" style="background:${sw}"></div>
+      <div class="t">${t.name}</div></button>`;
+  }).join("");
+  $$("#theme-row .theme-chip").forEach((b) => b.onclick = () => {
+    const t = themeOf(b.dataset.theme);
+    if (t.premium && !state.premium) return openPlus();
+    state.theme = t.id; save(); renderAll();
+    toast("🎨", `${state.petName}'s tank is now ${t.name}.`);
+  });
+}
+
+function goalEta() {
+  const remaining = state.goal.price - moneySaved();
+  if (remaining <= 0) return "Fully funded. Go get it — you earned this twice.";
+  const perDay = costPerMs() * dayMs;
+  if (perDay <= 0) return "";
+  const days = Math.ceil(remaining / perDay);
+  return `~${days} clean day${days === 1 ? "" : "s"} to go at your old spending rate`;
+}
+function renderGoal() {
+  const card = $("#goal-card");
+  card.hidden = false;
+  if (!state.premium) {
+    card.className = "locked-teaser";
+    card.innerHTML = `<span class="ic">🎯</span><span><span class="t">Savings Goal</span><br>
+      <span class="s">Point your unspent vape money at something real</span></span><span class="tag">PLUS</span>`;
+    card.onclick = openPlus;
+    return;
+  }
+  card.className = "goal-card";
+  if (!state.goal) {
+    card.innerHTML = `<div class="eyebrow">Savings goal</div>
+      <div class="row"><div class="gn">What are you saving for?</div><div class="gv">Set it →</div></div>`;
+    card.onclick = openGoalEditor;
+    return;
+  }
+  const pct = Math.min(100, (moneySaved() / state.goal.price) * 100);
+  card.innerHTML = `<div class="eyebrow">Savings goal</div>
+    <div class="row"><div class="gn">${state.goal.name}</div>
+    <div class="gv">$${Math.min(moneySaved(), state.goal.price).toFixed(0)} / $${state.goal.price}</div></div>
+    <div class="bar"><i style="width:${pct.toFixed(1)}%"></i></div>
+    <div class="eta">${goalEta()}</div>`;
+  card.onclick = openGoalEditor;
+}
+function openGoalEditor() {
+  $("#ge-name").value = state.goal ? state.goal.name : "";
+  $("#ge-price").value = state.goal ? state.goal.price : "";
+  $("#ge-remove").hidden = !state.goal;
+  $("#goal-overlay").hidden = false;
+}
+$("#ge-save").onclick = () => {
+  const name = $("#ge-name").value.trim();
+  const price = Math.max(1, parseFloat($("#ge-price").value) || 0);
+  if (!name || !price) return;
+  state.goal = { name: name.slice(0, 30), price };
+  save(); $("#goal-overlay").hidden = true; renderAll();
+  toast("🎯", `Locked in. Every skipped puff is now a brick in "${state.goal.name}".`);
+};
+$("#ge-remove").onclick = () => { state.goal = null; save(); $("#goal-overlay").hidden = true; renderAll(); };
+
+const HOUR_BLOCKS = [
+  { label: "12–4a", from: 0 }, { label: "4–8a", from: 4 }, { label: "8a–12p", from: 8 },
+  { label: "12–4p", from: 12 }, { label: "4–8p", from: 16 }, { label: "8p–12a", from: 20 },
+];
+function renderInsights() {
+  const box = $("#insights-box");
+  if (!state.premium) {
+    box.innerHTML = `<button class="locked-teaser" id="insights-teaser"><span class="ic">📊</span><span>
+      <span class="t">Insights</span><br><span class="s">Your danger hours, mood trend &amp; best streak — from your own data</span>
+      </span><span class="tag">PLUS</span></button>`;
+    $("#insights-teaser").onclick = openPlus;
+    return;
+  }
+  const counts = HOUR_BLOCKS.map((b) => state.cravings.filter((c) => {
+    const h = new Date(c.at).getHours();
+    return h >= b.from && h < b.from + 4;
+  }).length);
+  const maxC = Math.max(...counts, 1);
+  const hotIdx = counts.indexOf(Math.max(...counts));
+  const moods = state.checkins.slice(-14);
+  const best = bestStreakMs();
+  const bd = Math.floor(best / dayMs), bh = Math.floor((best % dayMs) / 3600000);
+  const beaten = state.cravings.filter((c) => c.resisted).length;
+  const winRate = state.cravings.length ? Math.round((beaten / state.cravings.length) * 100) : null;
+  box.innerHTML = `<div class="insights">
+    <div class="kpis">
+      <div class="kpi"><div class="v">${bd}d ${bh}h</div><div class="k">Best streak</div></div>
+      <div class="kpi"><div class="v">${winRate === null ? "—" : winRate + "%"}</div><div class="k">Craving win rate</div></div>
+      <div class="kpi"><div class="v">$${(costPerMs() * dayMs * 365).toFixed(0)}</div><div class="k">Yearly pace</div></div>
+      <div class="kpi"><div class="v">${state.slips.length}</div><div class="k">Slips (they're data)</div></div>
+    </div>
+    <div class="sub-h">Cravings by time of day</div>
+    ${state.cravings.length ? `<div class="hour-bars">${HOUR_BLOCKS.map((b, i) =>
+      `<div class="hb ${i === hotIdx && counts[i] > 0 ? "hot" : ""}"><i style="height:${(counts[i] / maxC) * 100}%"></i><b>${b.label}</b></div>`).join("")}</div>
+      ${counts[hotIdx] > 0 ? `<div style="font-size:12.5px;color:var(--ink-soft);font-weight:600;margin-top:9px">⚠️ ${HOUR_BLOCKS[hotIdx].label} is your danger window — plan something for your hands then.</div>` : ""}`
+      : `<div style="font-size:13px;color:var(--ink-faint);font-weight:600">Log cravings through SOS and your pattern will show up here.</div>`}
+    <div class="sub-h">Mood, last ${moods.length || 0} check-ins</div>
+    ${moods.length ? `<div class="mood-bars">${moods.map((c) => `<i style="height:${(c.mood / 5) * 100}%"></i>`).join("")}</div>`
+      : `<div style="font-size:13px;color:var(--ink-faint);font-weight:600">Daily check-ins build your mood trend.</div>`}
+  </div>`;
+}
+
+/* ============================================================
+   Daily check-in
+   ============================================================ */
+let checkinMood = null, checkinClean = "clean";
+function renderCheckinCard() {
+  const done = state.checkins.some((c) => c.date === todayKey());
+  $("#checkin-card").style.display = done ? "none" : "flex";
+}
+$("#checkin-open").onclick = () => {
+  checkinMood = null; checkinClean = "clean";
+  $$("#mood-row button").forEach((b) => b.classList.remove("on"));
+  $$("#checkin-clean button").forEach((b, i) => b.classList.toggle("on", i === 0));
+  $("#checkin-save").disabled = true;
+  $("#checkin-overlay").hidden = false;
+};
+$$("#mood-row button").forEach((b) => b.onclick = () => {
+  $$("#mood-row button").forEach((x) => x.classList.remove("on")); b.classList.add("on");
+  checkinMood = +b.dataset.v; $("#checkin-save").disabled = false;
+});
+$$("#checkin-clean button").forEach((b) => b.onclick = () => {
+  $$("#checkin-clean button").forEach((x) => x.classList.remove("on")); b.classList.add("on");
+  checkinClean = b.dataset.v;
+});
+$("#checkin-save").onclick = () => {
+  state.checkins.push({ date: todayKey(), mood: checkinMood, clean: checkinClean === "clean" });
+  $("#checkin-overlay").hidden = true;
+  if (checkinClean === "clean") {
+    const v = grant(CONFIG.rewards.checkin);
+    save();
+    toast("🫧", `Check-in done. +${v} pearls — ${state.petName} did a little spin.`);
+    axoCelebrate();
+    renderAll();
+  } else {
+    save();
+    openSlip();
+  }
+};
+
+/* ============================================================
+   Craving SOS — box breathing 4·4·4·4
+   ============================================================ */
+const BREATH_PHASES = [
+  { label: "Breathe in", secs: 4, scale: 1 },
+  { label: "Hold", secs: 4, scale: 1 },
+  { label: "Breathe out", secs: 4, scale: 0.55 },
+  { label: "Hold", secs: 4, scale: 0.55 },
+];
+let breathTimer = null;
+$("#sos-fab").onclick = openSOS;
+function openSOS() {
+  $("#sos-pet-name").textContent = state.petName;
+  $("#sos-axo").innerHTML = axoSVG(state.skin, state.hat, "happy", "sos");
+  $("#sos-reasons").innerHTML = state.reasons.length
+    ? `You're quitting for:<br><strong>${state.reasons.join(" · ")}</strong>` : "";
+  $("#sos-overlay").hidden = false;
+  runBreath();
+}
+function runBreath() {
+  clearInterval(breathTimer);
+  let phase = 0, left = BREATH_PHASES[0].secs;
+  const ring = $("#breath-ring");
+  const apply = () => {
+    const p = BREATH_PHASES[phase];
+    $("#breath-phase").textContent = p.label;
+    $("#breath-count").textContent = left + "s";
+    ring.style.setProperty("--breath", p.scale);
+  };
+  ring.style.setProperty("--breath", 0.55);
+  apply();
+  breathTimer = setInterval(() => {
+    left--;
+    if (left <= 0) { phase = (phase + 1) % BREATH_PHASES.length; left = BREATH_PHASES[phase].secs; }
+    apply();
+  }, 1000);
+}
+function closeSOS() { $("#sos-overlay").hidden = true; clearInterval(breathTimer); }
+$("#sos-close").onclick = closeSOS;
+$("#sos-beat").onclick = () => { closeSOS(); openTriggerPicker(true); };
+$("#sos-slipped").onclick = () => { closeSOS(); openSlip(); };
+
+/* trigger picker */
+let pendingResisted = true, pendingTrigger = null;
+function openTriggerPicker(resisted) {
+  pendingResisted = resisted; pendingTrigger = null;
+  $("#trigger-reward").textContent = CONFIG.rewards.cravingBeaten * (state.premium ? CONFIG.plus.pearlMultiplier : 1);
+  $("#trigger-chips").innerHTML = TRIGGERS.map((t) => `<button data-v="${t}">${t}</button>`).join("");
+  $$("#trigger-chips button").forEach((b) => b.onclick = () => {
+    $$("#trigger-chips button").forEach((x) => x.classList.remove("on")); b.classList.add("on");
+    pendingTrigger = b.dataset.v; $("#trigger-save").disabled = false;
+  });
+  $("#trigger-save").disabled = true;
+  $("#trigger-overlay").hidden = false;
+}
+$("#trigger-save").onclick = () => {
+  state.cravings.push({ at: Date.now(), trigger: pendingTrigger, resisted: pendingResisted });
+  const v = grant(CONFIG.rewards.cravingBeaten);
+  save();
+  $("#trigger-overlay").hidden = true;
+  if (pendingResisted) { toast("💪", `Craving beaten. +${v} pearls. That's a rep for your brain.`); axoCelebrate(); }
+  renderAll();
+};
+
+function renderTriggers() {
+  const counts = {};
+  state.cravings.forEach((c) => (counts[c.trigger] = (counts[c.trigger] || 0) + 1));
+  const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  if (!entries.length) return;
+  const max = entries[0][1];
+  $("#trigger-chart").innerHTML = entries.map(([t, n]) => `
+    <div class="trig-row"><div class="n">${t}</div>
+    <div class="bar"><i style="width:${(n / max) * 100}%"></i></div><div class="c">${n}</div></div>`).join("");
+}
+
+/* ============================================================
+   Slip flow — compassionate reset
+   ============================================================ */
+function openSlip() {
+  const banked = Math.floor(lifetimeCleanMs() / dayMs);
+  $("#slip-copy").textContent =
+    `A slip clouds the water a little — it doesn't drain the tank. The ${banked} clean day${banked === 1 ? "" : "s"} you've banked, your pearls, and everything your body already healed stay yours. The streak restarts; the story doesn't.`;
+  $("#slip-overlay").hidden = false;
+}
+$("#slip-cancel").onclick = () => ($("#slip-overlay").hidden = true);
+$("#slip-confirm").onclick = () => {
+  const len = currentStreakMs();
+  state.bankedCleanMs += len;
+  state.slips.push({ at: Date.now(), streakMs: len });
+  state.quitAt = Date.now();
+  state.justSlippedAt = Date.now();
+  state.milestonesSeen = []; // milestones re-earnable on the new streak (pearls already banked)
+  save();
+  $("#slip-overlay").hidden = true;
+  renderAxo(); renderAll();
+  toast("🌫️", `Streak restarted. ${state.petName} isn't going anywhere — and neither are you.`);
+  openTriggerPicker(false);
+};
+
+/* ============================================================
+   Reef shop
+   ============================================================ */
+function renderShop() {
+  $("#plus-banner").hidden = state.premium;
+  const bond = bondDays();
+  $("#shop-grid").innerHTML = SHOP_ITEMS.map((it) => {
+    const owned = state.ownedItems.includes(it.id);
+    const equipped = it.type === "hat" ? state.hat === it.id : state.equippedDecor.includes(it.id);
+    const lockedPlus = it.premium && !state.premium;
+    const lockedBond = bond < it.bondDays;
+    const art = it.type === "hat"
+      ? `<svg width="80" height="60" viewBox="0 0 200 160">${axoSVG(state.skin, it.id, "happy", "shop-" + it.id)}</svg>`
+      : DECOR_SVGS[it.id] || "";
+    let btn;
+    if (equipped) btn = `<button class="equipped" data-act="unequip" data-id="${it.id}">Equipped ✓</button>`;
+    else if (owned) btn = `<button class="owned" data-act="equip" data-id="${it.id}">Equip</button>`;
+    else if (lockedPlus) btn = `<button data-act="plus">Unlock with Plus</button>`;
+    else if (lockedBond) btn = `<button disabled>Locked</button>`;
+    else btn = `<button data-act="buy" data-id="${it.id}" ${state.pearls < it.price ? "disabled" : ""}>Buy</button>`;
+    return `<div class="shop-card">
+      ${it.premium ? '<span class="plus-tag">PLUS</span>' : ""}
+      <div class="art">${art}</div>
+      <div class="t">${it.name}</div>
+      <div class="price"><span class="pearl-dot"></span>${it.price}</div>
+      ${lockedBond && !owned ? `<div class="req">Unlocks at ${it.bondDays} lifetime clean day${it.bondDays === 1 ? "" : "s"}</div>` : ""}
+      ${btn}</div>`;
+  }).join("");
+  $$("#shop-grid button[data-act]").forEach((b) => b.onclick = () => {
+    const act = b.dataset.act, id = b.dataset.id;
+    const it = SHOP_ITEMS.find((x) => x.id === id);
+    if (act === "plus") return openPlus();
+    if (act === "buy") {
+      if (state.pearls < it.price) return;
+      state.pearls -= it.price; state.ownedItems.push(id);
+      if (it.type === "hat") state.hat = id; else state.equippedDecor.push(id);
+      toast("🛍️", `${it.name} is ${state.petName}'s now.`);
+      axoCelebrate();
+    }
+    if (act === "equip") { if (it.type === "hat") state.hat = id; else state.equippedDecor.push(id); }
+    if (act === "unequip") { if (it.type === "hat") state.hat = null; else state.equippedDecor = state.equippedDecor.filter((x) => x !== id); }
+    save(); renderAxo(); renderAll();
+  });
+}
+
+/* ============================================================
+   Gillie Plus paywall (stub — wire to RevenueCat/StoreKit in Capacitor)
+   ============================================================ */
+function openPlus() {
+  $("#plus-perks").innerHTML = CONFIG.plus.perks.join("<br>");
+  $("#plus-yearly").textContent = CONFIG.plus.yearlyLabel;
+  $("#plus-monthly").textContent = CONFIG.plus.monthlyLabel;
+  $("#plus-overlay").hidden = false;
+}
+$("#plus-open").onclick = openPlus;
+function grantPlus() {
+  // TODO (production): replace with real purchase flow + receipt validation.
+  state.premium = true; save();
+  $("#plus-overlay").hidden = true;
+  toast("👑", "Gillie Plus active. The rare skins are yours — check the Reef.");
+  renderAll();
+}
+$("#plus-yearly").onclick = grantPlus;
+$("#plus-monthly").onclick = grantPlus;
+
+/* ============================================================
+   Settings
+   ============================================================ */
+function renderSettings() {
+  $("#set-name-v").textContent = state.petName;
+  $("#set-skin-v").textContent = state.premium ? skinOf(state.skin).name : "Plus 👑";
+  $("#set-plus-v").textContent = state.premium ? "Active 👑" : "Free plan";
+}
+$("#set-skin").onclick = openSkinEditor;
+$("#set-name").onclick = () => {
+  const n = prompt("Rename your axolotl:", state.petName);
+  if (n && n.trim()) { state.petName = n.trim().slice(0, 14); save(); renderAll(); }
+};
+$("#set-cost").onclick = () => {
+  $("#ce-units-label").textContent = state.cost.style === "pods" ? "Pods per week" : "Disposables per week";
+  $("#ce-units").value = state.cost.unitsPerWeek;
+  $("#ce-cost").value = state.cost.costPerUnit;
+  $("#ce-puffs").value = state.cost.puffsPerDay;
+  $("#cost-overlay").hidden = false;
+};
+$("#ce-save").onclick = () => {
+  state.cost.unitsPerWeek = Math.max(0.1, parseFloat($("#ce-units").value) || state.cost.unitsPerWeek);
+  state.cost.costPerUnit = Math.max(0.5, parseFloat($("#ce-cost").value) || state.cost.costPerUnit);
+  state.cost.puffsPerDay = Math.max(10, parseInt($("#ce-puffs").value) || state.cost.puffsPerDay);
+  save(); $("#cost-overlay").hidden = true; renderAll();
+};
+$("#set-plus").onclick = openPlus;
+$("#set-slip").onclick = openSlip;
+$("#set-reset").onclick = () => {
+  if (confirm("Erase everything? This releases " + state.petName + " and deletes all progress. There's no undo.")) {
+    localStorage.removeItem(CONFIG.storageKey);
+    location.reload();
+  }
+};
+
+/* overlays: tap backdrop to close (sheets only) */
+$$(".overlay").forEach((ov) => ov.addEventListener("click", (e) => {
+  if (e.target === ov && ov.id !== "sos-overlay") ov.hidden = true;
+}));
+
+/* ============================================================
+   Toast
+   ============================================================ */
+let toastHandle = null;
+function toast(em, msg) {
+  $("#toast .em").textContent = em;
+  $("#toast-msg").textContent = msg;
+  $("#toast").classList.add("show");
+  clearTimeout(toastHandle);
+  toastHandle = setTimeout(() => $("#toast").classList.remove("show"), 3800);
+}
+
+/* ============================================================
+   Boot
+   ============================================================ */
+if (state.onboarded) enterMain();
+else obRender();
+document.addEventListener("visibilitychange", () => { if (!document.hidden && state.onboarded) { renderAxo(); renderAll(); } });
+</script>
+</body>
+</html>
