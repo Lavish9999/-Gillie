@@ -54,6 +54,9 @@ body{
   line-height:1.45;
   -webkit-font-smoothing:antialiased;
 }
+body.sheet-open{overflow:hidden}
+body.sheet-open #app{height:100dvh;overflow:hidden}
+body.sheet-open #main .view{overflow:hidden !important}
 button{font-family:inherit;border:none;background:none;color:inherit;cursor:pointer}
 input,select{font-family:inherit;font-size:16px}
 [hidden]{display:none !important}
@@ -578,6 +581,8 @@ nav#tabs button.on{color:var(--ink)}
 .overlay{
   position:fixed;inset:0;z-index:60;display:flex;align-items:flex-end;justify-content:center;
   background:rgba(10,30,27,.5);backdrop-filter:blur(3px);animation:fadeIn .25s ease both;
+  overscroll-behavior:contain;
+  touch-action:none;
 }
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 .sheet{
@@ -585,6 +590,7 @@ nav#tabs button.on{color:var(--ink)}
   padding:12px 22px calc(28px + env(safe-area-inset-bottom));max-height:92dvh;overflow-y:auto;
   animation:slideUp .35s cubic-bezier(.2,.9,.3,1) both;
   overscroll-behavior:contain;
+  touch-action:pan-y;
   will-change:transform;
 }
 @keyframes slideUp{from{transform:translateY(60px);opacity:0}to{transform:none;opacity:1}}
@@ -3083,33 +3089,43 @@ $$(".overlay").forEach((ov) => ov.addEventListener("click", (e) => {
   if (e.target === ov) closeSheetOverlay(ov);
 }));
 
+function syncOverlayLock() {
+  const anyOpen = $$(".overlay").some((ov) => !ov.hidden);
+  document.body.classList.toggle("sheet-open", anyOpen);
+}
+const overlayLockObserver = new MutationObserver(syncOverlayLock);
+$$(".overlay").forEach((ov) => overlayLockObserver.observe(ov, { attributes: true, attributeFilter: ["hidden"] }));
+syncOverlayLock();
+
 function enableSheetDragDismiss() {
   $$(".overlay .sheet").forEach((sheet) => {
     let startY = 0, lastY = 0, startTime = 0, dragging = false;
-    sheet.addEventListener("pointerdown", (e) => {
+    const canStart = (y, target) => {
       const top = sheet.getBoundingClientRect().top;
-      const onGrab = !!e.target.closest(".grab");
-      const nearTop = e.clientY - top < 58;
-      const interactive = e.target.closest("button,input,textarea,select");
-      if ((!onGrab && (!nearTop || interactive)) || sheet.scrollTop > 0) return;
-      startY = lastY = e.clientY;
+      const onGrab = !!target.closest(".grab");
+      const nearTop = y - top < 68;
+      const interactive = target.closest("button,input,textarea,select");
+      return !((!onGrab && (!nearTop || interactive)) || sheet.scrollTop > 0);
+    };
+    const beginDrag = (y, target) => {
+      if (!canStart(y, target)) return false;
+      startY = lastY = y;
       startTime = Date.now();
       dragging = true;
       sheet.classList.add("dragging");
-      sheet.setPointerCapture?.(e.pointerId);
-    });
-    sheet.addEventListener("pointermove", (e) => {
+      return true;
+    };
+    const moveDrag = (y) => {
       if (!dragging) return;
-      const dy = Math.max(0, e.clientY - startY);
-      lastY = e.clientY;
-      if (dy > 2) e.preventDefault();
+      const dy = Math.max(0, y - startY);
+      lastY = y;
       sheet.style.transform = `translateY(${dy}px)`;
       sheet.style.opacity = String(Math.max(.65, 1 - dy / 650));
-    });
-    const endDrag = (e) => {
+    };
+    const endDrag = (pointerId = null) => {
       if (!dragging) return;
       dragging = false;
-      sheet.releasePointerCapture?.(e.pointerId);
+      if (pointerId !== null) sheet.releasePointerCapture?.(pointerId);
       const dy = Math.max(0, lastY - startY);
       const velocity = dy / Math.max(1, Date.now() - startTime);
       const ov = sheet.closest(".overlay");
@@ -3123,8 +3139,29 @@ function enableSheetDragDismiss() {
       sheet.style.opacity = "";
       setTimeout(() => { sheet.style.transition = ""; }, 220);
     };
-    sheet.addEventListener("pointerup", endDrag);
-    sheet.addEventListener("pointercancel", endDrag);
+    sheet.addEventListener("pointerdown", (e) => {
+      if (!beginDrag(e.clientY, e.target)) return;
+      sheet.setPointerCapture?.(e.pointerId);
+    });
+    sheet.addEventListener("pointermove", (e) => {
+      if (!dragging) return;
+      if (Math.max(0, e.clientY - startY) > 2) e.preventDefault();
+      moveDrag(e.clientY);
+    });
+    sheet.addEventListener("pointerup", (e) => endDrag(e.pointerId));
+    sheet.addEventListener("pointercancel", (e) => endDrag(e.pointerId));
+    sheet.addEventListener("touchstart", (e) => {
+      if (e.touches.length !== 1) return;
+      const t = e.touches[0];
+      if (beginDrag(t.clientY, e.target)) e.preventDefault();
+    }, { passive: false });
+    sheet.addEventListener("touchmove", (e) => {
+      if (!dragging || e.touches.length !== 1) return;
+      e.preventDefault();
+      moveDrag(e.touches[0].clientY);
+    }, { passive: false });
+    sheet.addEventListener("touchend", () => endDrag(), { passive: false });
+    sheet.addEventListener("touchcancel", () => endDrag(), { passive: false });
   });
 }
 enableSheetDragDismiss();
