@@ -478,6 +478,22 @@ nav#tabs button.on{color:var(--ink)}
 .locked-teaser .s{font-size:12.5px;color:var(--ink-faint);font-weight:600}
 .locked-teaser .tag{margin-left:auto;background:linear-gradient(120deg,#E7B84B,#D89A2B);color:#fff;
   font-size:10px;font-weight:800;padding:4px 9px;border-radius:99px;letter-spacing:.05em;flex-shrink:0}
+.coach-card{
+  margin-top:14px;background:linear-gradient(135deg,#173F3A,#0E2C28);color:#fff;
+  border-radius:var(--radius);padding:17px 18px;box-shadow:var(--shadow);width:100%;text-align:left;display:block;
+}
+.coach-card.locked{background:var(--card);color:var(--ink);border:1.5px dashed var(--line);box-shadow:var(--shadow-soft)}
+.coach-card .eyebrow{color:rgba(255,255,255,.62)}
+.coach-card.locked .eyebrow{color:var(--ink-faint)}
+.coach-card .row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:5px}
+.coach-card .t{font-family:var(--font-display);font-weight:800;font-size:18px;line-height:1.05}
+.coach-card .tag{background:linear-gradient(120deg,#E7B84B,#D89A2B);color:#fff;
+  font-size:10px;font-weight:800;padding:4px 9px;border-radius:99px;letter-spacing:.05em;flex-shrink:0}
+.coach-card .s{font-size:13px;font-weight:600;color:rgba(255,255,255,.76);margin-top:7px}
+.coach-card.locked .s{color:var(--ink-faint)}
+.coach-list{display:grid;gap:7px;margin-top:13px}
+.coach-list div{background:rgba(255,255,255,.11);border-radius:12px;padding:9px 10px;font-size:13px;font-weight:700;line-height:1.25}
+.coach-card.locked .coach-list div{background:var(--bg);color:var(--ink-soft)}
 .insights{background:var(--card);border-radius:var(--radius-sm);padding:16px;box-shadow:var(--shadow-soft)}
 .insights .kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
 .insights .kpi{background:var(--bg);border-radius:12px;padding:11px 12px}
@@ -557,6 +573,26 @@ nav#tabs button.on{color:var(--ink)}
   background:rgba(226,83,111,.12);color:var(--coral-deep);font-size:24px;font-weight:800;
 }
 .field input.text-sheet-input{font-size:20px;font-weight:800}
+.plus-hero{
+  background:linear-gradient(135deg,#173F3A,#0E2C28);color:#fff;border-radius:22px;
+  padding:18px;margin-bottom:16px;box-shadow:var(--shadow);position:relative;overflow:hidden;
+}
+.plus-hero::after{content:"";position:absolute;right:-38px;top:-38px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.10)}
+.plus-hero h2{color:#fff;margin-bottom:7px}
+.plus-hero .sub{color:rgba(255,255,255,.78);margin-bottom:0}
+.plus-perks{
+  background:var(--card);border-radius:var(--radius-sm);padding:16px;box-shadow:var(--shadow-soft);
+  margin-bottom:16px;font-size:14.5px;font-weight:700;line-height:1.55;
+}
+.plus-perks div{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--bg-deep)}
+.plus-perks div:last-child{border-bottom:none}
+.price-card{
+  border-radius:18px;background:var(--card);box-shadow:var(--shadow-soft);padding:12px;margin-bottom:10px;
+  border:2px solid transparent;
+}
+.price-card.best{border-color:var(--gold)}
+.price-card .label{font-size:11px;font-weight:800;color:var(--gold);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px}
+.price-card .btn{margin:0}
 .field textarea{
   width:100%;min-height:86px;resize:vertical;padding:14px 16px;border-radius:var(--radius-sm);
   border:1.5px solid var(--line);background:var(--card);color:var(--ink);
@@ -841,6 +877,12 @@ nav#tabs button.on{color:var(--ink)}
 
     <div class="goal-card" id="goal-card" hidden></div>
 
+    <button class="coach-card locked" id="coach-card">
+      <div class="eyebrow">Gillie Coach</div>
+      <div class="row"><div class="t">Personal quit plan</div><span class="tag">PLUS</span></div>
+      <div class="s">A daily plan based on your check-ins, cravings, slips, and trigger patterns.</div>
+    </button>
+
     <div class="checkin-card" id="checkin-card">
       <div>
         <div class="t">Daily check-in</div>
@@ -1011,11 +1053,18 @@ nav#tabs button.on{color:var(--ink)}
 <div class="overlay" id="plus-overlay" hidden>
   <div class="sheet">
     <div class="grab"></div>
-    <h2>Gillie Plus</h2>
-    <p class="sub">The core quit tools are free, forever. Plus is the fun stuff on top.</p>
-    <div style="background:var(--card);border-radius:var(--radius-sm);padding:16px;box-shadow:var(--shadow-soft);margin-bottom:18px;font-size:14.5px;font-weight:600;line-height:2" id="plus-perks"></div>
-    <button class="btn" id="plus-yearly">—</button>
-    <button class="btn ghost" id="plus-monthly" style="margin-top:10px">—</button>
+    <div class="plus-hero">
+      <h2>Gillie Plus</h2>
+      <p class="sub">Personal quit support that grows with your streak. Core tracking stays free.</p>
+    </div>
+    <div class="plus-perks" id="plus-perks"></div>
+    <div class="price-card best">
+      <div class="label">Best value</div>
+      <button class="btn" id="plus-yearly">—</button>
+    </div>
+    <div class="price-card">
+      <button class="btn ghost" id="plus-monthly">—</button>
+    </div>
     <p style="font-size:11.5px;color:var(--ink-faint);text-align:center;margin-top:12px">Cancel anytime in the App Store.</p>
   </div>
 </div>
@@ -1129,15 +1178,14 @@ const CONFIG = {
   rewards: { checkin: 10, cravingBeaten: 5, cravingLoggedAfterSlip: 5, milestone: 25 },
   plus: {
     monthlyLabel: "$4.99 / month",
-    yearlyLabel: "$29.99 / year — save 50%",
+    yearlyLabel: "$39.99 / year — best value",
     pearlMultiplier: 2,
     perks: [
-      "🐣 Tank mates — adopt up to 2 buddy axolotls",
-      "🎯 Savings Goal — point your unspent vape money at something real",
-      "📊 Insights — your danger hours, mood trend & best streak",
-      "🎨 Tank themes: Sunset Lagoon, Abyss, Sakura",
-      "🦎 Recolor Gillie anytime — incl. Lavender, Golden, Midnight",
-      "🫧 2× pearls on every check-in, craving & milestone",
+      "Gillie Coach — a daily quit plan from your check-ins and cravings",
+      "Trigger counter-moves for stress, boredom, food, drinking, and scrolling",
+      "Deep insights: danger hours, mood trend, best streak, slips, and win rate",
+      "Savings goal that turns skipped vape money into something real",
+      "Tank mates, rare colors, themes, and 2x pearls as bonus motivation",
     ],
     // NOTE: purchase buttons are stubs. In the Capacitor build, wire these
     // to RevenueCat / StoreKit and set state.premium on entitlement.
@@ -1467,7 +1515,7 @@ function renderAll() {
   $("#stage-tag").textContent = `Day ${Math.floor(currentStreakMs() / dayMs)} · ${growth.name}`;
   $("#axo-svg").dataset.growth = growth.id;
   $("#stat-cravings").textContent = state.cravings.filter((c) => c.resisted).length;
-  renderSpeech(stage); renderDecor(); renderGrowthCard(); renderCheckinCard(); renderCheckinLog(); renderMilestoneList(); renderNextMilestone();
+  renderSpeech(stage); renderDecor(); renderGrowthCard(); renderCoachCard(); renderCheckinCard(); renderCheckinLog(); renderMilestoneList(); renderNextMilestone();
   renderTriggers(); renderShop(); renderSettings();
   applyTheme(); renderGoal(); renderInsights(); renderThemes();
   renderBuddies(); renderBuddyGrid();
@@ -1507,6 +1555,69 @@ function renderGrowthCard() {
   $("#growth-eta").textContent = leftDays <= 1
     ? `${next.name} is less than a day away.`
     : `${leftDays} clean days until ${next.name}.`;
+}
+
+function topTrigger() {
+  const counts = {};
+  state.cravings.forEach((c) => { if (c.trigger) counts[c.trigger] = (counts[c.trigger] || 0) + 1; });
+  return Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+}
+
+function triggerMove(trigger) {
+  const moves = {
+    Stress: "Before stress turns into autopilot, open SOS and do one full breathing cycle.",
+    Boredom: "Give your hands a 2-minute job: water, tidy one surface, or walk to another room.",
+    Social: "Decide your line before the moment: 'I'm off it right now.'",
+    "After eating": "Swap the after-meal puff with gum, brushing, or a 5-minute walk.",
+    Drinking: "Keep something in your hand that is not a vape and leave before cravings stack.",
+    "Phone scrolling": "Stand up, lock the phone for 2 minutes, then choose on purpose.",
+    Other: "Name the exact moment when the urge started and log it after SOS.",
+  };
+  return moves[trigger] || moves.Other;
+}
+
+function buildCoachPlan() {
+  const today = state.checkins.find((c) => c.date === todayKey());
+  const last = state.checkins[state.checkins.length - 1];
+  const trigger = topTrigger();
+  const days = Math.floor(currentStreakMs() / dayMs);
+  const plan = [];
+
+  if (!today) plan.push("Check in tonight so Gillie can tune tomorrow's plan.");
+  else if (!today.clean) plan.push("Keep today simple: restart clean, use SOS before the next urge, and protect the next hour.");
+  else if ((today.intensity || 0) >= 2) plan.push("Cravings were loud today. Open SOS before the urge gets past a 6/10.");
+  else plan.push("Keep the streak boring today: food, water, sleep, and no bargaining with cravings.");
+
+  if (trigger) plan.push(triggerMove(trigger));
+  else plan.push("When a craving hits, log the trigger after SOS so your pattern starts showing.");
+
+  if (days < 3) plan.push("Early stretch rule: avoid testing yourself. Make vaping inconvenient and distance wins.");
+  else if (days < 14) plan.push("Start building replacements now: same cue, different action, every time.");
+  else plan.push("You're past survival mode. Protect your identity: you're someone who does not vape.");
+
+  if (last?.note) plan.push(`Remember your note: "${last.note}"`);
+  return plan.slice(0, 4);
+}
+
+function renderCoachCard() {
+  const card = $("#coach-card");
+  if (!card) return;
+  if (!state.premium) {
+    card.className = "coach-card locked";
+    card.innerHTML = `<div class="eyebrow">Gillie Coach</div>
+      <div class="row"><div class="t">Personal quit plan</div><span class="tag">PLUS</span></div>
+      <div class="s">A daily plan based on check-ins, cravings, slips, and trigger patterns.</div>
+      <div class="coach-list"><div>Unlock trigger counter-moves and daily support.</div></div>`;
+    card.onclick = openPlus;
+    return;
+  }
+  const plan = buildCoachPlan();
+  card.className = "coach-card";
+  card.innerHTML = `<div class="eyebrow">Gillie Coach</div>
+    <div class="row"><div class="t">Today's quit plan</div><span class="tag">PLUS</span></div>
+    <div class="s">Built from your streak, check-ins, cravings, and triggers.</div>
+    <div class="coach-list">${plan.map((item) => `<div>${escapeHTML(item)}</div>`).join("")}</div>`;
+  card.onclick = null;
 }
 
 function checkGrowthStages() {
@@ -2223,7 +2334,7 @@ function renderShop() {
    Gillie Plus paywall (stub — wire to RevenueCat/StoreKit in Capacitor)
    ============================================================ */
 function openPlus() {
-  $("#plus-perks").innerHTML = CONFIG.plus.perks.join("<br>");
+  $("#plus-perks").innerHTML = CONFIG.plus.perks.map((perk) => `<div><span>✓</span><span>${escapeHTML(perk)}</span></div>`).join("");
   $("#plus-yearly").textContent = CONFIG.plus.yearlyLabel;
   $("#plus-monthly").textContent = CONFIG.plus.monthlyLabel;
   $("#plus-overlay").hidden = false;
@@ -2233,7 +2344,7 @@ function grantPlus() {
   // TODO (production): replace with real purchase flow + receipt validation.
   state.premium = true; save();
   $("#plus-overlay").hidden = true;
-  toast("👑", "Gillie Plus active. The rare skins are yours — check the Reef.");
+  toast("👑", "Gillie Plus active. Your Coach plan is unlocked.");
   renderAll();
 }
 $("#plus-yearly").onclick = grantPlus;
