@@ -513,6 +513,20 @@ nav#tabs button.on{color:var(--ink)}
 .coach-list{display:grid;gap:7px;margin-top:13px}
 .coach-list div{background:rgba(255,255,255,.11);border-radius:12px;padding:9px 10px;font-size:13px;font-weight:700;line-height:1.25}
 .coach-card.locked .coach-list div{background:var(--bg);color:var(--ink-soft)}
+.plan-preview{
+  margin-top:14px;background:
+    radial-gradient(circle at 92% 14%, rgba(126,238,217,.15), transparent 34%),
+    rgba(255,255,255,.86);
+  border:1px solid rgba(211,227,222,.9);border-radius:var(--radius);padding:16px 18px;
+  box-shadow:var(--shadow-soft);width:100%;text-align:left;display:block;color:var(--ink);
+}
+.plan-preview .row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:5px}
+.plan-preview .t{font-family:var(--font-display);font-weight:800;font-size:18px;line-height:1.05}
+.plan-preview .s{font-size:13px;font-weight:650;color:var(--ink-soft);margin-top:7px;line-height:1.35}
+.plan-preview .mini{display:grid;grid-template-columns:auto 1fr;gap:8px;margin-top:12px;font-size:12.5px;font-weight:800;color:var(--ink-soft)}
+.plan-preview .mini i{width:7px;height:7px;border-radius:50%;background:var(--good);margin-top:5px}
+.plan-preview .tag{background:linear-gradient(120deg,#E7B84B,#D89A2B);color:#fff;
+  font-size:10px;font-weight:800;padding:4px 9px;border-radius:99px;letter-spacing:.05em;flex-shrink:0}
 .coach-room .coach-hero{background:linear-gradient(135deg,#173F3A,#0E2C28);color:#fff;border-radius:22px;padding:17px;margin-bottom:14px}
 .coach-room .coach-hero .eyebrow{color:rgba(255,255,255,.62)}
 .coach-room .coach-hero h2{color:#fff;margin:5px 0 6px}
@@ -651,6 +665,9 @@ nav#tabs button.on{color:var(--ink)}
 .plus-proof div{background:rgba(255,255,255,.76);border:1px solid rgba(211,227,222,.8);border-radius:15px;padding:10px 9px}
 .plus-proof b{display:block;font-family:var(--font-display);font-size:17px;line-height:1;color:var(--ink)}
 .plus-proof span{display:block;font-size:10.5px;line-height:1.15;color:var(--ink-faint);font-weight:800;margin-top:4px}
+.plus-now{display:grid;gap:8px;margin:0 0 14px}
+.plus-now div{background:rgba(255,255,255,.80);border:1px solid rgba(211,227,222,.8);border-radius:15px;padding:11px 12px;font-size:13px;font-weight:750;color:var(--ink-soft);line-height:1.35}
+.plus-now strong{color:var(--ink)}
 .plus-perks{
   background:rgba(255,255,255,.88);border-radius:var(--radius-sm);padding:8px 16px;box-shadow:var(--shadow-soft);
   margin-bottom:16px;font-size:14.5px;font-weight:700;line-height:1.48;border:1px solid rgba(255,255,255,.72);
@@ -798,17 +815,17 @@ nav#tabs button.on{color:var(--ink)}
           </svg>
         </div>
       </div>
-      <h1 class="ob-title h-display">Someone small<br>needs your help.</h1>
-      <p class="ob-sub">Inside this egg is an axolotl — a little creature that can regrow almost any part of itself. It heals. So do you. Every clean hour makes its water clearer.</p>
+      <h1 class="ob-title h-display">Meet the friend<br>you'll protect.</h1>
+      <p class="ob-sub">Gillie is a small aquatic companion whose water clears as you stay clean. Every hour you protect yourself, you protect them too.</p>
     </div>
-    <div class="ob-foot"><button class="btn" data-next>Meet them</button></div>
+    <div class="ob-foot"><button class="btn" data-next>Start with Gillie</button></div>
   </div>
 
   <!-- step 2: usage -->
   <div class="ob-step" data-step="1" hidden>
     <div class="ob-body">
       <h1 class="ob-title h-display">What are you quitting?</h1>
-      <p class="ob-sub">No judgment — this just calibrates your savings and progress. Rough guesses are fine.</p>
+      <p class="ob-sub">No judgment. This just tunes your savings, skipped-use stats, and future quit plan.</p>
       <div class="field">
         <label>Primary habit</label>
         <div class="seg" id="ob-substance">
@@ -849,7 +866,7 @@ nav#tabs button.on{color:var(--ink)}
   <div class="ob-step" data-step="2" hidden>
     <div class="ob-body">
       <h1 class="ob-title h-display">Why are you quitting?</h1>
-      <p class="ob-sub">Pick everything that's true. We'll show these back to you when a craving hits hard.</p>
+      <p class="ob-sub">Pick what matters. Gillie will bring these back when an urge tries to make you forget.</p>
       <div class="chips" id="ob-reasons">
         <button data-v="My health">My health</button>
         <button data-v="Money">Money</button>
@@ -870,7 +887,7 @@ nav#tabs button.on{color:var(--ink)}
   <div class="ob-step" data-step="3" hidden>
     <div class="ob-body">
       <h1 class="ob-title h-display">Name your axolotl.</h1>
-      <p class="ob-sub">They'll be with you the whole way. Their healing follows yours.</p>
+      <p class="ob-sub">Name the companion you'll check in with. Their tank becomes a visual record of your recovery.</p>
       <div class="field">
         <label>Name</label>
         <input type="text" id="ob-name" maxlength="14" value="Gillie" autocomplete="off">
@@ -892,12 +909,12 @@ nav#tabs button.on{color:var(--ink)}
       <div class="ob-hero" style="margin-top:30px">
         <svg width="190" height="150" viewBox="0 0 200 160" id="ob-axo-preview"></svg>
       </div>
-      <h1 class="ob-title h-display" style="text-align:center" id="ob-hatch-title">Ready when you are.</h1>
-      <p class="ob-sub" style="text-align:center">The moment you tap the button, your quit begins and the timer starts. One tap. That's the whole ceremony.</p>
+      <h1 class="ob-title h-display" style="text-align:center" id="ob-hatch-title">Your first clean moment starts here.</h1>
+      <p class="ob-sub" style="text-align:center">Gillie will keep the timer, the tank, and the next small step. You only need to begin.</p>
     </div>
     <div class="ob-foot split">
       <button class="btn ghost" data-back>Back</button>
-      <button class="btn coral" id="ob-hatch">My quit starts now</button>
+      <button class="btn coral" id="ob-hatch">Begin with Gillie</button>
     </div>
   </div>
 </section>
@@ -961,6 +978,8 @@ nav#tabs button.on{color:var(--ink)}
       <div class="bar"><i id="growth-bar" style="width:0%"></i></div>
       <div class="eta" id="growth-eta">Stay clean and Gillie grows with you.</div>
     </div>
+
+    <button class="plan-preview" id="plan-preview"></button>
 
     <div class="goal-card" id="goal-card" hidden></div>
 
@@ -1041,6 +1060,10 @@ nav#tabs button.on{color:var(--ink)}
     </div>
     <div class="set-group">
       <button class="set-row" id="set-plus"><span class="t">Gillie Plus</span><span class="v" id="set-plus-v">Free plan</span></button>
+    </div>
+    <div class="set-group">
+      <button class="set-row" id="set-reminder-checkin"><span class="t">Daily check-in reminder</span><span class="v" id="set-reminder-checkin-v">On</span></button>
+      <button class="set-row" id="set-reminder-craving"><span class="t">Craving follow-up nudges</span><span class="v" id="set-reminder-craving-v">On</span></button>
     </div>
     <div class="set-group">
       <button class="set-row" id="set-integrity"><span class="t">Streak integrity</span><span class="v" id="set-integrity-v">Protected</span></button>
@@ -1211,6 +1234,7 @@ nav#tabs button.on{color:var(--ink)}
       <div><b>Predict</b><span>danger hours</span></div>
       <div><b>Recover</b><span>after slips</span></div>
     </div>
+    <div class="plus-now" id="plus-now"></div>
     <div class="plus-perks" id="plus-perks"></div>
     <div class="price-card best">
       <div class="label">Best value</div>
@@ -1507,6 +1531,7 @@ const defaultState = () => ({
   theme: "clear",        // tank theme id — Plus feature
   buddies: [],           // [{name, skin}] — Plus feature, max BUDDIES.max
   coach: { missionDate: null, completed: {}, reviews: [] },
+  reminders: { checkin: true, craving: true },
   justSlippedAt: 0,
 });
 
@@ -1534,6 +1559,9 @@ function normalizeState() {
   state.coach ||= { missionDate: null, completed: {}, reviews: [] };
   state.coach.completed ||= {};
   state.coach.reviews ||= [];
+  state.reminders ||= { checkin: true, craving: true };
+  if (typeof state.reminders.checkin !== "boolean") state.reminders.checkin = true;
+  if (typeof state.reminders.craving !== "boolean") state.reminders.craving = true;
   if (state.onboarded && !state.originalQuitAt) state.originalQuitAt = state.quitAt || Date.now();
 }
 function save() { localStorage.setItem(CONFIG.storageKey, JSON.stringify(state)); }
@@ -1813,7 +1841,7 @@ function renderAll() {
     : "Timeline reflects your clean-time progress and habit-change milestones. It's general wellness information, not medical advice.";
   $("#axo-svg").dataset.growth = growth.id;
   $("#stat-cravings").textContent = state.cravings.filter((c) => c.resisted).length;
-  renderSpeech(stage); renderDecor(); renderGrowthCard(); renderCoachCard(); renderCoachRoom(); renderCheckinCard(); renderCheckinLog(); renderMilestoneList(); renderNextMilestone();
+  renderSpeech(stage); renderDecor(); renderGrowthCard(); renderTodayPlanPreview(); renderCoachCard(); renderCoachRoom(); renderCheckinCard(); renderCheckinLog(); renderMilestoneList(); renderNextMilestone();
   renderTriggers(); renderShop(); renderSettings();
   applyTheme(); renderGoal(); renderInsights(); renderThemes();
   renderBuddies(); renderBuddyGrid();
@@ -1853,6 +1881,39 @@ function renderGrowthCard() {
   $("#growth-eta").textContent = leftDays <= 1
     ? `${next.name} is less than a day away.`
     : `${leftDays} clean days until ${next.name}.`;
+}
+
+function renderTodayPlanPreview() {
+  const card = $("#plan-preview");
+  if (!card) return;
+  const danger = dangerWindow();
+  const trigger = topTrigger();
+  const today = state.checkins.find((c) => c.date === todayKey());
+  const fallback = currentStreakMs() < 3 * dayMs
+    ? "Early quit days are loud. Plus can turn today into a simple hour-by-hour plan."
+    : "Plus can turn your check-ins and cravings into a daily plan that gets sharper over time.";
+  const prediction = danger
+    ? `${danger.label} is your hottest logged window. Set up water, gum, distance, or movement before then.`
+    : trigger
+      ? `${trigger} shows up most. Plus can build a counter-move before it hits again.`
+      : today
+        ? `${cravingLabel(today.intensity)} today. Plus can protect the next risky window.`
+        : fallback;
+  if (state.premium) {
+    card.className = "plan-preview";
+    card.innerHTML = `<div class="eyebrow">Today's plan</div>
+      <div class="row"><div class="t">Your next best move</div><span class="tag">COACH</span></div>
+      <div class="s">${escapeHTML(prediction)}</div>
+      <div class="mini"><i></i><span>${escapeHTML(buildCoachPlan()[0] || "Open Coach for your full plan.")}</span></div>`;
+    card.onclick = () => { $("#coach-response").dataset.touched = ""; $("#coach-overlay").hidden = false; renderCoachRoom(); };
+    return;
+  }
+  card.className = "plan-preview";
+  card.innerHTML = `<div class="eyebrow">Today preview</div>
+    <div class="row"><div class="t">Know the risky moment first</div><span class="tag">PLUS</span></div>
+    <div class="s">${escapeHTML(prediction)}</div>
+    <div class="mini"><i></i><span>Unlock a daily quit plan, danger-hour forecast, and slip recovery moves.</span></div>`;
+  card.onclick = openPlus;
 }
 
 function topTrigger() {
@@ -2767,6 +2828,7 @@ function scheduleCravingFollowup(cravingId, trigger) {
   };
 }
 function checkFollowupDue() {
+  if (!state.reminders.craving) return;
   if (!state.pendingFollowup || Date.now() < state.pendingFollowup.dueAt || !$("#followup-overlay")?.hidden) return;
   openFollowup();
 }
@@ -2967,6 +3029,19 @@ function renderShop() {
    Gillie Plus paywall (stub — wire to RevenueCat/StoreKit in Capacitor)
    ============================================================ */
 function openPlus() {
+  const danger = dangerWindow();
+  const trigger = topTrigger();
+  const profile = activeSubstance();
+  const planLine = danger
+    ? `Tonight's plan can protect ${danger.label}, your hottest logged window.`
+    : trigger
+      ? `Your plan can start with a counter-move for ${trigger.toLowerCase()}.`
+      : `Your first plan starts with ${profile.name} cues, craving level, and one replacement routine.`;
+  $("#plus-now").innerHTML = [
+    `<div><strong>Today:</strong> ${escapeHTML(planLine)}</div>`,
+    `<div><strong>This week:</strong> turn slips, cravings, and check-ins into a pattern you can plan around.</div>`,
+    `<div><strong>Motivation:</strong> connect old spending to a savings goal and make the tank feel like yours.</div>`,
+  ].join("");
   $("#plus-perks").innerHTML = CONFIG.plus.perks.map((perk) => `<div><span>✓</span><span>${escapeHTML(perk)}</span></div>`).join("");
   $("#plus-yearly").textContent = CONFIG.plus.yearlyLabel;
   $("#plus-monthly").textContent = CONFIG.plus.monthlyLabel;
@@ -2991,6 +3066,8 @@ function renderSettings() {
   $("#set-name-v").textContent = state.petName;
   $("#set-skin-v").textContent = state.premium ? skinOf(state.skin).name : "Plus 👑";
   $("#set-plus-v").textContent = state.premium ? "Active 👑" : "Free plan";
+  $("#set-reminder-checkin-v").textContent = state.reminders.checkin ? "On" : "Off";
+  $("#set-reminder-craving-v").textContent = state.reminders.craving ? "On" : "Off";
   $("#set-integrity-v").textContent = `${(state.milestonesRewarded || []).length} protected`;
   $("#set-cost-label").textContent = `${profile.name[0].toUpperCase() + profile.name.slice(1)} cost & usage`;
   $("#set-slip-label").textContent = `I ${profile.slip} — reset my streak`;
@@ -3032,6 +3109,20 @@ $("#ce-save").onclick = () => {
   save(); $("#cost-overlay").hidden = true; renderAll();
 };
 $("#set-plus").onclick = openPlus;
+$("#set-reminder-checkin").onclick = () => {
+  state.reminders.checkin = !state.reminders.checkin;
+  save(); renderSettings();
+  toast("⏰", state.reminders.checkin
+    ? "Daily check-in reminder concept is on. Native notifications come in the app build."
+    : "Daily check-in reminder concept is off.");
+};
+$("#set-reminder-craving").onclick = () => {
+  state.reminders.craving = !state.reminders.craving;
+  save(); renderSettings();
+  toast("⏰", state.reminders.craving
+    ? "Craving follow-up nudges are on for this prototype."
+    : "Craving follow-up nudges are off.");
+};
 $("#set-integrity").onclick = () => {
   const first = state.originalQuitAt || state.quitAt;
   const firstText = first ? new Date(first).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "not started";
