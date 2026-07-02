@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#E8F2EF">
+<meta name="description" content="Gillie is a mobile-first quit vaping companion with an aquarium buddy that heals as you stay nicotine-free.">
+<meta name="apple-mobile-web-app-title" content="Gillie">
 <title>Gillie — Quit Vaping</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -140,6 +143,14 @@ input,select{font-family:inherit;font-size:16px}
   background:linear-gradient(180deg,var(--w1),var(--w2) 78%,var(--sand) 78.5%);
   transition:background 1.2s ease;
 }
+.tank::before{ /* soft aquarium glass + depth vignette */
+  content:"";position:absolute;inset:0;z-index:3;pointer-events:none;
+  background:
+    radial-gradient(120% 88% at 50% 24%, rgba(255,255,255,.20), rgba(255,255,255,0) 52%),
+    radial-gradient(90% 80% at 50% 100%, rgba(8,43,38,.28), transparent 68%),
+    linear-gradient(90deg, rgba(255,255,255,.24), transparent 18%, transparent 82%, rgba(5,30,27,.16));
+  mix-blend-mode:soft-light;
+}
 .tank::after{ /* glass sheen */
   content:"";position:absolute;inset:0;pointer-events:none;
   background:
@@ -169,6 +180,12 @@ input,select{font-family:inherit;font-size:16px}
   background:repeating-linear-gradient(88deg, transparent 0 70px, rgba(255,255,255,.14) 70px 130px);
   animation:currentDrift 16s linear infinite}
 @keyframes currentDrift{to{transform:translateX(130px)}}
+.current::before{content:"";position:absolute;inset:12% 0 18%;opacity:.55;
+  background:
+    repeating-linear-gradient(176deg, transparent 0 28px, rgba(255,255,255,.10) 29px 31px, transparent 32px 74px),
+    repeating-linear-gradient(3deg, transparent 0 42px, rgba(255,255,255,.08) 43px 46px, transparent 47px 92px);
+  animation:crossCurrent 22s linear infinite}
+@keyframes crossCurrent{to{transform:translateX(-92px) translateY(18px)}}
 .sand-tex{position:absolute;left:0;right:0;bottom:0;height:22.5%;z-index:1;pointer-events:none;
   background:
     radial-gradient(ellipse 60% 26% at 30% 12%, rgba(255,255,255,.30), transparent 70%),
@@ -223,9 +240,20 @@ input,select{font-family:inherit;font-size:16px}
 .surface::before{content:"";position:absolute;inset:0 -80px 0 0;
   background:repeating-linear-gradient(94deg, transparent 0 34px, rgba(255,255,255,.3) 34px 66px);
   filter:blur(9px);opacity:.55;animation:surfaceSlide 7s linear infinite}
+.surface::after{content:"";position:absolute;left:-20%;right:-20%;bottom:-10px;height:22px;
+  background:
+    radial-gradient(ellipse at 16px 12px, rgba(255,255,255,.48) 0 4px, transparent 5px),
+    radial-gradient(ellipse at 52px 10px, rgba(255,255,255,.34) 0 3px, transparent 4px);
+  background-size:74px 22px;
+  filter:blur(2px);opacity:.68;animation:surfaceBob 4.8s ease-in-out infinite}
 @keyframes surfaceSlide{to{transform:translateX(66px)}}
+@keyframes surfaceBob{0%,100%{transform:translateX(0) translateY(0)}50%{transform:translateX(-26px) translateY(4px)}}
 .depth{position:absolute;inset:0;z-index:2;pointer-events:none;
   background:linear-gradient(180deg, transparent 52%, rgba(9,38,33,.28) 100%)}
+.depth::before{content:"";position:absolute;inset:0;opacity:.24;
+  background-image:radial-gradient(circle, rgba(255,255,255,.42) 0 1px, transparent 1.5px);
+  background-size:28px 32px;animation:grainDrift 18s linear infinite}
+@keyframes grainDrift{to{transform:translate3d(-28px,-32px,0)}}
 .mote{position:absolute;border-radius:50%;background:rgba(255,255,255,.55);z-index:2;pointer-events:none;
   animation:moteDrift linear infinite}
 @keyframes moteDrift{
@@ -236,7 +264,7 @@ input,select{font-family:inherit;font-size:16px}
 }
 #axo-shadow{position:absolute;left:50%;bottom:15.5%;width:36%;height:15px;border-radius:50%;z-index:2;pointer-events:none;
   background:radial-gradient(ellipse, rgba(9,38,33,.32), transparent 70%);
-  animation:shadowPulse 4.8s ease-in-out infinite}
+  animation:shadowPulse 4.8s ease-in-out infinite;transition:left 3.8s ease-in-out,width 3.8s ease-in-out,opacity .8s ease}
 @keyframes shadowPulse{
   0%,100%{transform:translateX(-50%) scale(1);opacity:.85}
   50%{transform:translateX(-50%) scale(.8);opacity:.45}
@@ -252,7 +280,8 @@ input,select{font-family:inherit;font-size:16px}
   position:absolute;left:50%;top:44%;z-index:4;width:62%;
   transform:translate(-50%,-50%);
   animation:float 4.8s ease-in-out infinite;
-  transition:left 3.8s ease-in-out;
+  transition:left 3.8s ease-in-out, top 3.8s ease-in-out;
+  filter:drop-shadow(0 10px 12px rgba(20,55,50,.10));
 }
 @keyframes float{0%,100%{transform:translate(-50%,-52%)}50%{transform:translate(-50%,-46%)}}
 #axo-svg{display:block;transition:transform .7s ease}
@@ -260,6 +289,7 @@ input,select{font-family:inherit;font-size:16px}
 #axo-svg.swim{transform:rotate(-5deg)}
 #axo-svg.flip.swim{transform:scaleX(-1) rotate(-5deg)}
 #axo-svg.swim .axo-tail{animation-duration:1.5s}
+#axo-svg.swim .gill{animation-duration:1.65s}
 #axo-svg.celebrate{animation:celebrate .95s cubic-bezier(.35,.8,.35,1)}
 #axo-svg.tapjoy{animation:tapBounce .7s cubic-bezier(.35,.9,.4,1)}
 @keyframes tapBounce{
@@ -1210,6 +1240,8 @@ function renderAll() {
   renderSparkles(stage);
   const clarity = 1 - stage.murk;
   $$(".caustic").forEach((c) => c.style.opacity = ((0.18 + clarity * 0.6) * (c.classList.contains("c2") ? 0.7 : 1)).toFixed(2));
+  $(".current").style.opacity = (0.22 + clarity * 0.28).toFixed(2);
+  $(".surface").style.opacity = (0.76 + clarity * 0.18).toFixed(2);
   $("#home-stage-name").textContent = stage.name;
   $("#home-pet-name").textContent = state.petName;
   $("#pearl-balance").textContent = state.pearls;
@@ -1392,6 +1424,19 @@ function sparkleBurst() {
   }
 }
 
+function setAxoDrift(left, top = null) {
+  const wrap = $("#axo-wrap"), shadow = $("#axo-shadow");
+  if (!wrap || !shadow) return;
+  wrap.style.left = left + "%";
+  shadow.style.left = left + "%";
+  if (top !== null) {
+    wrap.style.top = top + "%";
+    const depth = Math.max(0, Math.min(1, (top - 34) / 18));
+    shadow.style.width = (30 + depth * 12) + "%";
+    shadow.style.opacity = (0.38 + depth * 0.38).toFixed(2);
+  }
+}
+
 /* tap-to-play: happy squish, bubble puff, a little affection back */
 function bubblePuff(count) {
   const wrap = $("#axo-wrap"), left = parseFloat(wrap.style.left) || 50;
@@ -1519,9 +1564,10 @@ function behaviorLoop() {
       if (r < 0.5) {
         const cur = parseFloat(wrap.style.left) || 50;
         const x = 34 + Math.random() * 32;
+        const y = 38 + Math.random() * 10;
         svg.classList.toggle("flip", x > cur);
         svg.classList.add("swim");
-        wrap.style.left = x + "%";
+        setAxoDrift(x, y);
         setTimeout(() => svg.classList.remove("swim"), 3800);
       } else if (r < 0.62) {
         axoCelebrate();
