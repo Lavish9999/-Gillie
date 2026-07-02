@@ -502,6 +502,7 @@ nav#tabs button.on{color:var(--ink)}
 .insights .kpi .v{font-family:var(--font-display);font-weight:800;font-size:18px}
 .insights .kpi .k{font-size:11.5px;font-weight:700;color:var(--ink-faint);margin-top:2px}
 .insights .sub-h{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);margin:14px 0 9px}
+.insight-note{background:var(--bg);border-radius:12px;padding:11px 12px;font-size:13px;font-weight:700;color:var(--ink-soft);line-height:1.35;margin-top:10px}
 .hour-bars{display:flex;align-items:flex-end;gap:6px;height:70px}
 .hour-bars .hb{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;height:100%;justify-content:flex-end}
 .hour-bars .hb i{width:100%;border-radius:6px 6px 3px 3px;background:var(--coral);min-height:3px}
@@ -973,6 +974,7 @@ nav#tabs button.on{color:var(--ink)}
       <button class="set-row" id="set-plus"><span class="t">Gillie Plus</span><span class="v" id="set-plus-v">Free plan</span></button>
     </div>
     <div class="set-group">
+      <button class="set-row" id="set-integrity"><span class="t">Streak integrity</span><span class="v" id="set-integrity-v">Protected</span></button>
       <button class="set-row" id="set-slip"><span class="t" id="set-slip-label">I vaped — reset my streak</span><span class="v">It's okay</span></button>
       <button class="set-row danger" id="set-reset"><span class="t">Erase everything</span></button>
     </div>
@@ -1028,6 +1030,20 @@ nav#tabs button.on{color:var(--ink)}
   </div>
 </div>
 
+<!-- Craving follow-up -->
+<div class="overlay" id="followup-overlay" hidden>
+  <div class="sheet">
+    <div class="grab"></div>
+    <h2>Did the craving pass?</h2>
+    <p class="sub" id="followup-copy">Gillie is checking back in. This is where a craving becomes a real win.</p>
+    <div class="sheet-actions">
+      <button class="btn" id="followup-made">Yes — I made it through</button>
+      <button class="btn ghost" id="followup-fighting">Still fighting — reopen SOS</button>
+      <button class="btn ghost" id="followup-used">I used</button>
+    </div>
+  </div>
+</div>
+
 <!-- Daily check-in -->
 <div class="overlay" id="checkin-overlay" hidden>
   <div class="sheet">
@@ -1066,6 +1082,19 @@ nav#tabs button.on{color:var(--ink)}
     <div class="grab"></div>
     <h2>Hey. It's a slip, not a collapse.</h2>
     <p class="sub" id="slip-copy">A slip clouds the water a little — it doesn't drain the tank. Everything your body already healed is still healed, and every pearl, every clean day you've banked stays yours. The streak restarts; the story doesn't.</p>
+    <div class="field">
+      <label>What triggered it?</label>
+      <div class="chips" id="slip-trigger-chips"></div>
+    </div>
+    <div class="field">
+      <label for="slip-place">Where were you?</label>
+      <input type="text" id="slip-place" maxlength="36" placeholder="Car, couch, work, after dinner...">
+    </div>
+    <div class="field">
+      <label for="slip-plan">What would help next time?</label>
+      <textarea id="slip-plan" maxlength="180" placeholder="Example: leave the room after eating, gum in the car, text someone first."></textarea>
+      <div class="hint">Coach uses this in future plans.</div>
+    </div>
     <button class="btn" id="slip-confirm">Restart my streak — we go again</button>
     <button class="btn ghost" id="slip-cancel" style="margin-top:10px">Cancel — I didn't use</button>
   </div>
@@ -1198,7 +1227,7 @@ const CONFIG = {
   storageKey: "gillie_v1",
   currencyName: "pearls",
   rewards: { checkin: 10, cravingBeaten: 5, cravingLoggedAfterSlip: 5, milestone: 25 },
-  sos: { rewardDailyCap: 3, rewardCooldownMins: 45, minBreathSecs: 16 },
+  sos: { rewardDailyCap: 3, rewardCooldownMins: 45, minBreathSecs: 16, followupDelayMins: 10 },
   plus: {
     monthlyLabel: "$4.99 / month",
     yearlyLabel: "$39.99 / year — best value",
@@ -1359,12 +1388,15 @@ const defaultState = () => ({
   premium: false,
   reasons: [],
   quitAt: null,          // ms — start of current streak
+  originalQuitAt: null,  // ms — first ever quit start, kept for integrity context
   bankedCleanMs: 0,      // clean time accumulated before slips
-  slips: [],             // [{at, streakMs}]
-  cravings: [],          // [{at, trigger, resisted}]
+  slips: [],             // [{at, streakMs, trigger, place, plan}]
+  cravings: [],          // [{id, at, trigger, resisted, pending, slip}]
+  pendingFollowup: null,  // {cravingId, dueAt, trigger}
   sosRewards: [],         // [{at, resisted}] — capped so SOS cannot farm unlimited pearls
   checkins: [],          // [{date:'YYYY-MM-DD', mood, clean, intensity, note}]
   milestonesSeen: [],
+  milestonesRewarded: [],
   growthSeen: [],
   cost: { substance: "vape", style: "disposables", unitsPerWeek: 2, costPerUnit: 15, puffsPerDay: 200 },
   goal: null,            // {name, price} — Plus feature
@@ -1374,12 +1406,27 @@ const defaultState = () => ({
 });
 
 let state = load();
+normalizeState();
 function load() {
   try {
     const raw = localStorage.getItem(CONFIG.storageKey);
-    if (raw) return Object.assign(defaultState(), JSON.parse(raw));
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      const merged = Object.assign(defaultState(), parsed);
+      if (!Object.prototype.hasOwnProperty.call(parsed, "milestonesRewarded")) merged.milestonesRewarded = [...(parsed.milestonesSeen || [])];
+      return merged;
+    }
   } catch (e) {}
   return defaultState();
+}
+function normalizeState() {
+  state.slips ||= [];
+  state.cravings ||= [];
+  state.sosRewards ||= [];
+  state.milestonesSeen ||= [];
+  state.milestonesRewarded ||= [];
+  state.pendingFollowup ||= null;
+  if (state.onboarded && !state.originalQuitAt) state.originalQuitAt = state.quitAt || Date.now();
 }
 function save() { localStorage.setItem(CONFIG.storageKey, JSON.stringify(state)); }
 const $ = (s) => document.querySelector(s);
@@ -1416,6 +1463,7 @@ const milestoneCopy = (m) => usesNicotineTimeline() ? m : { ...m, ...(CLEAN_MILE
 const moneySaved = () => lifetimeCleanMs() * costPerMs();
 const grant = (n) => { const v = n * (state.premium ? CONFIG.plus.pearlMultiplier : 1); state.pearls += v; setTimeout(() => { try { sparkleBurst(); } catch (e) {} }, 50); return v; };
 const bestStreakMs = () => Math.max(currentStreakMs(), ...state.slips.map((s) => s.streakMs || 0), 0);
+const newId = (prefix = "id") => `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 const minutesText = (ms) => {
   const mins = Math.max(1, Math.ceil(ms / 60000));
   return `${mins} minute${mins === 1 ? "" : "s"}`;
@@ -1606,6 +1654,7 @@ $("#ob-hatch").onclick = () => {
     puffsPerDay: Math.max(10, parseInt($("#ob-puffs").value) || 200),
   };
   state.quitAt = Date.now();
+  state.originalQuitAt = state.quitAt;
   save();
   enterMain();
   toast("🐣", `${state.petName} hatched. Your quit is officially live.`);
@@ -1704,6 +1753,21 @@ function topTrigger() {
   return Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
 }
 
+function dangerWindow() {
+  const counts = HOUR_BLOCKS.map((b) => state.cravings.filter((c) => {
+    const h = new Date(c.at).getHours();
+    return h >= b.from && h < b.from + 4;
+  }).length);
+  const max = Math.max(...counts, 0);
+  if (!max) return null;
+  const idx = counts.indexOf(max);
+  return { ...HOUR_BLOCKS[idx], count: max };
+}
+
+function lastSlipLesson() {
+  return [...state.slips].reverse().find((s) => s.trigger || s.place || s.plan) || null;
+}
+
 function triggerMove(trigger, profile = activeSubstance()) {
   const verb = profile.slip === "vaped" ? "vaping" : profile.slip === "smoked" ? "smoking" : "using";
   const moves = {
@@ -1736,11 +1800,14 @@ function buildCoachPlan() {
   const today = state.checkins.find((c) => c.date === todayKey());
   const last = state.checkins[state.checkins.length - 1];
   const trigger = topTrigger();
+  const danger = dangerWindow();
+  const lesson = lastSlipLesson();
   const profile = activeSubstance();
   const days = Math.floor(currentStreakMs() / dayMs);
   const intensity = today?.intensity ?? last?.intensity ?? 0;
   const plan = [];
 
+  if (state.pendingFollowup && Date.now() >= state.pendingFollowup.dueAt) plan.push("Follow-up due: confirm whether the last craving passed so the win is earned.");
   if (!today) plan.push("Check in tonight so Coach can adjust your plan from real data.");
   else if (!today.clean) plan.push("Slip plan: reset the next hour, not your identity. Use SOS before the next urge.");
   else plan.push(cravingCoachMove(intensity, profile));
@@ -1748,6 +1815,9 @@ function buildCoachPlan() {
   if (trigger) plan.push(triggerMove(trigger, profile));
   else plan.push("Pattern building: after the next craving, log the trigger so Coach can stop guessing.");
 
+  if (danger) plan.push(`Danger window: ${danger.label} has the most logged urges. Pre-plan water, gum, movement, or distance before that window starts.`);
+  if (lesson?.plan) plan.push(`Last slip lesson: ${lesson.plan}`);
+  else if (lesson?.place) plan.push(`Location watch: your last slip happened around ${lesson.place}. Change that setting before the urge builds.`);
   plan.push(environmentMove(days, profile));
   plan.push("Support move: if the urge stays high, message someone or use a quit coach instead of white-knuckling it.");
 
@@ -1821,6 +1891,7 @@ function tick() {
   $("#stat-puffs").textContent = Math.floor((state.cost.puffsPerDay / dayMs) * lifetimeCleanMs()).toLocaleString();
   checkMilestones();
   checkGrowthStages();
+  checkFollowupDue();
   renderNextMilestone();
 }
 
@@ -1831,10 +1902,14 @@ function checkMilestones() {
     if (ms >= m.mins * 60000 && !state.milestonesSeen.includes(m.id)) {
       const copy = milestoneCopy(m);
       state.milestonesSeen.push(m.id);
-      const v = grant(CONFIG.rewards.milestone);
+      const alreadyRewarded = (state.milestonesRewarded || []).includes(m.id);
+      const v = alreadyRewarded ? 0 : grant(CONFIG.rewards.milestone);
+      if (!alreadyRewarded) state.milestonesRewarded.push(m.id);
       save();
-      toast(copy.emoji, `${copy.title} clean! +${v} pearls. ${state.petName}'s water just got clearer.`);
-      axoCelebrate();
+      toast(copy.emoji, alreadyRewarded
+        ? `${copy.title} clean again. Milestone pearls stay protected from repeats.`
+        : `${copy.title} clean! +${v} pearls. ${state.petName}'s water just got clearer.`);
+      if (!alreadyRewarded) axoCelebrate();
       renderAll();
     }
   }
@@ -2247,8 +2322,11 @@ function renderInsights() {
   const moods = state.checkins.slice(-14);
   const best = bestStreakMs();
   const bd = Math.floor(best / dayMs), bh = Math.floor((best % dayMs) / 3600000);
-  const beaten = state.cravings.filter((c) => c.resisted).length;
-  const winRate = state.cravings.length ? Math.round((beaten / state.cravings.length) * 100) : null;
+  const resolvedCravings = state.cravings.filter((c) => !c.pending);
+  const beaten = resolvedCravings.filter((c) => c.resisted).length;
+  const winRate = resolvedCravings.length ? Math.round((beaten / resolvedCravings.length) * 100) : null;
+  const danger = dangerWindow();
+  const lesson = lastSlipLesson();
   box.innerHTML = `<div class="insights">
     <div class="kpis">
       <div class="kpi"><div class="v">${bd}d ${bh}h</div><div class="k">Best streak</div></div>
@@ -2264,6 +2342,8 @@ function renderInsights() {
     <div class="sub-h">Mood, last ${moods.length || 0} check-ins</div>
     ${moods.length ? `<div class="mood-bars">${moods.map((c) => `<i style="height:${(c.mood / 5) * 100}%"></i>`).join("")}</div>`
       : `<div style="font-size:13px;color:var(--ink-faint);font-weight:600">Daily check-ins build your mood trend.</div>`}
+    ${danger ? `<div class="insight-note"><strong>Next risk:</strong> ${danger.label} is your hottest craving window. Set up a replacement before it starts.</div>` : ""}
+    ${lesson ? `<div class="insight-note"><strong>Last slip lesson:</strong> ${lesson.trigger || "Trigger"}${lesson.place ? ` around ${escapeHTML(lesson.place)}` : ""}${lesson.plan ? ` — ${escapeHTML(lesson.plan)}` : "."}</div>` : ""}
   </div>`;
 }
 
@@ -2399,6 +2479,55 @@ $("#sos-close").onclick = closeSOS;
 $("#sos-beat").onclick = () => { closeSOS(); openTriggerPicker(true); };
 $("#sos-slipped").onclick = () => { closeSOS(); openSlip(); };
 
+/* craving follow-up */
+function scheduleCravingFollowup(cravingId, trigger) {
+  state.pendingFollowup = {
+    cravingId,
+    trigger,
+    dueAt: Date.now() + CONFIG.sos.followupDelayMins * 60000,
+  };
+}
+function checkFollowupDue() {
+  if (!state.pendingFollowup || Date.now() < state.pendingFollowup.dueAt || !$("#followup-overlay")?.hidden) return;
+  openFollowup();
+}
+function openFollowup() {
+  if (!state.pendingFollowup) return;
+  $("#followup-copy").textContent = `You logged a ${state.pendingFollowup.trigger || "craving"} urge about ${CONFIG.sos.followupDelayMins} minutes ago. Did it pass?`;
+  $("#followup-overlay").hidden = false;
+}
+function resolveFollowup(outcome) {
+  const pending = state.pendingFollowup;
+  if (!pending) return;
+  const craving = state.cravings.find((c) => c.id === pending.cravingId);
+  if (craving) {
+    craving.pending = false;
+    craving.followedUpAt = Date.now();
+  }
+  $("#followup-overlay").hidden = true;
+  if (outcome === "made") {
+    if (craving) craving.resisted = true;
+    const reward = grantSosReward(CONFIG.rewards.cravingBeaten, true);
+    state.pendingFollowup = null;
+    save();
+    if (reward.pearls) { toast("💪", `Now it's official. +${reward.pearls} pearls for a real craving win.`); axoCelebrate(); }
+    else toast("💪", `Craving beaten and logged. ${reward.status.message}`);
+    renderAll();
+  } else if (outcome === "fighting") {
+    state.pendingFollowup.dueAt = Date.now() + CONFIG.sos.followupDelayMins * 60000;
+    save();
+    openSOS();
+  } else {
+    if (craving) craving.resisted = false;
+    state.pendingFollowup = null;
+    save();
+    openSlip(pending.cravingId);
+  }
+}
+$("#followup-made").onclick = () => resolveFollowup("made");
+$("#followup-fighting").onclick = () => resolveFollowup("fighting");
+$("#followup-used").onclick = () => resolveFollowup("used");
+
 /* trigger picker */
 let pendingResisted = true, pendingTrigger = null;
 function openTriggerPicker(resisted) {
@@ -2406,9 +2535,11 @@ function openTriggerPicker(resisted) {
   const baseReward = resisted ? CONFIG.rewards.cravingBeaten : CONFIG.rewards.cravingLoggedAfterSlip;
   const reward = baseReward * (state.premium ? CONFIG.plus.pearlMultiplier : 1);
   const status = sosRewardStatus();
-  $("#trigger-sub").innerHTML = status.canReward
-    ? `Knowing your triggers is half the fight. <strong>+<span id="trigger-reward">${reward}</span> pearls</strong> if you log this. ${status.message}`
-    : `${status.message} Log the trigger anyway so Coach and your pattern chart get smarter.`;
+  $("#trigger-sub").innerHTML = resisted
+    ? `Knowing your trigger is half the fight. Gillie will check back in ${CONFIG.sos.followupDelayMins} minutes before this counts as beaten. ${status.canReward ? `Possible reward: <strong>+${reward} pearls</strong>.` : status.message}`
+    : (status.canReward
+      ? `Knowing your trigger is half the fight. <strong>+<span id="trigger-reward">${reward}</span> pearls</strong> if you log this. ${status.message}`
+      : `${status.message} Log the trigger anyway so Coach and your pattern chart get smarter.`);
   $("#trigger-chips").innerHTML = TRIGGERS.map((t) => `<button data-v="${t}">${t}</button>`).join("");
   $$("#trigger-chips button").forEach((b) => b.onclick = () => {
     $$("#trigger-chips button").forEach((x) => x.classList.remove("on")); b.classList.add("on");
@@ -2418,7 +2549,16 @@ function openTriggerPicker(resisted) {
   $("#trigger-overlay").hidden = false;
 }
 $("#trigger-save").onclick = () => {
-  state.cravings.push({ at: Date.now(), trigger: pendingTrigger, resisted: pendingResisted });
+  const cravingId = newId("crave");
+  state.cravings.push({ id: cravingId, at: Date.now(), trigger: pendingTrigger, resisted: false, pending: pendingResisted });
+  if (pendingResisted) {
+    scheduleCravingFollowup(cravingId, pendingTrigger);
+    save();
+    $("#trigger-overlay").hidden = true;
+    toast("⏱️", `Trigger logged. Gillie will check back in ${CONFIG.sos.followupDelayMins} minutes to count the win.`);
+    renderAll();
+    return;
+  }
   const baseReward = pendingResisted ? CONFIG.rewards.cravingBeaten : CONFIG.rewards.cravingLoggedAfterSlip;
   const reward = grantSosReward(baseReward, pendingResisted);
   save();
@@ -2447,25 +2587,56 @@ function renderTriggers() {
 /* ============================================================
    Slip flow — compassionate reset
    ============================================================ */
-function openSlip() {
+let pendingSlipTrigger = null, pendingSlipCravingId = null;
+function openSlip(existingCravingId = null) {
   const banked = Math.floor(lifetimeCleanMs() / dayMs);
   $("#slip-copy").textContent =
     `A slip clouds the water a little — it doesn't drain the tank. The ${banked} clean day${banked === 1 ? "" : "s"} you've banked, your pearls, and everything your body already healed stay yours. The streak restarts; the story doesn't.`;
+  pendingSlipCravingId = existingCravingId;
+  const existing = state.cravings.find((c) => c.id === existingCravingId);
+  pendingSlipTrigger = existing?.trigger || null;
+  $("#slip-place").value = "";
+  $("#slip-plan").value = "";
+  $("#slip-confirm").disabled = !pendingSlipTrigger;
+  $("#slip-trigger-chips").innerHTML = TRIGGERS.map((t) => `<button data-v="${t}">${t}</button>`).join("");
+  if (pendingSlipTrigger) {
+    $$("#slip-trigger-chips button").forEach((b) => b.classList.toggle("on", b.dataset.v === pendingSlipTrigger));
+  }
+  $$("#slip-trigger-chips button").forEach((b) => b.onclick = () => {
+    $$("#slip-trigger-chips button").forEach((x) => x.classList.remove("on")); b.classList.add("on");
+    pendingSlipTrigger = b.dataset.v;
+    $("#slip-confirm").disabled = false;
+  });
   $("#slip-overlay").hidden = false;
 }
 $("#slip-cancel").onclick = () => ($("#slip-overlay").hidden = true);
 $("#slip-confirm").onclick = () => {
   const len = currentStreakMs();
+  const place = $("#slip-place").value.trim().slice(0, 36);
+  const plan = $("#slip-plan").value.trim().slice(0, 180);
   state.bankedCleanMs += len;
-  state.slips.push({ at: Date.now(), streakMs: len });
+  state.slips.push({ at: Date.now(), streakMs: len, trigger: pendingSlipTrigger || "Other", place, plan });
+  const existing = state.cravings.find((c) => c.id === pendingSlipCravingId);
+  if (existing) {
+    existing.trigger = pendingSlipTrigger || existing.trigger || "Other";
+    existing.resisted = false;
+    existing.pending = false;
+    existing.slip = true;
+  } else {
+    state.cravings.push({ id: newId("slip"), at: Date.now(), trigger: pendingSlipTrigger || "Other", resisted: false, pending: false, slip: true });
+  }
   state.quitAt = Date.now();
+  if (!state.originalQuitAt) state.originalQuitAt = state.quitAt;
   state.justSlippedAt = Date.now();
-  state.milestonesSeen = []; // milestones re-earnable on the new streak (pearls already banked)
+  state.pendingFollowup = null;
+  state.milestonesSeen = []; // visible recovery milestones can restart; milestone pearl rewards stay protected.
+  const reward = grantSosReward(CONFIG.rewards.cravingLoggedAfterSlip, false);
   save();
   $("#slip-overlay").hidden = true;
   renderAxo(); renderAll();
-  toast("🌫️", `Streak restarted. ${state.petName} isn't going anywhere — and neither are you.`);
-  openTriggerPicker(false);
+  toast("🌫️", reward.pearls
+    ? `Streak restarted. Lesson saved. +${reward.pearls} pearls for learning the pattern.`
+    : `Streak restarted. Lesson saved: ${pendingSlipTrigger || "trigger noted"}. ${reward.status.message}`);
 };
 
 /* ============================================================
@@ -2541,6 +2712,7 @@ function renderSettings() {
   $("#set-name-v").textContent = state.petName;
   $("#set-skin-v").textContent = state.premium ? skinOf(state.skin).name : "Plus 👑";
   $("#set-plus-v").textContent = state.premium ? "Active 👑" : "Free plan";
+  $("#set-integrity-v").textContent = `${(state.milestonesRewarded || []).length} protected`;
   $("#set-cost-label").textContent = `${profile.name[0].toUpperCase() + profile.name.slice(1)} cost & usage`;
   $("#set-slip-label").textContent = `I ${profile.slip} — reset my streak`;
   $("#sos-slipped").textContent = `I ${profile.slip}`;
@@ -2581,7 +2753,19 @@ $("#ce-save").onclick = () => {
   save(); $("#cost-overlay").hidden = true; renderAll();
 };
 $("#set-plus").onclick = openPlus;
-$("#set-slip").onclick = openSlip;
+$("#set-integrity").onclick = () => {
+  const first = state.originalQuitAt || state.quitAt;
+  const firstText = first ? new Date(first).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "not started";
+  openConfirmSheet({
+    icon: "✓",
+    title: "Streak integrity",
+    copy: `Original quit start: ${firstText}. Slips can restart the visible streak and healing timeline, but milestone pearl rewards are protected so they cannot be earned repeatedly by resetting.`,
+    actionText: "Got it",
+    danger: false,
+    onConfirm: () => {},
+  });
+};
+$("#set-slip").onclick = () => openSlip();
 $("#set-reset").onclick = () => {
   openConfirmSheet({
     icon: "!",
