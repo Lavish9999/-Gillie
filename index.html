@@ -464,8 +464,14 @@ nav#tabs button.on{color:var(--ink)}
 .hour-bars .hb i{width:100%;border-radius:6px 6px 3px 3px;background:var(--coral);min-height:3px}
 .hour-bars .hb.hot i{background:var(--coral-deep)}
 .hour-bars .hb b{font-size:9.5px;font-weight:700;color:var(--ink-faint);white-space:nowrap}
-.mood-bars{display:flex;align-items:flex-end;gap:4px;height:52px}
-.mood-bars i{flex:1;border-radius:5px 5px 2px 2px;background:linear-gradient(180deg,#4FC79E,var(--good));min-height:4px}
+.mood-bars{
+  display:flex;align-items:flex-end;gap:6px;height:52px;padding:7px 8px;
+  background:var(--bg);border-radius:12px;
+}
+.mood-bars i{
+  width:16px;flex:0 0 16px;border-radius:6px 6px 3px 3px;
+  background:linear-gradient(180deg,#4FC79E,var(--good));min-height:5px;
+}
 .checkin-log{background:var(--card);border-radius:var(--radius-sm);padding:14px 16px;box-shadow:var(--shadow-soft)}
 .checkin-entry{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:start;padding:11px 0;border-bottom:1px solid var(--bg-deep)}
 .checkin-entry:first-child{padding-top:2px}
