@@ -294,7 +294,6 @@ input,select{font-family:inherit;font-size:16px}
   transform:translate(-50%,-50%);
   animation:float 6.4s ease-in-out infinite;
   transition:left 3.8s ease-in-out, top 3.8s ease-in-out, width 1.2s ease;
-  filter:drop-shadow(0 12px 14px rgba(12,43,39,.14));
 }
 @keyframes float{0%,100%{transform:translate(-50%,-52%)}50%{transform:translate(-50%,-46%)}}
 #axo-svg{display:block;transition:transform .7s ease}
@@ -310,12 +309,10 @@ input,select{font-family:inherit;font-size:16px}
 [data-growth="hatchling"] .axo-eye{animation-name:blinkBaby}
 [data-growth="little"] .axo-tail{animation-duration:3.7s}
 [data-growth="young"] .axo-tail{animation-duration:3.1s}
-[data-growth="bright"] #axo-glow{opacity:.10}
-[data-growth="bright"] .gill{filter:drop-shadow(0 0 3px rgba(255,174,187,.5))}
+[data-growth="bright"] .gill{filter:none}
 [data-growth="grown"] .axo-tail{animation-name:tailSwishGrown}
-[data-growth="guardian"] #axo-glow{opacity:.16}
-[data-growth="guardian"] .axo-core{filter:drop-shadow(0 0 5px rgba(255,255,255,.28))}
-[data-growth="guardian"] .gill{filter:drop-shadow(0 0 5px rgba(255,174,187,.8))}
+[data-growth="guardian"] .axo-core{filter:none}
+[data-growth="guardian"] .gill{filter:none}
 @keyframes tapBounce{
   0%{transform:scale(1,1)}
   30%{transform:scale(1.12,.86)}
@@ -345,8 +342,6 @@ input,select{font-family:inherit;font-size:16px}
 .axo-eye{animation:blink 5.2s infinite;transform-origin:center 62%}
 @keyframes blink{0%,94%,100%{transform:scaleY(1)}96.5%{transform:scaleY(.08)}}
 @keyframes blinkBaby{0%,94%,100%{transform:scale(1.22,1.22)}96.5%{transform:scale(1.22,.1)}}
-#axo-glow{opacity:0;transition:opacity 2s}
-.tank.glowing #axo-glow{opacity:.12}
 #buddy-layer .buddy{position:absolute;width:32%;z-index:3;animation:floatB 5.8s ease-in-out infinite}
 #buddy-layer .buddy.b1{left:8%;top:22%}
 #buddy-layer .buddy.b2{right:6%;top:52%;animation-delay:-2.9s}
@@ -1749,7 +1744,6 @@ function axoSVG(skinId, hatId, mood, ns = "main") {
     halo:   `<g transform="translate(50,2)"><ellipse cx="26" cy="6" rx="24" ry="7" fill="none" stroke="#FFDD70" stroke-width="5" opacity=".95"/></g>`,
   };
   return defs + `
-    <ellipse id="axo-glow" cx="94" cy="88" rx="62" ry="42" fill="${s.belly}" opacity="0"/>
     <g class="axo-tail">
       <path d="M116 92 Q151 61 181 66 Q184 84 166 99 Q187 104 176 121 Q147 132 121 109z" fill="url(#${ns}-fin)" opacity=".92"/>
       <path d="M119 96 q34 -6 52 -18 q4 19 -14 34 q-20 12 -39 0z" fill="url(#${ns}-body)"/>
