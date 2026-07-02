@@ -1603,6 +1603,26 @@ function normalizeState() {
   if (state.onboarded && !state.originalQuitAt) state.originalQuitAt = state.quitAt || Date.now();
 }
 function save() { localStorage.setItem(CONFIG.storageKey, JSON.stringify(state)); }
+function applyReefTestSeed() {
+  const params = new URLSearchParams(location.search);
+  if (params.get("qa") !== "reef" && params.get("test") !== "reef") return false;
+  const maxStreakAt = Date.now() - 366 * dayMs;
+  state.onboarded = true;
+  state.petName ||= "Gillie";
+  state.quitAt = maxStreakAt;
+  state.originalQuitAt = state.originalQuitAt || maxStreakAt;
+  state.bankedCleanMs = Math.max(state.bankedCleanMs || 0, 0);
+  state.pearls = Math.max(state.pearls || 0, 99999);
+  state.premium = true;
+  state.growthSeen = GROWTH_STAGES.map((g) => g.id);
+  state.milestonesSeen = MILESTONES.map((m) => m.id);
+  state.milestonesRewarded = MILESTONES.map((m) => m.id);
+  state.checkins ||= [];
+  state.coach ||= { missionDate: null, completed: {}, reviews: [] };
+  state.reminders ||= { checkin: true, craving: true };
+  save();
+  return true;
+}
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
 const todayKey = () => new Date().toISOString().slice(0, 10);
@@ -3456,9 +3476,11 @@ function playSplash() {
   setTimeout(() => splash.classList.add("hide"), REDUCED_MOTION ? 350 : 1450);
   setTimeout(() => splash.remove(), REDUCED_MOTION ? 900 : 2150);
 }
+const reefTestSeeded = applyReefTestSeed();
 if (state.onboarded) enterMain();
 else obRender();
 playSplash();
+if (reefTestSeeded) setTimeout(() => toast("🧪", "Reef test mode: Plus, 365+ days, and 99,999 pearls are active."), 900);
 document.addEventListener("visibilitychange", () => { if (!document.hidden && state.onboarded) { renderAxo(); renderAll(); } });
 </script>
 </body>
