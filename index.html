@@ -5,10 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="theme-color" content="#E8F2EF">
+<meta name="theme-color" content="#075E5A">
 <meta name="description" content="Gillie is a mobile-first quit smoking companion with an aquarium buddy that heals as you stay clean.">
 <meta name="apple-mobile-web-app-title" content="Gillie">
 <title>Gillie — Quit Smoking</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="./assets/gillie-icon-temp.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="./assets/gillie-icon-temp.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -475,19 +478,20 @@ nav#tabs button.on{color:var(--ink)}
 .goal-card .bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--gold),#F2CB6B);transition:width .8s ease}
 .goal-card .eta{font-size:12.5px;color:var(--ink-faint);font-weight:700;margin-top:7px}
 .locked-teaser{
-  display:flex;align-items:center;gap:12px;width:100%;text-align:left;
-  border:1.5px dashed var(--line);border-radius:var(--radius);padding:15px 16px;color:var(--ink-soft);
+  display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;width:100%;text-align:left;
+  margin-top:18px;background:rgba(255,255,255,.62);border:1px solid rgba(211,227,222,.9);
+  border-radius:var(--radius);padding:16px 17px;color:var(--ink-soft);box-shadow:var(--shadow-soft);
 }
 .locked-teaser .ic{font-size:20px}
 .locked-teaser .t{font-weight:800;font-size:14.5px;color:var(--ink)}
-.locked-teaser .s{font-size:12.5px;color:var(--ink-faint);font-weight:600}
+.locked-teaser .s{display:block;font-size:12.5px;color:var(--ink-faint);font-weight:650;line-height:1.45;margin-top:3px}
 .locked-teaser .tag{margin-left:auto;background:linear-gradient(120deg,#E7B84B,#D89A2B);color:#fff;
   font-size:10px;font-weight:800;padding:4px 9px;border-radius:99px;letter-spacing:.05em;flex-shrink:0}
 .coach-card{
-  margin-top:14px;background:linear-gradient(135deg,#173F3A,#0E2C28);color:#fff;
+  margin-top:16px;background:linear-gradient(135deg,#173F3A,#0E2C28);color:#fff;
   border-radius:var(--radius);padding:17px 18px;box-shadow:var(--shadow);width:100%;text-align:left;display:block;
 }
-.coach-card.locked{background:var(--card);color:var(--ink);border:1.5px dashed var(--line);box-shadow:var(--shadow-soft)}
+.coach-card.locked{background:var(--card);color:var(--ink);border:1px solid rgba(211,227,222,.9);box-shadow:var(--shadow-soft)}
 .coach-card .eyebrow{color:rgba(255,255,255,.62)}
 .coach-card.locked .eyebrow{color:var(--ink-faint)}
 .coach-card .row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:5px}
@@ -584,6 +588,7 @@ nav#tabs button.on{color:var(--ink)}
   overscroll-behavior:contain;
   touch-action:none;
 }
+.overlay.sheet-dragging{backdrop-filter:none;background:rgba(10,30,27,.42)}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 .sheet{
   width:100%;max-width:440px;background:var(--bg);border-radius:28px 28px 0 0;
@@ -592,10 +597,10 @@ nav#tabs button.on{color:var(--ink)}
   position:relative;
   overscroll-behavior:contain;
   touch-action:pan-y;
-  will-change:transform;
+  will-change:transform;contain:layout paint;backface-visibility:hidden;-webkit-overflow-scrolling:touch;
 }
 @keyframes slideUp{from{transform:translateY(60px);opacity:0}to{transform:none;opacity:1}}
-.sheet.dragging{animation:none;transition:none}
+.sheet.dragging{animation:none;transition:none;overflow:hidden;-webkit-overflow-scrolling:auto}
 .sheet .grab{width:40px;height:5px;border-radius:99px;background:var(--line);margin:0 auto 18px;touch-action:none}
 .sheet-close{
   position:absolute;top:13px;right:14px;width:34px;height:34px;border-radius:50%;
@@ -3074,6 +3079,7 @@ function closeSheetOverlay(ov, animate = false) {
   const sheet = ov.querySelector(".sheet");
   const finish = () => {
     ov.hidden = true;
+    ov.classList.remove("sheet-dragging");
     if (sheet) {
       delete sheet.dataset.closing;
       sheet.classList.remove("dragging");
@@ -3124,9 +3130,9 @@ syncOverlayLock();
 
 function enableSheetDragDismiss() {
   $$(".overlay .sheet").forEach((sheet) => {
-    const releaseCloseDistance = 120;
-    const forceCloseDistance = Math.min(260, window.innerHeight * 0.28);
-    let startY = 0, lastY = 0, startTime = 0, dragging = false;
+    const releaseCloseDistance = 96;
+    let startY = 0, currentY = 0, startTime = 0, dragging = false, raf = 0;
+    const ov = sheet.closest(".overlay");
     const canStart = (y, target) => {
       const top = sheet.getBoundingClientRect().top;
       const onGrab = !!target.closest(".grab");
@@ -3134,66 +3140,73 @@ function enableSheetDragDismiss() {
       const interactive = target.closest("button,input,textarea,select");
       return !((!onGrab && (!nearTop || interactive)) || sheet.scrollTop > 0);
     };
+    const applyDrag = () => {
+      raf = 0;
+      const dy = Math.max(0, currentY - startY);
+      sheet.style.transform = `translate3d(0, ${dy}px, 0)`;
+    };
+    const queueDrag = () => {
+      if (!raf) raf = requestAnimationFrame(applyDrag);
+    };
     const beginDrag = (y, target) => {
       if (sheet.dataset.closing === "1") return false;
       if (!canStart(y, target)) return false;
-      startY = lastY = y;
+      startY = currentY = y;
       startTime = Date.now();
       dragging = true;
       sheet.classList.add("dragging");
+      ov?.classList.add("sheet-dragging");
       return true;
     };
     const moveDrag = (y) => {
       if (!dragging) return;
-      const dy = Math.max(0, y - startY);
-      lastY = y;
-      sheet.style.transform = `translateY(${dy}px)`;
-      sheet.style.opacity = String(Math.max(.65, 1 - dy / 650));
-      if (dy > forceCloseDistance) {
-        dragging = false;
-        closeSheetOverlay(sheet.closest(".overlay"), true);
-      }
+      currentY = y;
+      queueDrag();
     };
     const endDrag = (pointerId = null) => {
       if (!dragging) return;
       dragging = false;
       if (pointerId !== null) sheet.releasePointerCapture?.(pointerId);
-      const dy = Math.max(0, lastY - startY);
+      if (raf) cancelAnimationFrame(raf);
+      raf = 0;
+      ov?.classList.remove("sheet-dragging");
+      const dy = Math.max(0, currentY - startY);
       const velocity = dy / Math.max(1, Date.now() - startTime);
-      const ov = sheet.closest(".overlay");
-      if (dy > releaseCloseDistance || velocity > .65) {
+      if (dy > releaseCloseDistance || velocity > .55) {
         closeSheetOverlay(ov, true);
         return;
       }
       sheet.classList.remove("dragging");
-      sheet.style.transition = "transform .2s cubic-bezier(.2,.9,.3,1), opacity .2s ease";
+      sheet.style.transition = "transform .18s cubic-bezier(.2,.9,.3,1)";
       sheet.style.transform = "";
-      sheet.style.opacity = "";
-      setTimeout(() => { sheet.style.transition = ""; }, 220);
+      setTimeout(() => { sheet.style.transition = ""; }, 190);
     };
-    sheet.addEventListener("pointerdown", (e) => {
-      if (!beginDrag(e.clientY, e.target)) return;
-      sheet.setPointerCapture?.(e.pointerId);
-    });
-    sheet.addEventListener("pointermove", (e) => {
-      if (!dragging) return;
-      if (Math.max(0, e.clientY - startY) > 2) e.preventDefault();
-      moveDrag(e.clientY);
-    });
-    sheet.addEventListener("pointerup", (e) => endDrag(e.pointerId));
-    sheet.addEventListener("pointercancel", (e) => endDrag(e.pointerId));
-    sheet.addEventListener("touchstart", (e) => {
-      if (e.touches.length !== 1) return;
-      const t = e.touches[0];
-      if (beginDrag(t.clientY, e.target)) e.preventDefault();
-    }, { passive: false });
-    sheet.addEventListener("touchmove", (e) => {
-      if (!dragging || e.touches.length !== 1) return;
-      e.preventDefault();
-      moveDrag(e.touches[0].clientY);
-    }, { passive: false });
-    sheet.addEventListener("touchend", () => endDrag(), { passive: false });
-    sheet.addEventListener("touchcancel", () => endDrag(), { passive: false });
+    if (window.PointerEvent) {
+      sheet.addEventListener("pointerdown", (e) => {
+        if (!beginDrag(e.clientY, e.target)) return;
+        sheet.setPointerCapture?.(e.pointerId);
+      });
+      sheet.addEventListener("pointermove", (e) => {
+        if (!dragging) return;
+        e.preventDefault();
+        moveDrag(e.clientY);
+      });
+      sheet.addEventListener("pointerup", (e) => endDrag(e.pointerId));
+      sheet.addEventListener("pointercancel", (e) => endDrag(e.pointerId));
+    } else {
+      sheet.addEventListener("touchstart", (e) => {
+        if (e.touches.length !== 1) return;
+        const t = e.touches[0];
+        if (beginDrag(t.clientY, e.target)) e.preventDefault();
+      }, { passive: false });
+      sheet.addEventListener("touchmove", (e) => {
+        if (!dragging || e.touches.length !== 1) return;
+        e.preventDefault();
+        moveDrag(e.touches[0].clientY);
+      }, { passive: false });
+      sheet.addEventListener("touchend", () => endDrag(), { passive: false });
+      sheet.addEventListener("touchcancel", () => endDrag(), { passive: false });
+    }
   });
 }
 enableSheetDragDismiss();
