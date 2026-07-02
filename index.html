@@ -6,9 +6,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#075E5A">
-<meta name="description" content="Gillie is a mobile-first quit smoking companion with an aquarium buddy that heals as you stay clean.">
+<meta name="description" content="Gillie is a mobile-first quit-vaping companion with a supportive aquatic buddy.">
 <meta name="apple-mobile-web-app-title" content="Gillie">
-<title>Gillie — Quit Smoking</title>
+<title>Gillie — Quit Vaping</title>
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" type="image/svg+xml" href="./assets/gillie-icon-temp.svg">
 <link rel="apple-touch-icon" sizes="180x180" href="./assets/gillie-icon-temp.svg">
@@ -1070,9 +1070,6 @@ nav#tabs button.on{color:var(--ink)}
     <div class="set-group">
       <button class="set-row" id="set-plus"><span class="t">Gillie Plus</span><span class="v" id="set-plus-v">Free plan</span></button>
     </div>
-    <div class="set-group" id="set-qa-group" hidden>
-      <button class="set-row" id="set-qa-reef"><span class="t">Refill Reef tester mode</span><span class="v">99,999</span></button>
-    </div>
     <div class="set-group">
       <button class="set-row" id="set-reminder-checkin"><span class="t">Daily check-in reminder</span><span class="v" id="set-reminder-checkin-v">On</span></button>
       <button class="set-row" id="set-reminder-craving"><span class="t">Craving follow-up nudges</span><span class="v" id="set-reminder-craving-v">On</span></button>
@@ -1279,7 +1276,7 @@ nav#tabs button.on{color:var(--ink)}
     <div class="price-card">
       <button class="btn ghost" id="plus-monthly">—</button>
     </div>
-    <p style="font-size:11.5px;color:var(--ink-faint);text-align:center;margin-top:12px">Cancel anytime in the App Store.</p>
+    <p style="font-size:11.5px;color:var(--ink-faint);text-align:center;margin-top:12px">Purchase flow connects in the App Store build.</p>
   </div>
 </div>
 
@@ -1404,8 +1401,7 @@ const CONFIG = {
       "Savings goals that turn old habit spending into something real",
       "Premium tank themes, rare Gillie colors, tank mates, and 2x pearls",
     ],
-    // NOTE: purchase buttons are stubs. In the Capacitor build, wire these
-    // to RevenueCat / StoreKit and set state.premium on entitlement.
+    // In the native build, set state.premium only after a verified App Store entitlement.
   },
 };
 
@@ -1601,38 +1597,6 @@ function normalizeState() {
   if (state.onboarded && !state.originalQuitAt) state.originalQuitAt = state.quitAt || Date.now();
 }
 function save() { localStorage.setItem(CONFIG.storageKey, JSON.stringify(state)); }
-function isReefTestRequest() {
-  const params = new URLSearchParams(location.search);
-  const hashParams = new URLSearchParams((location.hash || "").replace(/^#/, ""));
-  const href = location.href.toLowerCase();
-  return params.get("qa") === "reef"
-    || params.get("test") === "reef"
-    || hashParams.get("qa") === "reef"
-    || hashParams.get("test") === "reef"
-    || href.includes("qa=reef")
-    || href.includes("test=reef");
-}
-function applyReefTestSeed(force = false) {
-  if (!force && !isReefTestRequest()) return false;
-  const maxStreakAt = Date.now() - 366 * dayMs;
-  state.onboarded = true;
-  state.petName ||= "Gillie";
-  state.quitAt = maxStreakAt;
-  state.originalQuitAt = maxStreakAt;
-  state.bankedCleanMs = 366 * dayMs;
-  state.pearls = 99999;
-  state.premium = true;
-  state.qaReefTest = true;
-  state.theme = state.theme || "clear";
-  state.growthSeen = GROWTH_STAGES.map((g) => g.id);
-  state.milestonesSeen = MILESTONES.map((m) => m.id);
-  state.milestonesRewarded = MILESTONES.map((m) => m.id);
-  state.checkins ||= [];
-  state.coach ||= { missionDate: null, completed: {}, reviews: [] };
-  state.reminders ||= { checkin: true, craving: true };
-  save();
-  return true;
-}
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
 const todayKey = () => new Date().toISOString().slice(0, 10);
@@ -3147,7 +3111,7 @@ function renderShop() {
 }
 
 /* ============================================================
-   Gillie Plus paywall (stub — wire to RevenueCat/StoreKit in Capacitor)
+   Gillie Plus paywall
    ============================================================ */
 function openPlus() {
   const danger = dangerWindow();
@@ -3169,15 +3133,11 @@ function openPlus() {
   $("#plus-overlay").hidden = false;
 }
 $("#plus-open").onclick = openPlus;
-function grantPlus() {
-  // TODO (production): replace with real purchase flow + receipt validation.
-  state.premium = true; save();
-  $("#plus-overlay").hidden = true;
-  toast("👑", "Gillie Plus active. Your Coach plan is unlocked.");
-  renderAll();
+function requestPlusPurchase() {
+  toast("👑", "Gillie Plus purchases connect in the App Store build.");
 }
-$("#plus-yearly").onclick = grantPlus;
-$("#plus-monthly").onclick = grantPlus;
+$("#plus-yearly").onclick = requestPlusPurchase;
+$("#plus-monthly").onclick = requestPlusPurchase;
 
 /* ============================================================
    Settings
@@ -3187,7 +3147,6 @@ function renderSettings() {
   $("#set-name-v").textContent = state.petName;
   $("#set-skin-v").textContent = state.premium ? skinOf(state.skin).name : "Plus 👑";
   $("#set-plus-v").textContent = state.premium ? "Active 👑" : "Free plan";
-  $("#set-qa-group").hidden = !state.qaReefTest && !isReefTestRequest();
   $("#set-reminder-checkin-v").textContent = state.reminders.checkin ? "On" : "Off";
   $("#set-reminder-craving-v").textContent = state.reminders.craving ? "On" : "Off";
   $("#set-integrity-v").textContent = `${(state.milestonesRewarded || []).length} protected`;
@@ -3231,11 +3190,6 @@ $("#ce-save").onclick = () => {
   save(); $("#cost-overlay").hidden = true; renderAll();
 };
 $("#set-plus").onclick = openPlus;
-$("#set-qa-reef").onclick = () => {
-  applyReefTestSeed(true);
-  renderAxo(); renderAll();
-  toast("🧪", "Reef tester mode refilled: Plus, max days, and 99,999 pearls.");
-};
 $("#set-reminder-checkin").onclick = () => {
   state.reminders.checkin = !state.reminders.checkin;
   save(); renderSettings();
@@ -3491,11 +3445,9 @@ function playSplash() {
   setTimeout(() => splash.classList.add("hide"), REDUCED_MOTION ? 350 : 1450);
   setTimeout(() => splash.remove(), REDUCED_MOTION ? 900 : 2150);
 }
-const reefTestSeeded = applyReefTestSeed();
 if (state.onboarded) enterMain();
 else obRender();
 playSplash();
-if (reefTestSeeded) setTimeout(() => toast("🧪", "Reef test mode: Plus, 365+ days, and 99,999 pearls are active."), 900);
 document.addEventListener("visibilitychange", () => { if (!document.hidden && state.onboarded) { renderAxo(); renderAll(); } });
 </script>
 </body>
