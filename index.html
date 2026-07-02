@@ -115,11 +115,11 @@ input,select{font-family:inherit;font-size:16px}
 .seg{display:flex;background:var(--card);border-radius:var(--radius-sm);padding:5px;border:1.5px solid var(--line)}
 .seg button{flex:1;padding:11px;border-radius:12px;font-weight:700;font-size:14.5px;color:var(--ink-faint)}
 .seg button.on{background:var(--ink);color:#fff}
-.chips{display:flex;flex-wrap:wrap;gap:10px}
+.chips{display:flex;flex-wrap:wrap;gap:14px 12px;align-items:flex-start}
 .chips button{
   padding:11px 16px;border-radius:999px;background:var(--card);
   border:1.5px solid var(--line);font-weight:700;font-size:14.5px;color:var(--ink-soft);
-  transition:all .15s;
+  line-height:1.1;transition:all .15s;
 }
 .chips button.on{background:var(--ink);border-color:var(--ink);color:#fff}
 .skin-row{display:flex;gap:14px;justify-content:center;margin-top:8px}
@@ -496,6 +496,27 @@ nav#tabs button.on{color:var(--ink)}
 .coach-list{display:grid;gap:7px;margin-top:13px}
 .coach-list div{background:rgba(255,255,255,.11);border-radius:12px;padding:9px 10px;font-size:13px;font-weight:700;line-height:1.25}
 .coach-card.locked .coach-list div{background:var(--bg);color:var(--ink-soft)}
+.coach-room .coach-hero{background:linear-gradient(135deg,#173F3A,#0E2C28);color:#fff;border-radius:22px;padding:17px;margin-bottom:14px}
+.coach-room .coach-hero .eyebrow{color:rgba(255,255,255,.62)}
+.coach-room .coach-hero h2{color:#fff;margin:5px 0 6px}
+.coach-room .coach-hero p{color:rgba(255,255,255,.76);font-size:13.5px;font-weight:650;line-height:1.35;margin:0}
+.coach-room .sub-h{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);margin:16px 0 9px}
+.coach-response{background:var(--card);border-radius:16px;padding:14px;box-shadow:var(--shadow-soft);font-weight:700;color:var(--ink-soft);line-height:1.38}
+.coach-response strong{color:var(--ink)}
+.coach-missions{display:grid;gap:10px}
+.mission-card{display:grid;grid-template-columns:auto 1fr;gap:11px;background:var(--card);border-radius:16px;padding:13px;box-shadow:var(--shadow-soft);text-align:left}
+.mission-card .check{width:28px;height:28px;border-radius:10px;border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;font-weight:900;color:transparent;background:var(--bg)}
+.mission-card.done .check{background:var(--good);border-color:var(--good);color:#fff}
+.mission-card .t,.mission-card .s{display:block}
+.mission-card .t{font-weight:800;font-size:14.5px}
+.mission-card .s{font-size:12.5px;color:var(--ink-faint);font-weight:700;margin-top:3px;line-height:1.3}
+.coach-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.coach-actions button{background:var(--card);border-radius:16px;padding:13px;text-align:left;box-shadow:var(--shadow-soft);font-weight:800;color:var(--ink)}
+.coach-actions button span{display:block;font-size:12px;color:var(--ink-faint);font-weight:700;margin-top:3px}
+.playbook-list{display:grid;gap:8px}
+.playbook-list button{background:var(--bg);border-radius:13px;padding:11px 12px;text-align:left;font-weight:800;color:var(--ink-soft)}
+.playbook-list button.on{background:var(--ink);color:#fff}
+.coach-review{display:grid;gap:9px}
 .insights{background:var(--card);border-radius:var(--radius-sm);padding:16px;box-shadow:var(--shadow-soft)}
 .insights .kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
 .insights .kpi{background:var(--bg);border-radius:12px;padding:11px 12px}
@@ -1044,6 +1065,35 @@ nav#tabs button.on{color:var(--ink)}
   </div>
 </div>
 
+<!-- Gillie Coach Room -->
+<div class="overlay" id="coach-overlay" hidden>
+  <div class="sheet coach-room">
+    <div class="grab"></div>
+    <div class="coach-hero">
+      <div class="eyebrow">Gillie Coach</div>
+      <h2>Today’s quit room</h2>
+      <p id="coach-hero-copy">A practical plan built from your actual triggers, danger windows, slips, and check-ins.</p>
+    </div>
+    <div class="coach-response" id="coach-response">Open a plan below when you need a move.</div>
+    <div class="sub-h">Today’s missions</div>
+    <div class="coach-missions" id="coach-missions"></div>
+    <div class="sub-h">Fast help</div>
+    <div class="coach-actions">
+      <button data-coach-action="craving">I’m craving<span>Start the next 10 minutes</span></button>
+      <button data-coach-action="stress">I’m stressed<span>Lower the pressure first</span></button>
+      <button data-coach-action="slip">I’m about to slip<span>Emergency friction plan</span></button>
+      <button data-coach-action="evening">Plan my evening<span>Protect the risky window</span></button>
+    </div>
+    <div class="sub-h">Trigger playbooks</div>
+    <div class="playbook-list" id="coach-playbooks"></div>
+    <div class="sub-h">Review loop</div>
+    <div class="coach-review">
+      <button class="btn" id="coach-worked">Today’s plan worked</button>
+      <button class="btn ghost" id="coach-adjust">I need a different plan</button>
+    </div>
+  </div>
+</div>
+
 <!-- Daily check-in -->
 <div class="overlay" id="checkin-overlay" hidden>
   <div class="sheet">
@@ -1234,6 +1284,7 @@ const CONFIG = {
     pearlMultiplier: 2,
     perks: [
       "Gillie Coach — daily quit coaching from your check-ins and cravings",
+      "Interactive Coach Room with missions, crisis plans, trigger playbooks, and evening reviews",
       "Research-backed craving steps: delay, breathe, move, switch routines, get support",
       "Trigger counter-moves for stress, boredom, food, drinking, and scrolling",
       "Deep insights: danger hours, mood trend, best streak, slips, and win rate",
@@ -1402,6 +1453,7 @@ const defaultState = () => ({
   goal: null,            // {name, price} — Plus feature
   theme: "clear",        // tank theme id — Plus feature
   buddies: [],           // [{name, skin}] — Plus feature, max BUDDIES.max
+  coach: { missionDate: null, completed: {}, reviews: [] },
   justSlippedAt: 0,
 });
 
@@ -1426,6 +1478,9 @@ function normalizeState() {
   state.milestonesSeen ||= [];
   state.milestonesRewarded ||= [];
   state.pendingFollowup ||= null;
+  state.coach ||= { missionDate: null, completed: {}, reviews: [] };
+  state.coach.completed ||= {};
+  state.coach.reviews ||= [];
   if (state.onboarded && !state.originalQuitAt) state.originalQuitAt = state.quitAt || Date.now();
 }
 function save() { localStorage.setItem(CONFIG.storageKey, JSON.stringify(state)); }
@@ -1705,7 +1760,7 @@ function renderAll() {
     : "Timeline reflects your clean-time progress and habit-change milestones. It's general wellness information, not medical advice.";
   $("#axo-svg").dataset.growth = growth.id;
   $("#stat-cravings").textContent = state.cravings.filter((c) => c.resisted).length;
-  renderSpeech(stage); renderDecor(); renderGrowthCard(); renderCoachCard(); renderCheckinCard(); renderCheckinLog(); renderMilestoneList(); renderNextMilestone();
+  renderSpeech(stage); renderDecor(); renderGrowthCard(); renderCoachCard(); renderCoachRoom(); renderCheckinCard(); renderCheckinLog(); renderMilestoneList(); renderNextMilestone();
   renderTriggers(); renderShop(); renderSettings();
   applyTheme(); renderGoal(); renderInsights(); renderThemes();
   renderBuddies(); renderBuddyGrid();
@@ -1840,11 +1895,182 @@ function renderCoachCard() {
   const plan = buildCoachPlan();
   card.className = "coach-card";
   card.innerHTML = `<div class="eyebrow">Gillie Coach</div>
-    <div class="row"><div class="t">Today's quit plan</div><span class="tag">PLUS</span></div>
-    <div class="s">Built from your streak, check-ins, cravings, triggers, and notes.</div>
+    <div class="row"><div class="t">Open Coach Room</div><span class="tag">PLUS</span></div>
+    <div class="s">Missions, crisis moves, trigger playbooks, and review memory.</div>
     <div class="coach-list">${plan.map((item) => `<div>${escapeHTML(item)}</div>`).join("")}</div>`;
-  card.onclick = null;
+  card.onclick = openCoachRoom;
 }
+
+function coachEnsureToday() {
+  state.coach ||= { missionDate: null, completed: {}, reviews: [] };
+  const key = localDayKey();
+  if (state.coach.missionDate !== key) {
+    state.coach.missionDate = key;
+    state.coach.completed = {};
+  }
+  state.coach.reviews ||= [];
+}
+
+function coachContext() {
+  const profile = activeSubstance();
+  const trigger = topTrigger();
+  const danger = dangerWindow();
+  const lesson = lastSlipLesson();
+  const today = state.checkins.find((c) => c.date === todayKey());
+  const lastReview = [...(state.coach?.reviews || [])].reverse()[0];
+  const verb = profile.slip === "vaped" ? "vape" : profile.slip === "smoked" ? "smoke" : "use";
+  return { profile, trigger, danger, lesson, today, lastReview, verb };
+}
+
+function buildCoachMissions() {
+  const { profile, trigger, danger, lesson, today, verb } = coachContext();
+  const missions = [];
+  missions.push({
+    id: "friction",
+    title: `Make ${profile.name} harder to reach`,
+    body: `Move supplies, lighters, carts, or cues out of arm's reach. The goal is a 10-second pause before any ${verb}.`,
+  });
+  missions.push(trigger ? {
+    id: "trigger",
+    title: `Pre-plan ${trigger}`,
+    body: triggerMove(trigger, profile),
+  } : {
+    id: "trigger",
+    title: "Find today's trigger",
+    body: "When the next urge hits, log the trigger before you decide what to do. Coach needs the cue, not a perfect day.",
+  });
+  missions.push(danger ? {
+    id: "window",
+    title: `Protect ${danger.label}`,
+    body: "Before that window starts, put water/gum nearby, stand up once, and decide where your phone or hands go.",
+  } : {
+    id: "window",
+    title: "Create a fallback window",
+    body: "Pick one risky hour today and decide the replacement action now: walk, shower, gum, chores, or text support.",
+  });
+  if (lesson?.plan) missions.push({
+    id: "lesson",
+    title: "Use your last lesson",
+    body: lesson.plan,
+  });
+  else if (!today) missions.push({
+    id: "checkin",
+    title: "Check in tonight",
+    body: "Give Coach one honest mood and craving rating so tomorrow's plan is based on data, not guessing.",
+  });
+  return missions.slice(0, 4);
+}
+
+function setCoachResponse(html) {
+  $("#coach-response").innerHTML = html;
+}
+
+function renderCoachRoom() {
+  if (!state.premium || !$("#coach-overlay") || $("#coach-overlay").hidden) return;
+  coachEnsureToday();
+  const { trigger, danger, lesson, lastReview } = coachContext();
+  $("#coach-hero-copy").textContent = danger
+    ? `Your current risk window is ${danger.label}. Coach is building today's plan around that.`
+    : "Coach gets sharper as you log cravings, check-ins, and slip lessons.";
+  const missions = buildCoachMissions();
+  $("#coach-missions").innerHTML = missions.map((m) => {
+    const done = !!state.coach.completed[m.id];
+    return `<button class="mission-card ${done ? "done" : ""}" data-mission="${m.id}">
+      <span class="check">✓</span><span><span class="t">${escapeHTML(m.title)}</span><span class="s">${escapeHTML(m.body)}</span></span>
+    </button>`;
+  }).join("");
+  $$("#coach-missions [data-mission]").forEach((b) => b.onclick = () => {
+    const id = b.dataset.mission;
+    if (!state.coach.completed[id]) {
+      state.coach.completed[id] = Date.now();
+      const v = grant(2);
+      toast("✓", `Mission done. +${v} pearls.`);
+      axoCelebrate();
+    } else {
+      toast("✓", "Already counted for today.");
+    }
+    save(); renderCoachRoom(); renderAll();
+  });
+  const playbooks = [...new Set([trigger, "Stress", "Boredom", "After eating", "Phone scrolling", "Social"].filter(Boolean))].slice(0, 6);
+  $("#coach-playbooks").innerHTML = playbooks.map((t) => `<button data-playbook="${escapeHTML(t)}">${escapeHTML(t)}</button>`).join("");
+  $$("#coach-playbooks [data-playbook]").forEach((b) => b.onclick = () => {
+    $$("#coach-playbooks [data-playbook]").forEach((x) => x.classList.remove("on"));
+    b.classList.add("on");
+    setCoachResponse(`<strong>${escapeHTML(b.dataset.playbook)} playbook:</strong> ${escapeHTML(triggerMove(b.dataset.playbook))}`);
+  });
+  if (lastReview && !$("#coach-response").dataset.touched) {
+    setCoachResponse(`<strong>Last review:</strong> ${escapeHTML(lastReview.result === "worked" ? "Keep the same plan." : lastReview.note || "Coach will adjust from your note.")}`);
+  }
+  if (lesson?.plan && !$("#coach-response").dataset.touched) {
+    setCoachResponse(`<strong>Useful memory:</strong> Last slip lesson says: ${escapeHTML(lesson.plan)}`);
+  }
+}
+
+function openCoachRoom() {
+  if (!state.premium) return openPlus();
+  $("#coach-response").dataset.touched = "";
+  $("#coach-overlay").hidden = false;
+  renderCoachRoom();
+}
+
+function coachAction(action) {
+  const { trigger, danger, lesson, profile, verb } = coachContext();
+  $("#coach-response").dataset.touched = "1";
+  if (action === "craving") {
+    setCoachResponse(`<strong>Next 10 minutes:</strong> open SOS, breathe one round, change rooms, and delay the decision. After the follow-up, only count it beaten if it actually passed.`);
+    setTimeout(openSOS, 250);
+    return;
+  }
+  if (action === "stress") {
+    setCoachResponse(`<strong>Stress protocol:</strong> unclench jaw, drop shoulders, 6 slow breaths, then do one physical reset: cold water, short walk, shower, or clean one surface. Do not solve the whole day while stressed.`);
+    return;
+  }
+  if (action === "slip") {
+    setCoachResponse(`<strong>Emergency friction:</strong> put distance between you and the ${profile.name} first. Leave the room, put shoes on, text someone, then open SOS. The only target is the next 10 minutes without a ${verb}. ${lesson?.place ? `Watch the ${escapeHTML(lesson.place)} pattern.` : ""}`);
+    return;
+  }
+  const windowCopy = danger ? `${danger.label}` : "your usual evening downtime";
+  const triggerCopy = trigger ? `Your top cue is ${trigger}.` : "You do not have a top cue yet.";
+  setCoachResponse(`<strong>Evening plan:</strong> protect ${windowCopy}. ${escapeHTML(triggerCopy)} Before that window, choose a drink, move cues away, and pick a replacement action you can do without motivation.`);
+}
+
+function saveCoachReview(result, note = "") {
+  state.coach ||= { missionDate: null, completed: {}, reviews: [] };
+  state.coach.reviews ||= [];
+  const key = localDayKey();
+  const existing = state.coach.reviews.find((r) => r.date === key);
+  if (existing) {
+    existing.result = result;
+    existing.note = note;
+    existing.at = Date.now();
+  } else {
+    state.coach.reviews.push({ date: key, result, note, at: Date.now() });
+  }
+  save();
+  renderCoachRoom(); renderAll();
+}
+$$("#coach-overlay [data-coach-action]").forEach((b) => b.onclick = () => coachAction(b.dataset.coachAction));
+$("#coach-worked").onclick = () => {
+  saveCoachReview("worked");
+  setCoachResponse("<strong>Saved.</strong> Coach will keep this shape tomorrow unless your data changes.");
+  toast("🧠", "Coach review saved.");
+};
+$("#coach-adjust").onclick = () => {
+  openTextSheet({
+    title: "Adjust tomorrow's plan",
+    sub: "Tell Coach what did not work. Short and honest is best.",
+    label: "What should change?",
+    value: "",
+    maxLength: 160,
+    hint: "Example: nights are harder, driving is the problem, after meals need a plan.",
+    actionText: "Save adjustment",
+    onSave: (value) => {
+      saveCoachReview("adjust", value.slice(0, 160));
+      setCoachResponse(`<strong>Saved adjustment:</strong> ${escapeHTML(value)} Coach will use this tomorrow.`);
+      toast("🧠", "Coach adjustment saved.");
+    },
+  });
+};
 
 function checkGrowthStages() {
   const ms = currentStreakMs();
