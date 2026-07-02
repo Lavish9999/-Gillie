@@ -365,6 +365,7 @@ input,select{font-family:inherit;font-size:16px}
 .checkin-card .s{opacity:.75;font-size:13.5px;margin-top:2px}
 .checkin-card button{margin-left:auto;background:#fff;color:var(--ink);border-radius:999px;
   padding:11px 18px;font-weight:800;font-size:14px;flex-shrink:0}
+.checkin-card button:disabled{opacity:.7}
 .next-milestone{
   margin-top:14px;background:var(--card);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow-soft);
 }
@@ -465,6 +466,16 @@ nav#tabs button.on{color:var(--ink)}
 .hour-bars .hb b{font-size:9.5px;font-weight:700;color:var(--ink-faint);white-space:nowrap}
 .mood-bars{display:flex;align-items:flex-end;gap:4px;height:52px}
 .mood-bars i{flex:1;border-radius:5px 5px 2px 2px;background:linear-gradient(180deg,#4FC79E,var(--good));min-height:4px}
+.checkin-log{background:var(--card);border-radius:var(--radius-sm);padding:14px 16px;box-shadow:var(--shadow-soft)}
+.checkin-entry{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:start;padding:11px 0;border-bottom:1px solid var(--bg-deep)}
+.checkin-entry:first-child{padding-top:2px}
+.checkin-entry:last-child{border-bottom:none;padding-bottom:2px}
+.checkin-entry .face{font-size:23px;line-height:1}
+.checkin-entry .date{font-weight:800;font-size:14px}
+.checkin-entry .meta{font-size:12.5px;color:var(--ink-faint);font-weight:700;margin-top:2px}
+.checkin-entry .note{font-size:13px;color:var(--ink-soft);font-weight:600;margin-top:5px;line-height:1.35}
+.checkin-entry .pill{font-size:11px;font-weight:800;padding:4px 8px;border-radius:999px;background:rgba(47,156,119,.12);color:var(--good)}
+.checkin-entry .pill.slip{background:rgba(226,83,111,.12);color:var(--coral-deep)}
 .theme-row{display:flex;gap:10px;overflow-x:auto;padding:2px 2px 6px;scrollbar-width:none}
 .theme-chip{flex-shrink:0;width:96px;background:var(--card);border-radius:var(--radius-sm);padding:10px;
   text-align:center;box-shadow:var(--shadow-soft);border:2px solid transparent;position:relative}
@@ -515,6 +526,12 @@ nav#tabs button.on{color:var(--ink)}
   background:rgba(226,83,111,.12);color:var(--coral-deep);font-size:24px;font-weight:800;
 }
 .field input.text-sheet-input{font-size:20px;font-weight:800}
+.field textarea{
+  width:100%;min-height:86px;resize:vertical;padding:14px 16px;border-radius:var(--radius-sm);
+  border:1.5px solid var(--line);background:var(--card);color:var(--ink);
+  font:600 16px/1.35 var(--font-body);outline:none;
+}
+.field textarea:focus{border-color:var(--ink)}
 .mood-row{display:flex;justify-content:space-between;margin:6px 0 22px}
 .mood-row button{font-size:34px;padding:8px;border-radius:16px;filter:grayscale(.75);opacity:.6;transition:all .15s;transform:scale(.92)}
 .mood-row button.on{filter:none;opacity:1;transform:scale(1.12);background:var(--card);box-shadow:var(--shadow-soft)}
@@ -740,6 +757,10 @@ nav#tabs button.on{color:var(--ink)}
     </div><div class="pearl-chip"><span class="pearl-dot"></span><span class="pearl-balance2">0</span></div></div>
     <div class="section-h">Your insights</div>
     <div id="insights-box"></div>
+    <div class="section-h">Recent check-ins</div>
+    <div class="checkin-log" id="checkin-log">
+      <div style="color:var(--ink-faint);font-weight:600;font-size:14px">No check-ins yet. Your first one starts the pattern.</div>
+    </div>
     <div class="section-h">Healing timeline</div>
     <div id="ms-list"></div>
     <div class="section-h">Craving triggers</div>
@@ -850,6 +871,19 @@ nav#tabs button.on{color:var(--ink)}
         <button data-v="clean" class="on">Zero — stayed clean</button>
         <button data-v="slipped">I slipped</button>
       </div>
+    </div>
+    <div class="field"><label>Craving level today</label>
+      <div class="seg" id="checkin-intensity">
+        <button data-v="0" class="on">None</button>
+        <button data-v="1">Low</button>
+        <button data-v="2">Medium</button>
+        <button data-v="3">High</button>
+      </div>
+    </div>
+    <div class="field">
+      <label for="checkin-note">Quick note <span style="color:var(--ink-faint);font-weight:600">(optional)</span></label>
+      <textarea id="checkin-note" maxlength="180" placeholder="What helped, what hit, or what to watch tomorrow?"></textarea>
+      <div class="hint">Saved only on this device.</div>
     </div>
     <button class="btn" id="checkin-save" disabled>Finish check-in</button>
   </div>
@@ -1086,9 +1120,9 @@ const defaultState = () => ({
   reasons: [],
   quitAt: null,          // ms — start of current streak
   bankedCleanMs: 0,      // clean time accumulated before slips
-  slips: [],             // [{at}]
+  slips: [],             // [{at, streakMs}]
   cravings: [],          // [{at, trigger, resisted}]
-  checkins: [],          // [{date:'YYYY-MM-DD', mood, clean}]
+  checkins: [],          // [{date:'YYYY-MM-DD', mood, clean, intensity, note}]
   milestonesSeen: [],
   cost: { style: "disposables", unitsPerWeek: 2, costPerUnit: 15, puffsPerDay: 200 },
   goal: null,            // {name, price} — Plus feature
@@ -1109,6 +1143,15 @@ function save() { localStorage.setItem(CONFIG.storageKey, JSON.stringify(state))
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
 const todayKey = () => new Date().toISOString().slice(0, 10);
+const moodFace = (mood) => ["", "😖", "😕", "😐", "🙂", "😄"][mood] || "😐";
+const cravingLabel = (level = 0) => ["No cravings", "Low cravings", "Medium cravings", "High cravings"][level] || "No cravings";
+const niceDate = (key) => {
+  const d = new Date(`${key}T12:00:00`);
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+};
+const escapeHTML = (value) => String(value || "").replace(/[&<>"']/g, (ch) => ({
+  "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+}[ch]));
 
 /* derived */
 const currentStreakMs = () => (state.quitAt ? Date.now() - state.quitAt : 0);
@@ -1288,7 +1331,7 @@ function renderAll() {
   $$(".pearl-balance2").forEach((el) => (el.textContent = state.pearls));
   $("#stage-tag").textContent = `Day ${Math.floor(currentStreakMs() / dayMs)} · ${stage.name}`;
   $("#stat-cravings").textContent = state.cravings.filter((c) => c.resisted).length;
-  renderSpeech(stage); renderDecor(); renderCheckinCard(); renderMilestoneList(); renderNextMilestone();
+  renderSpeech(stage); renderDecor(); renderCheckinCard(); renderCheckinLog(); renderMilestoneList(); renderNextMilestone();
   renderTriggers(); renderShop(); renderSettings();
   applyTheme(); renderGoal(); renderInsights(); renderThemes();
   renderBuddies(); renderBuddyGrid();
@@ -1767,15 +1810,29 @@ function renderInsights() {
 /* ============================================================
    Daily check-in
    ============================================================ */
-let checkinMood = null, checkinClean = "clean";
+let checkinMood = null, checkinClean = "clean", checkinIntensity = 0;
 function renderCheckinCard() {
-  const done = state.checkins.some((c) => c.date === todayKey());
-  $("#checkin-card").style.display = done ? "none" : "flex";
+  const today = state.checkins.find((c) => c.date === todayKey());
+  $("#checkin-card").style.display = "flex";
+  if (today) {
+    $("#checkin-card .t").textContent = "Checked in today";
+    $("#checkin-sub").textContent = `${moodFace(today.mood)} ${today.clean ? "Clean day logged" : "Slip logged"} · ${cravingLabel(today.intensity)}`;
+    $("#checkin-open").textContent = "Done";
+    $("#checkin-open").disabled = true;
+  } else {
+    $("#checkin-card .t").textContent = "Daily check-in";
+    $("#checkin-sub").textContent = "30 seconds. Your friend is waiting.";
+    $("#checkin-open").textContent = "Check in";
+    $("#checkin-open").disabled = false;
+  }
 }
 $("#checkin-open").onclick = () => {
-  checkinMood = null; checkinClean = "clean";
+  if (state.checkins.some((c) => c.date === todayKey())) return;
+  checkinMood = null; checkinClean = "clean"; checkinIntensity = 0;
   $$("#mood-row button").forEach((b) => b.classList.remove("on"));
   $$("#checkin-clean button").forEach((b, i) => b.classList.toggle("on", i === 0));
+  $$("#checkin-intensity button").forEach((b, i) => b.classList.toggle("on", i === 0));
+  $("#checkin-note").value = "";
   $("#checkin-save").disabled = true;
   $("#checkin-overlay").hidden = false;
 };
@@ -1787,10 +1844,16 @@ $$("#checkin-clean button").forEach((b) => b.onclick = () => {
   $$("#checkin-clean button").forEach((x) => x.classList.remove("on")); b.classList.add("on");
   checkinClean = b.dataset.v;
 });
+$$("#checkin-intensity button").forEach((b) => b.onclick = () => {
+  $$("#checkin-intensity button").forEach((x) => x.classList.remove("on")); b.classList.add("on");
+  checkinIntensity = +b.dataset.v;
+});
 $("#checkin-save").onclick = () => {
-  state.checkins.push({ date: todayKey(), mood: checkinMood, clean: checkinClean === "clean" });
+  const clean = checkinClean === "clean";
+  const note = $("#checkin-note").value.trim().slice(0, 180);
+  state.checkins.push({ date: todayKey(), mood: checkinMood, clean, intensity: checkinIntensity, note });
   $("#checkin-overlay").hidden = true;
-  if (checkinClean === "clean") {
+  if (clean) {
     const v = grant(CONFIG.rewards.checkin);
     save();
     toast("🫧", `Check-in done. +${v} pearls — ${state.petName} did a little spin.`);
@@ -1801,6 +1864,24 @@ $("#checkin-save").onclick = () => {
     openSlip();
   }
 };
+
+function renderCheckinLog() {
+  const entries = state.checkins.slice(-6).reverse();
+  if (!entries.length) {
+    $("#checkin-log").innerHTML = `<div style="color:var(--ink-faint);font-weight:600;font-size:14px">No check-ins yet. Your first one starts the pattern.</div>`;
+    return;
+  }
+  $("#checkin-log").innerHTML = entries.map((c) => `
+    <div class="checkin-entry">
+      <div class="face">${moodFace(c.mood)}</div>
+      <div>
+        <div class="date">${niceDate(c.date)}</div>
+        <div class="meta">${cravingLabel(c.intensity)}${c.clean ? "" : " · reset handled"}</div>
+        ${c.note ? `<div class="note">${escapeHTML(c.note)}</div>` : ""}
+      </div>
+      <div class="pill ${c.clean ? "" : "slip"}">${c.clean ? "Clean" : "Slip"}</div>
+    </div>`).join("");
+}
 
 /* ============================================================
    Craving SOS — box breathing 4·4·4·4
@@ -1848,7 +1929,8 @@ $("#sos-slipped").onclick = () => { closeSOS(); openSlip(); };
 let pendingResisted = true, pendingTrigger = null;
 function openTriggerPicker(resisted) {
   pendingResisted = resisted; pendingTrigger = null;
-  $("#trigger-reward").textContent = CONFIG.rewards.cravingBeaten * (state.premium ? CONFIG.plus.pearlMultiplier : 1);
+  const baseReward = resisted ? CONFIG.rewards.cravingBeaten : CONFIG.rewards.cravingLoggedAfterSlip;
+  $("#trigger-reward").textContent = baseReward * (state.premium ? CONFIG.plus.pearlMultiplier : 1);
   $("#trigger-chips").innerHTML = TRIGGERS.map((t) => `<button data-v="${t}">${t}</button>`).join("");
   $$("#trigger-chips button").forEach((b) => b.onclick = () => {
     $$("#trigger-chips button").forEach((x) => x.classList.remove("on")); b.classList.add("on");
@@ -1859,10 +1941,11 @@ function openTriggerPicker(resisted) {
 }
 $("#trigger-save").onclick = () => {
   state.cravings.push({ at: Date.now(), trigger: pendingTrigger, resisted: pendingResisted });
-  const v = grant(CONFIG.rewards.cravingBeaten);
+  const v = grant(pendingResisted ? CONFIG.rewards.cravingBeaten : CONFIG.rewards.cravingLoggedAfterSlip);
   save();
   $("#trigger-overlay").hidden = true;
   if (pendingResisted) { toast("💪", `Craving beaten. +${v} pearls. That's a rep for your brain.`); axoCelebrate(); }
+  else toast("🧭", `Trigger logged. +${v} pearls for learning the pattern.`);
   renderAll();
 };
 
@@ -1870,7 +1953,10 @@ function renderTriggers() {
   const counts = {};
   state.cravings.forEach((c) => (counts[c.trigger] = (counts[c.trigger] || 0) + 1));
   const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-  if (!entries.length) return;
+  if (!entries.length) {
+    $("#trigger-chart").innerHTML = `<div style="color:var(--ink-faint);font-weight:600;font-size:14px">No cravings logged yet. When one hits, use Craving SOS — beating it in the app is how it gets counted.</div>`;
+    return;
+  }
   const max = entries[0][1];
   $("#trigger-chart").innerHTML = entries.map(([t, n]) => `
     <div class="trig-row"><div class="n">${t}</div>
