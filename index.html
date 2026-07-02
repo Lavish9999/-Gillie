@@ -507,6 +507,14 @@ nav#tabs button.on{color:var(--ink)}
 .sheet .grab{width:40px;height:5px;border-radius:99px;background:var(--line);margin:0 auto 18px}
 .sheet h2{font-family:var(--font-display);font-weight:800;font-size:24px;margin-bottom:8px}
 .sheet .sub{color:var(--ink-soft);font-size:15px;margin-bottom:20px}
+.sheet-actions{display:flex;flex-direction:column;gap:10px;margin-top:8px}
+.btn.danger{background:var(--coral-deep)}
+.confirm-icon{
+  width:54px;height:54px;border-radius:18px;margin-bottom:14px;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(226,83,111,.12);color:var(--coral-deep);font-size:24px;font-weight:800;
+}
+.field input.text-sheet-input{font-size:20px;font-weight:800}
 .mood-row{display:flex;justify-content:space-between;margin:6px 0 22px}
 .mood-row button{font-size:34px;padding:8px;border-radius:16px;filter:grayscale(.75);opacity:.6;transition:all .15s;transform:scale(.92)}
 .mood-row button.on{filter:none;opacity:1;transform:scale(1.12);background:var(--card);box-shadow:var(--shadow-soft)}
@@ -919,6 +927,38 @@ nav#tabs button.on{color:var(--ink)}
     <div class="field"><label>Cost per unit ($)</label><input type="number" id="ce-cost" inputmode="decimal" step="0.5"></div>
     <div class="field"><label>Puffs per day (before quitting)</label><input type="number" id="ce-puffs" inputmode="numeric" step="10"></div>
     <button class="btn" id="ce-save">Save</button>
+  </div>
+</div>
+
+<!-- Reusable text entry sheet -->
+<div class="overlay" id="text-overlay" hidden>
+  <div class="sheet">
+    <div class="grab"></div>
+    <h2 id="text-title">Edit</h2>
+    <p class="sub" id="text-sub">Make it yours.</p>
+    <div class="field">
+      <label id="text-label">Value</label>
+      <input type="text" id="text-input" class="text-sheet-input" autocomplete="off">
+      <div class="hint" id="text-hint"></div>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn" id="text-save">Save</button>
+      <button class="btn ghost" id="text-cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reusable confirmation sheet -->
+<div class="overlay" id="confirm-overlay" hidden>
+  <div class="sheet">
+    <div class="grab"></div>
+    <div class="confirm-icon" id="confirm-icon">!</div>
+    <h2 id="confirm-title">Are you sure?</h2>
+    <p class="sub" id="confirm-copy">This needs confirmation.</p>
+    <div class="sheet-actions">
+      <button class="btn danger" id="confirm-action">Confirm</button>
+      <button class="btn ghost" id="confirm-cancel">Cancel</button>
+    </div>
   </div>
 </div>
 
@@ -1542,10 +1582,18 @@ $("#bd-save").onclick = () => {
 };
 $("#bd-release").onclick = () => {
   const b = state.buddies[buddyEditIdx];
-  if (confirm(`Release ${b.name} into a nice wild pond? (No pearl refund — adoption is forever-ish.)`)) {
+  openConfirmSheet({
+    icon: "🌊",
+    title: `Release ${b.name}?`,
+    copy: `${b.name} will leave the tank and this adoption will not refund pearls. ${state.petName} will understand, but this cannot be undone.`,
+    actionText: "Release into the wild",
+    danger: true,
+    onConfirm: () => {
     state.buddies.splice(buddyEditIdx, 1);
     save(); $("#buddy-overlay").hidden = true; renderAll();
-  }
+      toast("🌊", `${b.name} was released. The tank feels a little quieter.`);
+    },
+  });
 };
 
 /* ---------- idle behaviors: drifting, flipping, occasional spin ---------- */
@@ -1928,8 +1976,20 @@ function renderSettings() {
 }
 $("#set-skin").onclick = openSkinEditor;
 $("#set-name").onclick = () => {
-  const n = prompt("Rename your axolotl:", state.petName);
-  if (n && n.trim()) { state.petName = n.trim().slice(0, 14); save(); renderAll(); }
+  openTextSheet({
+    title: "Rename your axolotl",
+    sub: "A small name for a small friend doing very serious work.",
+    label: "Name",
+    value: state.petName,
+    maxLength: 14,
+    hint: "Up to 14 characters.",
+    actionText: "Save name",
+    onSave: (value) => {
+      state.petName = value.slice(0, 14);
+      save(); renderAll();
+      toast("✨", `Your friend is now ${state.petName}.`);
+    },
+  });
 };
 $("#set-cost").onclick = () => {
   $("#ce-units-label").textContent = state.cost.style === "pods" ? "Pods per week" : "Disposables per week";
@@ -1947,15 +2007,72 @@ $("#ce-save").onclick = () => {
 $("#set-plus").onclick = openPlus;
 $("#set-slip").onclick = openSlip;
 $("#set-reset").onclick = () => {
-  if (confirm("Erase everything? This releases " + state.petName + " and deletes all progress. There's no undo.")) {
+  openConfirmSheet({
+    icon: "!",
+    title: "Erase everything?",
+    copy: `This releases ${state.petName}, deletes your streak, pearls, check-ins, cravings, shop items, and settings. There is no undo.`,
+    actionText: "Erase everything",
+    danger: true,
+    onConfirm: () => {
     localStorage.removeItem(CONFIG.storageKey);
     location.reload();
-  }
+    },
+  });
 };
+
+/* reusable native-feeling sheets */
+let textSheetSave = null;
+function openTextSheet({ title, sub, label, value = "", maxLength = 40, hint = "", actionText = "Save", onSave }) {
+  $("#text-title").textContent = title;
+  $("#text-sub").textContent = sub;
+  $("#text-label").textContent = label;
+  $("#text-input").value = value;
+  $("#text-input").maxLength = maxLength;
+  $("#text-hint").textContent = hint;
+  $("#text-save").textContent = actionText;
+  textSheetSave = onSave;
+  $("#text-overlay").hidden = false;
+  setTimeout(() => { $("#text-input").focus(); $("#text-input").select(); }, 120);
+}
+$("#text-save").onclick = () => {
+  const value = $("#text-input").value.trim();
+  if (!value) {
+    $("#text-input").focus();
+    return;
+  }
+  $("#text-overlay").hidden = true;
+  if (textSheetSave) textSheetSave(value);
+  textSheetSave = null;
+};
+$("#text-cancel").onclick = () => { $("#text-overlay").hidden = true; textSheetSave = null; };
+$("#text-input").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") $("#text-save").click();
+});
+
+let confirmSheetAction = null;
+function openConfirmSheet({ icon = "!", title, copy, actionText = "Confirm", danger = false, onConfirm }) {
+  $("#confirm-icon").textContent = icon;
+  $("#confirm-title").textContent = title;
+  $("#confirm-copy").textContent = copy;
+  $("#confirm-action").textContent = actionText;
+  $("#confirm-action").classList.toggle("danger", danger);
+  confirmSheetAction = onConfirm;
+  $("#confirm-overlay").hidden = false;
+}
+$("#confirm-action").onclick = () => {
+  $("#confirm-overlay").hidden = true;
+  if (confirmSheetAction) confirmSheetAction();
+  confirmSheetAction = null;
+};
+$("#confirm-cancel").onclick = () => { $("#confirm-overlay").hidden = true; confirmSheetAction = null; };
 
 /* overlays: tap backdrop to close (sheets only) */
 $$(".overlay").forEach((ov) => ov.addEventListener("click", (e) => {
-  if (e.target === ov && ov.id !== "sos-overlay") ov.hidden = true;
+  if (e.target === ov && ov.id !== "sos-overlay") {
+    ov.hidden = true;
+    if (ov.id === "text-overlay") textSheetSave = null;
+    if (ov.id === "confirm-overlay") confirmSheetAction = null;
+  }
 }));
 
 /* ============================================================
