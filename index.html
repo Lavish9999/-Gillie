@@ -98,6 +98,8 @@ input,select{font-family:inherit;font-size:16px}
 .ob-sub{color:var(--ink-soft);font-size:16.5px;margin-bottom:26px}
 .ob-body{flex:1}
 .ob-foot{margin-top:24px}
+.ob-foot.split{display:grid;grid-template-columns:.72fr 1.28fr;gap:10px}
+.ob-foot.split .btn{margin:0}
 .ob-hero{display:flex;justify-content:center;margin:18px 0 26px}
 @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 
@@ -767,7 +769,10 @@ nav#tabs button.on{color:var(--ink)}
         <div class="hint" id="ob-puffs-hint">Most people underestimate. A heavy day on a disposable can be 300–600.</div>
       </div>
     </div>
-    <div class="ob-foot"><button class="btn" data-next>Next</button></div>
+    <div class="ob-foot split">
+      <button class="btn ghost" data-back>Back</button>
+      <button class="btn" data-next>Next</button>
+    </div>
   </div>
 
   <!-- step 3: reasons -->
@@ -785,7 +790,10 @@ nav#tabs button.on{color:var(--ink)}
         <button data-v="Proving I can">Proving I can</button>
       </div>
     </div>
-    <div class="ob-foot"><button class="btn" data-next id="ob-reasons-next" disabled>Next</button></div>
+    <div class="ob-foot split">
+      <button class="btn ghost" data-back>Back</button>
+      <button class="btn" data-next id="ob-reasons-next" disabled>Next</button>
+    </div>
   </div>
 
   <!-- step 4: name + skin -->
@@ -802,7 +810,10 @@ nav#tabs button.on{color:var(--ink)}
         <div class="skin-row" id="ob-skins"></div>
       </div>
     </div>
-    <div class="ob-foot"><button class="btn" data-next>Next</button></div>
+    <div class="ob-foot split">
+      <button class="btn ghost" data-back>Back</button>
+      <button class="btn" data-next>Next</button>
+    </div>
   </div>
 
   <!-- step 5: hatch -->
@@ -814,7 +825,10 @@ nav#tabs button.on{color:var(--ink)}
       <h1 class="ob-title h-display" style="text-align:center" id="ob-hatch-title">Ready when you are.</h1>
       <p class="ob-sub" style="text-align:center">The moment you tap the button, your quit begins and the timer starts. One tap. That's the whole ceremony.</p>
     </div>
-    <div class="ob-foot"><button class="btn coral" id="ob-hatch">My quit starts now</button></div>
+    <div class="ob-foot split">
+      <button class="btn ghost" data-back>Back</button>
+      <button class="btn coral" id="ob-hatch">My quit starts now</button>
+    </div>
   </div>
 </section>
 
@@ -1526,7 +1540,14 @@ function obRenderSkins() {
     ob.skin = s.id; obRenderSkins();
   });
 }
-$$("#onboarding [data-next]").forEach((b) => b.onclick = () => { ob.step++; obRender(); });
+$$("#onboarding [data-next]").forEach((b) => b.onclick = () => {
+  ob.step = Math.min(ob.total - 1, ob.step + 1);
+  obRender();
+});
+$$("#onboarding [data-back]").forEach((b) => b.onclick = () => {
+  ob.step = Math.max(0, ob.step - 1);
+  obRender();
+});
 $$("#ob-substance button").forEach((b) => b.onclick = () => {
   $$("#ob-substance button").forEach((x) => x.classList.remove("on")); b.classList.add("on");
   ob.substance = b.dataset.v;
