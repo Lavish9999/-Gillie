@@ -613,11 +613,11 @@ nav#tabs button.on{color:var(--ink)}
 @keyframes slideUp{from{transform:translateY(60px);opacity:0}to{transform:none;opacity:1}}
 .sheet.dragging{animation:none;transition:none;user-select:none;-webkit-user-select:none;-webkit-overflow-scrolling:auto}
 .sheet .grab{
-  width:96px;height:32px;margin:-4px auto 8px;border-radius:99px;background:transparent;
+  width:100%;height:48px;margin:-8px 0 0;border-radius:24px 24px 0 0;background:transparent;
   position:relative;touch-action:none;cursor:grab;
 }
 .sheet .grab::after{
-  content:"";position:absolute;left:50%;top:11px;transform:translateX(-50%);
+  content:"";position:absolute;left:50%;top:18px;transform:translateX(-50%);
   width:42px;height:5px;border-radius:99px;background:var(--line);
 }
 .sheet.dragging .grab{cursor:grabbing}
@@ -3173,7 +3173,7 @@ function enableSheetDragDismiss() {
       }
       const isPlus = ov?.id === "plus-overlay";
       const onPlusTop = isPlus && !!target.closest(".plus-hero,.plus-proof");
-      const nearTop = y - top < 52;
+      const nearTop = y - top < (isPlus ? 190 : 88);
       const interactive = target.closest("button,input,textarea,select,a,label");
       return (onPlusTop || (nearTop && !interactive)) && sheet.scrollTop <= 1;
     };
