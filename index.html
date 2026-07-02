@@ -3075,6 +3075,7 @@ function closeSheetOverlay(ov, animate = false) {
     }
     if (ov.id === "text-overlay") textSheetSave = null;
     if (ov.id === "confirm-overlay") confirmSheetAction = null;
+    syncOverlayLock();
   };
   if (animate && sheet) {
     sheet.classList.remove("dragging");
@@ -3121,6 +3122,10 @@ function enableSheetDragDismiss() {
       lastY = y;
       sheet.style.transform = `translateY(${dy}px)`;
       sheet.style.opacity = String(Math.max(.65, 1 - dy / 650));
+      if (dy > 84) {
+        dragging = false;
+        closeSheetOverlay(sheet.closest(".overlay"), true);
+      }
     };
     const endDrag = (pointerId = null) => {
       if (!dragging) return;
