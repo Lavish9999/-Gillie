@@ -532,6 +532,13 @@ nav#tabs button.on{color:var(--ink)}
 .coach-room .coach-hero h2{color:#fff;margin:5px 0 6px}
 .coach-room .coach-hero p{color:rgba(255,255,255,.76);font-size:13.5px;font-weight:650;line-height:1.35;margin:0}
 .coach-room .sub-h{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);margin:16px 0 9px}
+.today-sheet .today-hero{background:linear-gradient(135deg,#F8FCFB,#E3F1ED);border:1px solid rgba(211,227,222,.9);border-radius:22px;padding:17px;margin-bottom:14px;box-shadow:var(--shadow-soft)}
+.today-sheet .today-hero h2{margin:5px 0 6px}
+.today-sheet .today-hero p{color:var(--ink-soft);font-size:13.5px;font-weight:650;line-height:1.35;margin:0}
+.today-steps{display:grid;gap:9px;margin-bottom:14px}
+.today-steps div{background:var(--card);border:1px solid rgba(211,227,222,.9);border-radius:16px;padding:12px 13px;box-shadow:var(--shadow-soft)}
+.today-steps b{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:4px}
+.today-steps span{display:block;font-size:14px;font-weight:750;color:var(--ink);line-height:1.35}
 .coach-response{background:var(--card);border-radius:16px;padding:14px;box-shadow:var(--shadow-soft);font-weight:700;color:var(--ink-soft);line-height:1.38}
 .coach-response strong{color:var(--ink)}
 .coach-missions{display:grid;gap:10px}
@@ -1162,6 +1169,25 @@ nav#tabs button.on{color:var(--ink)}
       <button class="btn" id="coach-worked">Today’s plan worked</button>
       <button class="btn ghost" id="coach-adjust">I need a different plan</button>
     </div>
+  </div>
+</div>
+
+<!-- Today Plan -->
+<div class="overlay" id="today-plan-overlay" hidden>
+  <div class="sheet today-sheet">
+    <div class="grab"></div>
+    <div class="today-hero">
+      <div class="eyebrow">Today's plan</div>
+      <h2>Quick risk read</h2>
+      <p id="today-plan-copy">A small plan for the next clean decision.</p>
+    </div>
+    <div class="today-steps">
+      <div><b>Watch</b><span id="today-watch">Gillie is checking today's pattern.</span></div>
+      <div><b>Do now</b><span id="today-move">Protect the next clean stretch.</span></div>
+      <div><b>Log later</b><span id="today-log">Check in tonight so tomorrow gets sharper.</span></div>
+    </div>
+    <button class="btn" id="today-checkin-btn">Do today's check-in</button>
+    <button class="btn ghost" id="today-coach-btn" style="margin-top:10px">Open Gillie Coach</button>
   </div>
 </div>
 
@@ -1886,11 +1912,30 @@ function renderGrowthCard() {
 function renderTodayPlanPreview() {
   const card = $("#plan-preview");
   if (!card) return;
+  const { forecast, quickMove } = buildTodayPlanData();
+  if (state.premium) {
+    card.className = "plan-preview";
+    card.innerHTML = `<div class="eyebrow">Today's plan</div>
+      <div class="row"><div class="t">Today's risk read</div><span class="tag">LIVE</span></div>
+      <div class="s">${escapeHTML(forecast)}</div>
+      <div class="mini"><i></i><span>${escapeHTML(quickMove)}</span></div>`;
+    card.onclick = openTodayPlan;
+    return;
+  }
+  card.className = "plan-preview";
+  card.innerHTML = `<div class="eyebrow">Today preview</div>
+    <div class="row"><div class="t">Know the risky moment first</div><span class="tag">PLUS</span></div>
+    <div class="s">${escapeHTML(forecast)}</div>
+    <div class="mini"><i></i><span>Plus turns this into a daily plan with trigger moves, danger windows, and recovery steps.</span></div>`;
+  card.onclick = openTodayPlan;
+}
+
+function buildTodayPlanData() {
   const danger = dangerWindow();
   const trigger = topTrigger();
   const today = state.checkins.find((c) => c.date === todayKey());
   const days = Math.floor(currentStreakMs() / dayMs);
-  const fallback = currentStreakMs() < 3 * dayMs
+  const fallback = days < 3
     ? "Early quit days are loud. Keep the next hour simple and make the old habit harder to reach."
     : "Your streak is moving. Keep today focused on one clean decision at a time.";
   const forecast = danger
@@ -1911,21 +1956,27 @@ function renderTodayPlanPreview() {
         : days < 1
           ? "Start tiny: protect the next 20 minutes and let the timer do the counting."
           : "Check in tonight so Gillie can spot tomorrow's risk faster.";
-  if (state.premium) {
-    card.className = "plan-preview";
-    card.innerHTML = `<div class="eyebrow">Today's plan</div>
-      <div class="row"><div class="t">Today's risk read</div><span class="tag">LIVE</span></div>
-      <div class="s">${escapeHTML(forecast)}</div>
-      <div class="mini"><i></i><span>${escapeHTML(quickMove)}</span></div>`;
-    card.onclick = () => { $("#coach-response").dataset.touched = ""; $("#coach-overlay").hidden = false; renderCoachRoom(); };
-    return;
-  }
-  card.className = "plan-preview";
-  card.innerHTML = `<div class="eyebrow">Today preview</div>
-    <div class="row"><div class="t">Know the risky moment first</div><span class="tag">PLUS</span></div>
-    <div class="s">${escapeHTML(forecast)}</div>
-    <div class="mini"><i></i><span>Plus turns this into a daily plan with trigger moves, danger windows, and recovery steps.</span></div>`;
-  card.onclick = openPlus;
+  const logStep = today
+    ? today.clean
+      ? "You already checked in. Add cravings as they happen so the forecast gets smarter."
+      : "You logged a slip. Use the next check-in to record what helped you restart."
+    : "Do one honest check-in tonight: mood, clean status, craving level, and one note.";
+  return { forecast, quickMove, logStep };
+}
+
+function openTodayPlan() {
+  const ov = $("#today-plan-overlay");
+  if (!ov) return;
+  const { forecast, quickMove, logStep } = buildTodayPlanData();
+  const checkedIn = state.checkins.some((c) => c.date === todayKey());
+  $("#today-plan-copy").textContent = "A quick plan for the next clean decision. Coach is the deeper room when you need tools.";
+  $("#today-watch").textContent = forecast;
+  $("#today-move").textContent = quickMove;
+  $("#today-log").textContent = logStep;
+  $("#today-checkin-btn").textContent = checkedIn ? "Check-in done today" : "Do today's check-in";
+  $("#today-checkin-btn").disabled = checkedIn;
+  $("#today-coach-btn").textContent = state.premium ? "Open Gillie Coach" : "Unlock the full Plus plan";
+  ov.hidden = false;
 }
 
 function topTrigger() {
@@ -2199,6 +2250,14 @@ $("#coach-adjust").onclick = () => {
       toast("🧠", "Coach adjustment saved.");
     },
   });
+};
+$("#today-checkin-btn").onclick = () => {
+  $("#today-plan-overlay").hidden = true;
+  $("#checkin-open").click();
+};
+$("#today-coach-btn").onclick = () => {
+  $("#today-plan-overlay").hidden = true;
+  openCoachRoom();
 };
 
 function checkGrowthStages() {
