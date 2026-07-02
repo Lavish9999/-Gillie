@@ -862,12 +862,6 @@ nav#tabs button.on{color:var(--ink)}
       <div class="streak-label">nicotine-free — every second counts here</div>
     </div>
 
-    <div class="stat-row">
-      <div class="stat-card"><div class="v" id="stat-money">$0</div><div class="k">not vaped away</div></div>
-      <div class="stat-card"><div class="v" id="stat-puffs">0</div><div class="k">puffs skipped</div></div>
-      <div class="stat-card"><div class="v" id="stat-cravings">0</div><div class="k">cravings beaten</div></div>
-    </div>
-
     <div class="growth-card" id="growth-card">
       <div class="eyebrow">Gillie's growth</div>
       <div class="row"><div class="gn" id="growth-name">Hatchling</div><div class="gv" id="growth-next">—</div></div>
@@ -880,7 +874,7 @@ nav#tabs button.on{color:var(--ink)}
     <button class="coach-card locked" id="coach-card">
       <div class="eyebrow">Gillie Coach</div>
       <div class="row"><div class="t">Personal quit plan</div><span class="tag">PLUS</span></div>
-      <div class="s">A daily plan based on your check-ins, cravings, slips, and trigger patterns.</div>
+      <div class="s">A coach-style plan using triggers, cravings, support, and routine swaps.</div>
     </button>
 
     <div class="checkin-card" id="checkin-card">
@@ -904,6 +898,11 @@ nav#tabs button.on{color:var(--ink)}
     <div class="topbar"><div class="who">
       <div class="eyebrow">Your recovery</div><div class="name">Progress</div>
     </div><div class="pearl-chip"><span class="pearl-dot"></span><span class="pearl-balance2">0</span></div></div>
+    <div class="stat-row">
+      <div class="stat-card"><div class="v" id="stat-money">$0</div><div class="k">not vaped away</div></div>
+      <div class="stat-card"><div class="v" id="stat-puffs">0</div><div class="k">puffs skipped</div></div>
+      <div class="stat-card"><div class="v" id="stat-cravings">0</div><div class="k">cravings beaten</div></div>
+    </div>
     <div class="section-h">Your insights</div>
     <div id="insights-box"></div>
     <div class="section-h">Recent check-ins</div>
@@ -1181,7 +1180,8 @@ const CONFIG = {
     yearlyLabel: "$39.99 / year — best value",
     pearlMultiplier: 2,
     perks: [
-      "Gillie Coach — a daily quit plan from your check-ins and cravings",
+      "Gillie Coach — daily quit coaching from your check-ins and cravings",
+      "Research-backed craving steps: delay, breathe, move, switch routines, get support",
       "Trigger counter-moves for stress, boredom, food, drinking, and scrolling",
       "Deep insights: danger hours, mood trend, best streak, slips, and win rate",
       "Savings goal that turns skipped vape money into something real",
@@ -1565,15 +1565,28 @@ function topTrigger() {
 
 function triggerMove(trigger) {
   const moves = {
-    Stress: "Before stress turns into autopilot, open SOS and do one full breathing cycle.",
-    Boredom: "Give your hands a 2-minute job: water, tidy one surface, or walk to another room.",
-    Social: "Decide your line before the moment: 'I'm off it right now.'",
-    "After eating": "Swap the after-meal puff with gum, brushing, or a 5-minute walk.",
-    Drinking: "Keep something in your hand that is not a vape and leave before cravings stack.",
-    "Phone scrolling": "Stand up, lock the phone for 2 minutes, then choose on purpose.",
-    Other: "Name the exact moment when the urge started and log it after SOS.",
+    Stress: "Stress plan: delay 10 minutes, breathe slowly 10 times, then move your body for 2 minutes.",
+    Boredom: "Boredom plan: give your hands a replacement job before the urge gets interesting.",
+    Social: "Social plan: decide the line before you need it: 'I'm not vaping today.'",
+    "After eating": "After-meal plan: stand up immediately, brush, chew gum, or walk for 5 minutes.",
+    Drinking: "Drinking plan: keep a non-vape object in your hand and leave before the urge stacks.",
+    "Phone scrolling": "Scrolling plan: lock the phone, stand up, drink water, then choose again in 10 minutes.",
+    Other: "Trigger plan: name the cue, change rooms, and log what made the urge spike.",
   };
   return moves[trigger] || moves.Other;
+}
+
+function cravingCoachMove(level = 0) {
+  if (level >= 3) return "High-urge protocol: do not debate. Open SOS, delay 10 minutes, breathe, change rooms, and text support.";
+  if (level >= 2) return "Medium urge: switch routine now. Water, movement, and one small task before you sit back down.";
+  if (level >= 1) return "Low urge: catch it early. Notice the cue, take 3 slow breaths, and move on before it grows.";
+  return "No urge logged: protect the easy day. Keep the vape cues out of sight and avoid testing yourself.";
+}
+
+function environmentMove(days) {
+  if (days < 3) return "Environment: make vaping inconvenient today. Distance beats willpower in the early stretch.";
+  if (days < 14) return "Routine swap: pair your top trigger with a repeatable replacement until it feels automatic.";
+  return "Identity rep: act like the person who already quit. One craving is not a vote.";
 }
 
 function buildCoachPlan() {
@@ -1581,19 +1594,18 @@ function buildCoachPlan() {
   const last = state.checkins[state.checkins.length - 1];
   const trigger = topTrigger();
   const days = Math.floor(currentStreakMs() / dayMs);
+  const intensity = today?.intensity ?? last?.intensity ?? 0;
   const plan = [];
 
-  if (!today) plan.push("Check in tonight so Gillie can tune tomorrow's plan.");
-  else if (!today.clean) plan.push("Keep today simple: restart clean, use SOS before the next urge, and protect the next hour.");
-  else if ((today.intensity || 0) >= 2) plan.push("Cravings were loud today. Open SOS before the urge gets past a 6/10.");
-  else plan.push("Keep the streak boring today: food, water, sleep, and no bargaining with cravings.");
+  if (!today) plan.push("Check in tonight so Coach can adjust your plan from real data.");
+  else if (!today.clean) plan.push("Slip plan: reset the next hour, not your identity. Use SOS before the next urge.");
+  else plan.push(cravingCoachMove(intensity));
 
   if (trigger) plan.push(triggerMove(trigger));
-  else plan.push("When a craving hits, log the trigger after SOS so your pattern starts showing.");
+  else plan.push("Pattern building: after the next craving, log the trigger so Coach can stop guessing.");
 
-  if (days < 3) plan.push("Early stretch rule: avoid testing yourself. Make vaping inconvenient and distance wins.");
-  else if (days < 14) plan.push("Start building replacements now: same cue, different action, every time.");
-  else plan.push("You're past survival mode. Protect your identity: you're someone who does not vape.");
+  plan.push(environmentMove(days));
+  plan.push("Support move: if the urge stays high, message someone or use a quit coach instead of white-knuckling it.");
 
   if (last?.note) plan.push(`Remember your note: "${last.note}"`);
   return plan.slice(0, 4);
@@ -1606,8 +1618,8 @@ function renderCoachCard() {
     card.className = "coach-card locked";
     card.innerHTML = `<div class="eyebrow">Gillie Coach</div>
       <div class="row"><div class="t">Personal quit plan</div><span class="tag">PLUS</span></div>
-      <div class="s">A daily plan based on check-ins, cravings, slips, and trigger patterns.</div>
-      <div class="coach-list"><div>Unlock trigger counter-moves and daily support.</div></div>`;
+      <div class="s">A coach-style plan using triggers, cravings, support, and routine swaps.</div>
+      <div class="coach-list"><div>Unlock coping steps before the urge gets loud.</div></div>`;
     card.onclick = openPlus;
     return;
   }
@@ -1615,7 +1627,7 @@ function renderCoachCard() {
   card.className = "coach-card";
   card.innerHTML = `<div class="eyebrow">Gillie Coach</div>
     <div class="row"><div class="t">Today's quit plan</div><span class="tag">PLUS</span></div>
-    <div class="s">Built from your streak, check-ins, cravings, and triggers.</div>
+    <div class="s">Built from your streak, check-ins, cravings, triggers, and notes.</div>
     <div class="coach-list">${plan.map((item) => `<div>${escapeHTML(item)}</div>`).join("")}</div>`;
   card.onclick = null;
 }
