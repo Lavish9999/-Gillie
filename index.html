@@ -589,6 +589,7 @@ nav#tabs button.on{color:var(--ink)}
   width:100%;max-width:440px;background:var(--bg);border-radius:28px 28px 0 0;
   padding:12px 22px calc(28px + env(safe-area-inset-bottom));max-height:92dvh;overflow-y:auto;
   animation:slideUp .35s cubic-bezier(.2,.9,.3,1) both;
+  position:relative;
   overscroll-behavior:contain;
   touch-action:pan-y;
   will-change:transform;
@@ -596,6 +597,12 @@ nav#tabs button.on{color:var(--ink)}
 @keyframes slideUp{from{transform:translateY(60px);opacity:0}to{transform:none;opacity:1}}
 .sheet.dragging{animation:none;transition:none}
 .sheet .grab{width:40px;height:5px;border-radius:99px;background:var(--line);margin:0 auto 18px;touch-action:none}
+.sheet-close{
+  position:absolute;top:13px;right:14px;width:34px;height:34px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(255,255,255,.66);box-shadow:var(--shadow-soft);
+  color:var(--ink-soft);font-size:22px;font-weight:700;z-index:3;
+}
 .sheet h2{font-family:var(--font-display);font-weight:800;font-size:24px;margin-bottom:8px}
 .sheet .sub{color:var(--ink-soft);font-size:15px;margin-bottom:20px}
 .sheet-actions{display:flex;flex-direction:column;gap:10px;margin-top:8px}
@@ -3068,6 +3075,7 @@ function closeSheetOverlay(ov, animate = false) {
   const finish = () => {
     ov.hidden = true;
     if (sheet) {
+      delete sheet.dataset.closing;
       sheet.classList.remove("dragging");
       sheet.style.transition = "";
       sheet.style.transform = "";
@@ -3078,6 +3086,8 @@ function closeSheetOverlay(ov, animate = false) {
     syncOverlayLock();
   };
   if (animate && sheet) {
+    if (sheet.dataset.closing === "1") return;
+    sheet.dataset.closing = "1";
     sheet.classList.remove("dragging");
     sheet.style.transition = "transform .2s cubic-bezier(.2,.9,.3,1), opacity .2s ease";
     sheet.style.transform = "translateY(110%)";
@@ -3085,6 +3095,20 @@ function closeSheetOverlay(ov, animate = false) {
     setTimeout(finish, 210);
   } else finish();
 }
+
+function addSheetCloseButtons() {
+  $$(".overlay .sheet").forEach((sheet) => {
+    if (sheet.querySelector(".sheet-close")) return;
+    const btn = document.createElement("button");
+    btn.className = "sheet-close";
+    btn.type = "button";
+    btn.setAttribute("aria-label", "Close sheet");
+    btn.innerHTML = "&times;";
+    btn.onclick = () => closeSheetOverlay(sheet.closest(".overlay"), true);
+    sheet.appendChild(btn);
+  });
+}
+addSheetCloseButtons();
 
 $$(".overlay").forEach((ov) => ov.addEventListener("click", (e) => {
   if (e.target === ov) closeSheetOverlay(ov);
@@ -3100,6 +3124,8 @@ syncOverlayLock();
 
 function enableSheetDragDismiss() {
   $$(".overlay .sheet").forEach((sheet) => {
+    const releaseCloseDistance = 120;
+    const forceCloseDistance = Math.min(260, window.innerHeight * 0.28);
     let startY = 0, lastY = 0, startTime = 0, dragging = false;
     const canStart = (y, target) => {
       const top = sheet.getBoundingClientRect().top;
@@ -3109,6 +3135,7 @@ function enableSheetDragDismiss() {
       return !((!onGrab && (!nearTop || interactive)) || sheet.scrollTop > 0);
     };
     const beginDrag = (y, target) => {
+      if (sheet.dataset.closing === "1") return false;
       if (!canStart(y, target)) return false;
       startY = lastY = y;
       startTime = Date.now();
@@ -3122,7 +3149,7 @@ function enableSheetDragDismiss() {
       lastY = y;
       sheet.style.transform = `translateY(${dy}px)`;
       sheet.style.opacity = String(Math.max(.65, 1 - dy / 650));
-      if (dy > 84) {
+      if (dy > forceCloseDistance) {
         dragging = false;
         closeSheetOverlay(sheet.closest(".overlay"), true);
       }
@@ -3134,7 +3161,7 @@ function enableSheetDragDismiss() {
       const dy = Math.max(0, lastY - startY);
       const velocity = dy / Math.max(1, Date.now() - startTime);
       const ov = sheet.closest(".overlay");
-      if (dy > 110 || velocity > .65) {
+      if (dy > releaseCloseDistance || velocity > .65) {
         closeSheetOverlay(ov, true);
         return;
       }
