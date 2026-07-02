@@ -1,0 +1,18 @@
+{
+  "name": "Gillie",
+  "short_name": "Gillie",
+  "description": "A mobile-first quit vaping companion with a supportive aquatic buddy.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#E8F2EF",
+  "theme_color": "#075E5A",
+  "icons": [
+    {
+      "src": "./assets/gillie-icon-temp.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
