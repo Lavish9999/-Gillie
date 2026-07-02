@@ -6,9 +6,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#E8F2EF">
-<meta name="description" content="Gillie is a mobile-first quit vaping companion with an aquarium buddy that heals as you stay nicotine-free.">
+<meta name="description" content="Gillie is a mobile-first quit smoking companion with an aquarium buddy that heals as you stay clean.">
 <meta name="apple-mobile-web-app-title" content="Gillie">
-<title>Gillie — Quit Vaping</title>
+<title>Gillie — Quit Smoking</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -727,7 +727,7 @@ nav#tabs button.on{color:var(--ink)}
         </div>
       </div>
       <h1 class="ob-title h-display">Someone small<br>needs your help.</h1>
-      <p class="ob-sub">Inside this egg is an axolotl — a little creature that can regrow almost any part of itself. It heals. So do you. Every hour you stay off nicotine, its water gets clearer.</p>
+      <p class="ob-sub">Inside this egg is an axolotl — a little creature that can regrow almost any part of itself. It heals. So do you. Every clean hour makes its water clearer.</p>
     </div>
     <div class="ob-foot"><button class="btn" data-next>Meet them</button></div>
   </div>
@@ -735,10 +735,19 @@ nav#tabs button.on{color:var(--ink)}
   <!-- step 2: usage -->
   <div class="ob-step" data-step="1" hidden>
     <div class="ob-body">
-      <h1 class="ob-title h-display">Your vape, honestly.</h1>
+      <h1 class="ob-title h-display">What are you quitting?</h1>
       <p class="ob-sub">No judgment — this just calibrates your savings and progress. Rough guesses are fine.</p>
       <div class="field">
-        <label>What do you use?</label>
+        <label>Primary habit</label>
+        <div class="seg" id="ob-substance">
+          <button data-v="vape" class="on">Vapes</button>
+          <button data-v="cigarettes">Cigs</button>
+          <button data-v="weed">Weed</button>
+          <button data-v="other">Other</button>
+        </div>
+      </div>
+      <div class="field">
+        <label id="ob-style-label">Format</label>
         <div class="seg" id="ob-style">
           <button data-v="disposables" class="on">Disposables</button>
           <button data-v="pods">Pod kit</button>
@@ -753,9 +762,9 @@ nav#tabs button.on{color:var(--ink)}
         <input type="number" id="ob-cost" inputmode="decimal" value="15" min="0.5" step="0.5">
       </div>
       <div class="field">
-        <label>Puffs on a typical day</label>
+        <label id="ob-puffs-label">Puffs on a typical day</label>
         <input type="number" id="ob-puffs" inputmode="numeric" value="200" min="10" step="10">
-        <div class="hint">Most people underestimate. A heavy day on a disposable can be 300–600.</div>
+        <div class="hint" id="ob-puffs-hint">Most people underestimate. A heavy day on a disposable can be 300–600.</div>
       </div>
     </div>
     <div class="ob-foot"><button class="btn" data-next>Next</button></div>
@@ -859,7 +868,7 @@ nav#tabs button.on{color:var(--ink)}
 
     <div class="streak-block">
       <div class="streak-time" id="streak-time">0<span class="u">d</span>00<span class="u">h</span>00<span class="u">m</span>00<span class="u">s</span></div>
-      <div class="streak-label">nicotine-free — every second counts here</div>
+      <div class="streak-label" id="streak-label">nicotine-free — every second counts here</div>
     </div>
 
     <div class="growth-card" id="growth-card">
@@ -899,8 +908,8 @@ nav#tabs button.on{color:var(--ink)}
       <div class="eyebrow">Your recovery</div><div class="name">Progress</div>
     </div><div class="pearl-chip"><span class="pearl-dot"></span><span class="pearl-balance2">0</span></div></div>
     <div class="stat-row">
-      <div class="stat-card"><div class="v" id="stat-money">$0</div><div class="k">not vaped away</div></div>
-      <div class="stat-card"><div class="v" id="stat-puffs">0</div><div class="k">puffs skipped</div></div>
+      <div class="stat-card"><div class="v" id="stat-money">$0</div><div class="k" id="stat-money-label">not vaped away</div></div>
+      <div class="stat-card"><div class="v" id="stat-puffs">0</div><div class="k" id="stat-puffs-label">puffs skipped</div></div>
       <div class="stat-card"><div class="v" id="stat-cravings">0</div><div class="k">cravings beaten</div></div>
     </div>
     <div class="section-h">Your insights</div>
@@ -915,7 +924,7 @@ nav#tabs button.on{color:var(--ink)}
     <div style="background:var(--card);border-radius:var(--radius-sm);padding:16px;box-shadow:var(--shadow-soft)" id="trigger-chart">
       <div style="color:var(--ink-faint);font-weight:600;font-size:14px">No cravings logged yet. When one hits, use Craving SOS — beating it in the app is how it gets counted.</div>
     </div>
-    <p style="font-size:12px;color:var(--ink-faint);margin:18px 4px 0">Timeline reflects commonly reported recovery experiences after stopping nicotine. It's general wellness information, not medical advice.</p>
+    <p id="timeline-note" style="font-size:12px;color:var(--ink-faint);margin:18px 4px 0">Timeline reflects commonly reported recovery experiences after stopping nicotine. It's general wellness information, not medical advice.</p>
   </div>
 
   <!-- REEF (shop) -->
@@ -944,13 +953,13 @@ nav#tabs button.on{color:var(--ink)}
     <div class="set-group">
       <button class="set-row" id="set-name"><span class="t">Pet name</span><span class="v" id="set-name-v">—</span></button>
       <button class="set-row" id="set-skin"><span class="t">Gillie's color</span><span class="v" id="set-skin-v">—</span></button>
-      <button class="set-row" id="set-cost"><span class="t">Vape cost &amp; usage</span><span class="v">Edit</span></button>
+      <button class="set-row" id="set-cost"><span class="t" id="set-cost-label">Cost &amp; usage</span><span class="v">Edit</span></button>
     </div>
     <div class="set-group">
       <button class="set-row" id="set-plus"><span class="t">Gillie Plus</span><span class="v" id="set-plus-v">Free plan</span></button>
     </div>
     <div class="set-group">
-      <button class="set-row" id="set-slip"><span class="t">I vaped — reset my streak</span><span class="v">It's okay</span></button>
+      <button class="set-row" id="set-slip"><span class="t" id="set-slip-label">I vaped — reset my streak</span><span class="v">It's okay</span></button>
       <button class="set-row danger" id="set-reset"><span class="t">Erase everything</span></button>
     </div>
     <p style="font-size:12px;color:var(--ink-faint);margin:4px 6px">Gillie supports habit change. It isn't medical care — if you want extra help quitting, your doctor or local quitline is a great ally.</p>
@@ -988,7 +997,7 @@ nav#tabs button.on{color:var(--ink)}
     <div class="sos-reasons" id="sos-reasons"></div>
     <div class="sos-actions">
       <button class="btn" id="sos-beat">The craving passed 💪</button>
-      <button class="btn ghost" id="sos-slipped">I vaped</button>
+      <button class="btn ghost" id="sos-slipped">I used</button>
       <button class="btn ghost" id="sos-close" style="box-shadow:none;opacity:.6">Close</button>
     </div>
   </div>
@@ -1014,7 +1023,7 @@ nav#tabs button.on{color:var(--ink)}
     <div class="mood-row" id="mood-row">
       <button data-v="1">😖</button><button data-v="2">😕</button><button data-v="3">😐</button><button data-v="4">🙂</button><button data-v="5">😄</button>
     </div>
-    <div class="field"><label>Any puffs today?</label>
+    <div class="field"><label id="checkin-use-label">Any use today?</label>
       <div class="seg" id="checkin-clean">
         <button data-v="clean" class="on">Zero — stayed clean</button>
         <button data-v="slipped">I slipped</button>
@@ -1044,7 +1053,7 @@ nav#tabs button.on{color:var(--ink)}
     <h2>Hey. It's a slip, not a collapse.</h2>
     <p class="sub" id="slip-copy">A slip clouds the water a little — it doesn't drain the tank. Everything your body already healed is still healed, and every pearl, every clean day you've banked stays yours. The streak restarts; the story doesn't.</p>
     <button class="btn" id="slip-confirm">Restart my streak — we go again</button>
-    <button class="btn ghost" id="slip-cancel" style="margin-top:10px">Cancel — I didn't vape</button>
+    <button class="btn ghost" id="slip-cancel" style="margin-top:10px">Cancel — I didn't use</button>
   </div>
 </div>
 
@@ -1098,7 +1107,7 @@ nav#tabs button.on{color:var(--ink)}
   <div class="sheet">
     <div class="grab"></div>
     <h2>Savings goal</h2>
-    <p class="sub">Every dollar you don't vape goes here, on a progress bar you'll see daily. Make it something you actually want.</p>
+    <p class="sub" id="goal-sub">Every dollar you don't spend goes here, on a progress bar you'll see daily. Make it something you actually want.</p>
     <div class="field"><label>I'm saving for</label><input type="text" id="ge-name" maxlength="30" placeholder="PS5, Japan trip, Chrome Hearts ring…"></div>
     <div class="field"><label>It costs ($)</label><input type="number" id="ge-price" inputmode="decimal" min="1" step="1"></div>
     <button class="btn" id="ge-save">Set goal</button>
@@ -1111,10 +1120,10 @@ nav#tabs button.on{color:var(--ink)}
   <div class="sheet">
     <div class="grab"></div>
     <h2>Cost &amp; usage</h2>
-    <p class="sub">Used to compute money saved and puffs skipped.</p>
+    <p class="sub">Used to compute money saved and skipped use.</p>
     <div class="field"><label id="ce-units-label">Units per week</label><input type="number" id="ce-units" inputmode="decimal" step="0.5"></div>
-    <div class="field"><label>Cost per unit ($)</label><input type="number" id="ce-cost" inputmode="decimal" step="0.5"></div>
-    <div class="field"><label>Puffs per day (before quitting)</label><input type="number" id="ce-puffs" inputmode="numeric" step="10"></div>
+    <div class="field"><label id="ce-cost-label">Cost per unit ($)</label><input type="number" id="ce-cost" inputmode="decimal" step="0.5"></div>
+    <div class="field"><label id="ce-puffs-label">Puffs per day (before quitting)</label><input type="number" id="ce-puffs" inputmode="numeric" step="10"></div>
     <button class="btn" id="ce-save">Save</button>
   </div>
 </div>
@@ -1184,7 +1193,7 @@ const CONFIG = {
       "Research-backed craving steps: delay, breathe, move, switch routines, get support",
       "Trigger counter-moves for stress, boredom, food, drinking, and scrolling",
       "Deep insights: danger hours, mood trend, best streak, slips, and win rate",
-      "Savings goal that turns skipped vape money into something real",
+      "Savings goal that turns old habit spending into something real",
       "Tank mates, rare colors, themes, and 2x pearls as bonus motivation",
     ],
     // NOTE: purchase buttons are stubs. In the Capacitor build, wire these
@@ -1206,12 +1215,39 @@ const SKINS = [
   { id: "midnight", name: "Midnight",       body: "#5A6B85", belly: "#8FA0BA", gill: "#66779A", shade: "#47566E", gillDeep: "#39465E", premium: true },
 ];
 
+const SUBSTANCE_PROFILES = {
+  vape: {
+    name: "vapes", freeLabel: "nicotine-free", moneyLabel: "not vaped away", skippedLabel: "puffs skipped",
+    slip: "vaped", useLabel: "puffs", hint: "Most people underestimate. A heavy day on a disposable can be 300-600.",
+    styles: [{ id: "disposables", label: "Disposables", unit: "disposable" }, { id: "pods", label: "Pod kit", unit: "pod" }],
+    defaultUnits: 2, defaultCost: 15, defaultUses: 200,
+  },
+  cigarettes: {
+    name: "cigarettes", freeLabel: "smoke-free", moneyLabel: "not smoked away", skippedLabel: "cigarettes skipped",
+    slip: "smoked", useLabel: "cigarettes", hint: "Use your average day. If you smoke half a pack, enter 10.",
+    styles: [{ id: "packs", label: "Packs", unit: "pack" }, { id: "singles", label: "Singles", unit: "cigarette" }],
+    defaultUnits: 3.5, defaultCost: 10, defaultUses: 10,
+  },
+  weed: {
+    name: "weed", freeLabel: "smoke-free", moneyLabel: "not smoked away", skippedLabel: "sessions skipped",
+    slip: "smoked", useLabel: "sessions", hint: "Count the smoke sessions you are trying to skip, not medical use.",
+    styles: [{ id: "flower", label: "Flower", unit: "purchase" }, { id: "carts", label: "Carts", unit: "cart" }],
+    defaultUnits: 1, defaultCost: 40, defaultUses: 2,
+  },
+  other: {
+    name: "habit", freeLabel: "substance-free", moneyLabel: "not spent", skippedLabel: "uses skipped",
+    slip: "used", useLabel: "uses", hint: "Use the number of times per day you want Gillie to help you skip.",
+    styles: [{ id: "units", label: "Units", unit: "unit" }, { id: "sessions", label: "Sessions", unit: "session" }],
+    defaultUnits: 1, defaultCost: 20, defaultUses: 1,
+  },
+};
+
 /* TankCleanlinessStage: water state derived from current clean streak */
 const STAGES = [
   { days: 0,     name: "Day Zero",        murk: 0.55, w1: "#7FA79C", w2: "#4E7A70", plants: 0, sunny: false, glow: false, sparkles: 0 },
   { days: 0.042, name: "First Hour",      murk: 0.47, w1: "#84AEA3", w2: "#528078", plants: 0, sunny: false, glow: false, sparkles: 0 },
   { days: 1,     name: "First Light",     murk: 0.40, w1: "#87B2A6", w2: "#54857A", plants: 0, sunny: false, glow: false, sparkles: 0 },
-  { days: 3,     name: "Nicotine's Out",  murk: 0.30, w1: "#8FBDB2", w2: "#5E978C", plants: 1, sunny: true,  glow: false, sparkles: 0 },
+  { days: 3,     name: "Clearing Current", murk: 0.30, w1: "#8FBDB2", w2: "#5E978C", plants: 1, sunny: true,  glow: false, sparkles: 0 },
   { days: 7,     name: "One Week Clear",  murk: 0.20, w1: "#96C7BB", w2: "#67A395", plants: 1, sunny: true,  glow: false, sparkles: 0 },
   { days: 14,    name: "Fresh Current",   murk: 0.12, w1: "#9DD1C4", w2: "#6FAF9F", plants: 2, sunny: true,  glow: false, sparkles: 1 },
   { days: 30,    name: "Clearwater",      murk: 0.06, w1: "#A6DBCD", w2: "#78BAA9", plants: 2, sunny: true,  glow: true,  sparkles: 3 },
@@ -1242,6 +1278,18 @@ const MILESTONES = [
   { id: "m6m",    mins: 259200,    emoji: "🏔️", title: "6 months",   desc: "Most people who make it here report cravings are rare and manageable." },
   { id: "m1y",    mins: 525600,    emoji: "👑", title: "1 year",      desc: "A full year. Your friend's tank has never been clearer — and neither have you." },
 ];
+
+const CLEAN_MILESTONE_COPY = {
+  m20min: { title: "20 minutes", desc: "You interrupted the habit loop and chose the next clean minute." },
+  m24h:   { title: "24 hours",   desc: "One full day clean. Your routine is already learning a different path." },
+  m72h:   { title: "3 days",     desc: "The first rough stretch is becoming data: triggers, times, and patterns you can plan around." },
+  m1w:    { title: "1 week",     desc: "A full week of proof. You can feel an urge without obeying it." },
+  m2w:    { title: "2 weeks",    desc: "Your replacement routines are starting to matter more than willpower." },
+  m1m:    { title: "1 month",    desc: "A month clean is not a lucky streak. It's a system you built." },
+  m3m:    { title: "3 months",   desc: "Clean is becoming part of your identity, not just something you are tracking." },
+  m6m:    { title: "6 months",   desc: "Half a year. The habit has less room in your day than it used to." },
+  m1y:    { title: "1 year",     desc: "A full year. Your friend's tank has never been clearer — and neither have you." },
+};
 
 const TRIGGERS = ["Stress", "Boredom", "Social", "After eating", "Drinking", "Phone scrolling", "Other"];
 
@@ -1277,7 +1325,7 @@ const SPEECH = {
   mid:     ["Look how far the light reaches now.", "Your lungs and my gills — both happier.", "Remember week one? We're not there anymore."],
   late:    ["Crystal clear in here. Your doing.", "I barely remember the murk.", "You didn't just quit. You built something."],
   slipped: ["Still here. Still yours. Water's a bit cloudy — we've cleared worse.", "One wave knocked us over. We stand back up."],
-  tap:     ["Hehe. That tickles.", "Hi. I love you. Keep going.", "Blub blub. (That means you've got this.)", "Careful, I'll get used to this.", "More pets, fewer puffs."],
+  tap:     ["Hehe. That tickles.", "Hi. I love you. Keep going.", "Blub blub. (That means you've got this.)", "Careful, I'll get used to this.", "More pets, fewer urges."],
 };
 
 const dayMs = 86400000;
@@ -1302,7 +1350,7 @@ const defaultState = () => ({
   checkins: [],          // [{date:'YYYY-MM-DD', mood, clean, intensity, note}]
   milestonesSeen: [],
   growthSeen: [],
-  cost: { style: "disposables", unitsPerWeek: 2, costPerUnit: 15, puffsPerDay: 200 },
+  cost: { substance: "vape", style: "disposables", unitsPerWeek: 2, costPerUnit: 15, puffsPerDay: 200 },
   goal: null,            // {name, price} — Plus feature
   theme: "clear",        // tank theme id — Plus feature
   buddies: [],           // [{name, skin}] — Plus feature, max BUDDIES.max
@@ -1340,6 +1388,11 @@ const stageFor = (ms) => { let s = STAGES[0]; for (const st of STAGES) if (ms >=
 const growthFor = (ms) => { let g = GROWTH_STAGES[0]; for (const st of GROWTH_STAGES) if (ms >= st.days * dayMs) g = st; return g; };
 const skinOf = (id) => SKINS.find((s) => s.id === id) || SKINS[0];
 const themeOf = (id) => THEMES.find((t) => t.id === id) || THEMES[0];
+const substanceOf = (id) => SUBSTANCE_PROFILES[id] || SUBSTANCE_PROFILES.vape;
+const activeSubstance = () => substanceOf(state.cost?.substance || "vape");
+const styleOf = (profile, id) => profile.styles.find((s) => s.id === id) || profile.styles[0];
+const usesNicotineTimeline = () => ["vape", "cigarettes"].includes(state.cost?.substance || "vape");
+const milestoneCopy = (m) => usesNicotineTimeline() ? m : { ...m, ...(CLEAN_MILESTONE_COPY[m.id] || {}) };
 const moneySaved = () => lifetimeCleanMs() * costPerMs();
 const grant = (n) => { const v = n * (state.premium ? CONFIG.plus.pearlMultiplier : 1); state.pearls += v; setTimeout(() => { try { sparkleBurst(); } catch (e) {} }, 50); return v; };
 const bestStreakMs = () => Math.max(currentStreakMs(), ...state.slips.map((s) => s.streakMs || 0), 0);
@@ -1425,15 +1478,41 @@ function renderAxo() {
 /* ============================================================
    Onboarding
    ============================================================ */
-const ob = { step: 0, total: 5, reasons: [], skin: "pink", style: "disposables" };
+const ob = { step: 0, total: 5, reasons: [], skin: "pink", substance: "vape", style: "disposables" };
 function obRender() {
   $("#ob-dots").innerHTML = Array.from({ length: ob.total }, (_, i) => `<i class="${i === ob.step ? "on" : ""}"></i>`).join("");
   $$("#onboarding .ob-step").forEach((el) => (el.hidden = +el.dataset.step !== ob.step));
+  if (ob.step === 1) renderObUsage();
   if (ob.step === 3) obRenderSkins();
   if (ob.step === 4) {
     $("#ob-axo-preview").innerHTML = axoSVG(ob.skin, null, "happy", "ob");
     $("#ob-hatch-title").textContent = `${$("#ob-name").value.trim() || "Gillie"} is ready when you are.`;
   }
+}
+function renderObUsage() {
+  const profile = substanceOf(ob.substance);
+  if (!profile.styles.some((s) => s.id === ob.style)) ob.style = profile.styles[0].id;
+  $("#ob-style").innerHTML = profile.styles.map((s) =>
+    `<button data-v="${s.id}" class="${ob.style === s.id ? "on" : ""}">${s.label}</button>`).join("");
+  bindObStyleButtons();
+  const style = styleOf(profile, ob.style);
+  $("#ob-units-label").textContent = `${style.unit[0].toUpperCase() + style.unit.slice(1)}s per week`;
+  $("#ob-cost-label").textContent = `Cost per ${style.unit} ($)`;
+  $("#ob-puffs-label").textContent = `${profile.useLabel[0].toUpperCase() + profile.useLabel.slice(1)} per day before quitting`;
+  $("#ob-puffs-hint").textContent = profile.hint;
+  $("#ob-units").value = profile.defaultUnits;
+  $("#ob-cost").value = profile.defaultCost;
+  $("#ob-puffs").value = profile.defaultUses;
+}
+function bindObStyleButtons() {
+  $$("#ob-style button").forEach((b) => b.onclick = () => {
+    $$("#ob-style button").forEach((x) => x.classList.remove("on")); b.classList.add("on");
+    ob.style = b.dataset.v;
+    const profile = substanceOf(ob.substance);
+    const style = styleOf(profile, ob.style);
+    $("#ob-units-label").textContent = `${style.unit[0].toUpperCase() + style.unit.slice(1)}s per week`;
+    $("#ob-cost-label").textContent = `Cost per ${style.unit} ($)`;
+  });
 }
 function obRenderSkins() {
   $("#ob-skins").innerHTML = SKINS.map((s) => `
@@ -1448,13 +1527,13 @@ function obRenderSkins() {
   });
 }
 $$("#onboarding [data-next]").forEach((b) => b.onclick = () => { ob.step++; obRender(); });
-$$("#ob-style button").forEach((b) => b.onclick = () => {
-  $$("#ob-style button").forEach((x) => x.classList.remove("on")); b.classList.add("on");
-  ob.style = b.dataset.v;
-  const unit = ob.style === "pods" ? "pod" : "disposable";
-  $("#ob-units-label").textContent = `${unit[0].toUpperCase() + unit.slice(1)}s per week`;
-  $("#ob-cost-label").textContent = `Cost per ${unit} ($)`;
+$$("#ob-substance button").forEach((b) => b.onclick = () => {
+  $$("#ob-substance button").forEach((x) => x.classList.remove("on")); b.classList.add("on");
+  ob.substance = b.dataset.v;
+  ob.style = substanceOf(ob.substance).styles[0].id;
+  renderObUsage();
 });
+bindObStyleButtons();
 $$("#ob-reasons button").forEach((b) => b.onclick = () => {
   b.classList.toggle("on");
   ob.reasons = $$("#ob-reasons button.on").map((x) => x.dataset.v);
@@ -1466,6 +1545,7 @@ $("#ob-hatch").onclick = () => {
   state.skin = ob.skin;
   state.reasons = ob.reasons;
   state.cost = {
+    substance: ob.substance,
     style: ob.style,
     unitsPerWeek: Math.max(0.1, parseFloat($("#ob-units").value) || 2),
     costPerUnit: Math.max(0.5, parseFloat($("#ob-cost").value) || 15),
@@ -1495,6 +1575,7 @@ $$("nav#tabs button").forEach((b) => b.onclick = () => {
 function renderAll() {
   const stage = stageFor(currentStreakMs());
   const growth = growthFor(currentStreakMs());
+  const profile = activeSubstance();
   document.documentElement.style.setProperty("--w1", stage.w1);
   document.documentElement.style.setProperty("--w2", stage.w2);
   document.documentElement.style.setProperty("--axo-size", growth.size + "%");
@@ -1513,6 +1594,12 @@ function renderAll() {
   $("#pearl-balance").textContent = state.pearls;
   $$(".pearl-balance2").forEach((el) => (el.textContent = state.pearls));
   $("#stage-tag").textContent = `Day ${Math.floor(currentStreakMs() / dayMs)} · ${growth.name}`;
+  $("#streak-label").textContent = `${profile.freeLabel} — every second counts here`;
+  $("#stat-money-label").textContent = profile.moneyLabel;
+  $("#stat-puffs-label").textContent = profile.skippedLabel;
+  $("#timeline-note").textContent = usesNicotineTimeline()
+    ? "Timeline reflects commonly reported recovery experiences after stopping nicotine. It's general wellness information, not medical advice."
+    : "Timeline reflects your clean-time progress and habit-change milestones. It's general wellness information, not medical advice.";
   $("#axo-svg").dataset.growth = growth.id;
   $("#stat-cravings").textContent = state.cravings.filter((c) => c.resisted).length;
   renderSpeech(stage); renderDecor(); renderGrowthCard(); renderCoachCard(); renderCheckinCard(); renderCheckinLog(); renderMilestoneList(); renderNextMilestone();
@@ -1563,28 +1650,30 @@ function topTrigger() {
   return Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
 }
 
-function triggerMove(trigger) {
+function triggerMove(trigger, profile = activeSubstance()) {
+  const verb = profile.slip === "vaped" ? "vaping" : profile.slip === "smoked" ? "smoking" : "using";
   const moves = {
     Stress: "Stress plan: delay 10 minutes, breathe slowly 10 times, then move your body for 2 minutes.",
     Boredom: "Boredom plan: give your hands a replacement job before the urge gets interesting.",
-    Social: "Social plan: decide the line before you need it: 'I'm not vaping today.'",
+    Social: `Social plan: decide the line before you need it: 'I'm not ${verb} today.'`,
     "After eating": "After-meal plan: stand up immediately, brush, chew gum, or walk for 5 minutes.",
-    Drinking: "Drinking plan: keep a non-vape object in your hand and leave before the urge stacks.",
+    Drinking: "Drinking plan: keep something else in your hand and leave before the urge stacks.",
     "Phone scrolling": "Scrolling plan: lock the phone, stand up, drink water, then choose again in 10 minutes.",
     Other: "Trigger plan: name the cue, change rooms, and log what made the urge spike.",
   };
   return moves[trigger] || moves.Other;
 }
 
-function cravingCoachMove(level = 0) {
+function cravingCoachMove(level = 0, profile = activeSubstance()) {
   if (level >= 3) return "High-urge protocol: do not debate. Open SOS, delay 10 minutes, breathe, change rooms, and text support.";
   if (level >= 2) return "Medium urge: switch routine now. Water, movement, and one small task before you sit back down.";
   if (level >= 1) return "Low urge: catch it early. Notice the cue, take 3 slow breaths, and move on before it grows.";
-  return "No urge logged: protect the easy day. Keep the vape cues out of sight and avoid testing yourself.";
+  return `No urge logged: protect the easy day. Keep ${profile.name} cues out of sight and avoid testing yourself.`;
 }
 
-function environmentMove(days) {
-  if (days < 3) return "Environment: make vaping inconvenient today. Distance beats willpower in the early stretch.";
+function environmentMove(days, profile = activeSubstance()) {
+  const verb = profile.slip === "vaped" ? "vaping" : profile.slip === "smoked" ? "smoking" : "using";
+  if (days < 3) return `Environment: make ${verb} inconvenient today. Distance beats willpower in the early stretch.`;
   if (days < 14) return "Routine swap: pair your top trigger with a repeatable replacement until it feels automatic.";
   return "Identity rep: act like the person who already quit. One craving is not a vote.";
 }
@@ -1593,18 +1682,19 @@ function buildCoachPlan() {
   const today = state.checkins.find((c) => c.date === todayKey());
   const last = state.checkins[state.checkins.length - 1];
   const trigger = topTrigger();
+  const profile = activeSubstance();
   const days = Math.floor(currentStreakMs() / dayMs);
   const intensity = today?.intensity ?? last?.intensity ?? 0;
   const plan = [];
 
   if (!today) plan.push("Check in tonight so Coach can adjust your plan from real data.");
   else if (!today.clean) plan.push("Slip plan: reset the next hour, not your identity. Use SOS before the next urge.");
-  else plan.push(cravingCoachMove(intensity));
+  else plan.push(cravingCoachMove(intensity, profile));
 
-  if (trigger) plan.push(triggerMove(trigger));
+  if (trigger) plan.push(triggerMove(trigger, profile));
   else plan.push("Pattern building: after the next craving, log the trigger so Coach can stop guessing.");
 
-  plan.push(environmentMove(days));
+  plan.push(environmentMove(days, profile));
   plan.push("Support move: if the urge stays high, message someone or use a quit coach instead of white-knuckling it.");
 
   if (last?.note) plan.push(`Remember your note: "${last.note}"`);
@@ -1685,10 +1775,11 @@ function checkMilestones() {
   const ms = currentStreakMs();
   for (const m of MILESTONES) {
     if (ms >= m.mins * 60000 && !state.milestonesSeen.includes(m.id)) {
+      const copy = milestoneCopy(m);
       state.milestonesSeen.push(m.id);
       const v = grant(CONFIG.rewards.milestone);
       save();
-      toast(m.emoji, `${m.title} nicotine-free! +${v} pearls. ${state.petName}'s water just got clearer.`);
+      toast(copy.emoji, `${copy.title} clean! +${v} pearls. ${state.petName}'s water just got clearer.`);
       axoCelebrate();
       renderAll();
     }
@@ -1699,11 +1790,12 @@ function renderNextMilestone() {
   const next = MILESTONES.find((m) => ms < m.mins * 60000);
   const box = $("#next-milestone");
   if (!next) { box.hidden = true; return; }
+  const copy = milestoneCopy(next);
   box.hidden = false;
   const prev = MILESTONES[MILESTONES.indexOf(next) - 1];
   const start = prev ? prev.mins * 60000 : 0;
   const pct = Math.min(100, ((ms - start) / (next.mins * 60000 - start)) * 100);
-  $("#nm-title").textContent = `${next.emoji} ${next.title} — ${next.desc.split(".")[0]}.`;
+  $("#nm-title").textContent = `${copy.emoji} ${copy.title} — ${copy.desc.split(".")[0]}.`;
   $("#nm-bar").style.width = pct.toFixed(1) + "%";
   const leftMin = Math.ceil((next.mins * 60000 - ms) / 60000);
   $("#nm-eta").textContent = leftMin > 1440 ? `${Math.ceil(leftMin / 1440)} days to go` : leftMin > 60 ? `${Math.ceil(leftMin / 60)} hours to go` : `${leftMin} min to go`;
@@ -1711,10 +1803,11 @@ function renderNextMilestone() {
 function renderMilestoneList() {
   const ms = currentStreakMs();
   $("#ms-list").innerHTML = MILESTONES.map((m) => {
+    const copy = milestoneCopy(m);
     const done = ms >= m.mins * 60000;
     return `<div class="ms-card ${done ? "done" : "locked"}">
-      <div class="ms-badge">${done ? "✓" : m.emoji}</div>
-      <div><div class="t">${m.title}</div><div class="d">${m.desc}</div>
+      <div class="ms-badge">${done ? "✓" : copy.emoji}</div>
+      <div><div class="t">${copy.title}</div><div class="d">${copy.desc}</div>
       ${done ? `<div class="when">Reached ✓</div>` : ""}</div></div>`;
   }).join("");
 }
@@ -1760,7 +1853,7 @@ const DECOR_SVGS = {
 };
 const DECOR_POS = {
   pebble: "left:14%", kelp: "right:22%;bottom:12%", lamp: "left:34%", clam: "right:8%",
-  snail: "left:56%", ship: "left:3%;bottom:10%", starfish: "left:45%", sign: "right:3%;bottom:11%",
+  snail: "left:56%", ship: "left:3%;bottom:10%", starfish: "left:36%;bottom:23%", sign: "right:3%;bottom:11%",
   coral: "left:22%;bottom:11%", chest: "right:30%", moai: "left:66%;bottom:10%",
   castle: "right:14%;bottom:10%", jelly: "left:68%", volcano: "left:6%;bottom:11%",
 };
@@ -2036,11 +2129,12 @@ function goalEta() {
 }
 function renderGoal() {
   const card = $("#goal-card");
+  const profile = activeSubstance();
   card.hidden = false;
   if (!state.premium) {
     card.className = "locked-teaser";
     card.innerHTML = `<span class="ic">🎯</span><span><span class="t">Savings Goal</span><br>
-      <span class="s">Point your unspent vape money at something real</span></span><span class="tag">PLUS</span>`;
+      <span class="s">Point your unspent ${profile.name} money at something real</span></span><span class="tag">PLUS</span>`;
     card.onclick = openPlus;
     return;
   }
@@ -2060,6 +2154,8 @@ function renderGoal() {
   card.onclick = openGoalEditor;
 }
 function openGoalEditor() {
+  const profile = activeSubstance();
+  $("#goal-sub").textContent = `Every dollar you do not spend on ${profile.name} goes here, on a progress bar you'll see daily.`;
   $("#ge-name").value = state.goal ? state.goal.name : "";
   $("#ge-price").value = state.goal ? state.goal.price : "";
   $("#ge-remove").hidden = !state.goal;
@@ -2122,6 +2218,8 @@ function renderInsights() {
    ============================================================ */
 let checkinMood = null, checkinClean = "clean", checkinIntensity = 0;
 function renderCheckinCard() {
+  const profile = activeSubstance();
+  $("#checkin-use-label").textContent = `Any ${profile.useLabel === "puffs" ? "puffs" : "use"} today?`;
   const today = state.checkins.find((c) => c.date === todayKey());
   $("#checkin-card").style.display = "flex";
   if (today) {
@@ -2366,9 +2464,14 @@ $("#plus-monthly").onclick = grantPlus;
    Settings
    ============================================================ */
 function renderSettings() {
+  const profile = activeSubstance();
   $("#set-name-v").textContent = state.petName;
   $("#set-skin-v").textContent = state.premium ? skinOf(state.skin).name : "Plus 👑";
   $("#set-plus-v").textContent = state.premium ? "Active 👑" : "Free plan";
+  $("#set-cost-label").textContent = `${profile.name[0].toUpperCase() + profile.name.slice(1)} cost & usage`;
+  $("#set-slip-label").textContent = `I ${profile.slip} — reset my streak`;
+  $("#sos-slipped").textContent = `I ${profile.slip}`;
+  $("#slip-cancel").textContent = `Cancel — I didn't ${profile.slip}`;
 }
 $("#set-skin").onclick = openSkinEditor;
 $("#set-name").onclick = () => {
@@ -2388,7 +2491,11 @@ $("#set-name").onclick = () => {
   });
 };
 $("#set-cost").onclick = () => {
-  $("#ce-units-label").textContent = state.cost.style === "pods" ? "Pods per week" : "Disposables per week";
+  const profile = activeSubstance();
+  const style = styleOf(profile, state.cost.style);
+  $("#ce-units-label").textContent = `${style.unit[0].toUpperCase() + style.unit.slice(1)}s per week`;
+  $("#ce-cost-label").textContent = `Cost per ${style.unit} ($)`;
+  $("#ce-puffs-label").textContent = `${profile.useLabel[0].toUpperCase() + profile.useLabel.slice(1)} per day before quitting`;
   $("#ce-units").value = state.cost.unitsPerWeek;
   $("#ce-cost").value = state.cost.costPerUnit;
   $("#ce-puffs").value = state.cost.puffsPerDay;
