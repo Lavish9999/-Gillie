@@ -292,6 +292,17 @@ input,select{font-family:inherit;font-size:16px}
 #axo-svg.swim .gill{animation-duration:1.65s}
 #axo-svg.celebrate{animation:celebrate .95s cubic-bezier(.35,.8,.35,1)}
 #axo-svg.tapjoy{animation:tapBounce .7s cubic-bezier(.35,.9,.4,1)}
+[data-growth="hatchling"] .axo-tail{animation-name:tailSwishBaby;animation-duration:4.2s}
+[data-growth="hatchling"] .gill{animation-name:gillWaveBaby;animation-duration:3.4s}
+[data-growth="hatchling"] .axo-eye{animation-name:blinkBaby}
+[data-growth="little"] .axo-tail{animation-duration:3.7s}
+[data-growth="young"] .axo-tail{animation-duration:3.1s}
+[data-growth="bright"] #axo-glow{opacity:.32}
+[data-growth="bright"] .gill{filter:drop-shadow(0 0 3px rgba(255,174,187,.5))}
+[data-growth="grown"] .axo-tail{animation-name:tailSwishGrown}
+[data-growth="guardian"] #axo-glow{opacity:.72}
+[data-growth="guardian"] .axo-core{filter:drop-shadow(0 0 8px rgba(255,255,255,.45))}
+[data-growth="guardian"] .gill{filter:drop-shadow(0 0 5px rgba(255,174,187,.8))}
 @keyframes tapBounce{
   0%{transform:scale(1,1)}
   30%{transform:scale(1.12,.86)}
@@ -309,14 +320,18 @@ input,select{font-family:inherit;font-size:16px}
 @keyframes mouthPlay{0%,88%,100%{transform:scale(1)}93%{transform:scale(1.08,1.12)}}
 .axo-tail{transform-origin:62% 62%;animation:tailSwish 3.4s ease-in-out infinite}
 @keyframes tailSwish{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(7deg)}}
+@keyframes tailSwishBaby{0%,100%{transform:translate(-10px,7px) scale(.72) rotate(-3deg)}50%{transform:translate(-10px,7px) scale(.72) rotate(6deg)}}
+@keyframes tailSwishGrown{0%,100%{transform:scale(1.06) rotate(-5deg)}50%{transform:scale(1.06) rotate(9deg)}}
 .axo-core{transform-origin:50% 80%;animation:breathe 3.9s ease-in-out infinite}
 @keyframes breathe{0%,100%{transform:scale(1,1)}50%{transform:scale(1.014,1.045)}}
 .gill{transform-origin:100% 50%;animation:gillWave 2.8s ease-in-out infinite}
 .gill.r{transform-origin:0% 50%}
 .gill.g2{animation-delay:-.5s}.gill.g3{animation-delay:-1s}
 @keyframes gillWave{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(7deg)}}
+@keyframes gillWaveBaby{0%,100%{transform:scale(.72) rotate(-4deg)}50%{transform:scale(.72) rotate(5deg)}}
 .axo-eye{animation:blink 5.2s infinite;transform-origin:center 62%}
 @keyframes blink{0%,94%,100%{transform:scaleY(1)}96.5%{transform:scaleY(.08)}}
+@keyframes blinkBaby{0%,94%,100%{transform:scale(1.22,1.22)}96.5%{transform:scale(1.22,.1)}}
 #axo-glow{opacity:0;transition:opacity 2s}
 .tank.glowing #axo-glow{opacity:.5}
 #buddy-layer .buddy{position:absolute;width:32%;z-index:3;animation:floatB 5.8s ease-in-out infinite}
@@ -572,6 +587,48 @@ nav#tabs button.on{color:var(--ink)}
 .sos-actions .btn{background:#fff;color:var(--ink)}
 .sos-actions .btn.ghost{background:transparent;color:rgba(255,255,255,.75);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.25)}
 
+/* launch splash */
+#splash{
+  position:fixed;inset:0;z-index:120;display:flex;align-items:center;justify-content:center;
+  background:
+    radial-gradient(circle at 50% 34%, rgba(255,255,255,.7), transparent 32%),
+    linear-gradient(180deg,#DFF0EA,#B8DED3);
+  color:var(--ink);transition:opacity .55s ease, visibility .55s ease;
+}
+#splash.hide{opacity:0;visibility:hidden;pointer-events:none}
+.splash-inner{text-align:center;animation:splashRise .9s cubic-bezier(.2,.9,.3,1) both}
+.splash-orb{
+  width:132px;height:132px;border-radius:42px;margin:0 auto 18px;display:flex;align-items:center;justify-content:center;
+  background:rgba(255,255,255,.55);box-shadow:var(--shadow), inset 0 0 0 1px rgba(255,255,255,.7);
+  animation:splashFloat 2.2s ease-in-out infinite;
+}
+.splash-orb svg{width:108px;filter:drop-shadow(0 10px 12px rgba(17,51,47,.12))}
+.splash-title{font-family:var(--font-display);font-weight:800;font-size:36px;line-height:1}
+.splash-sub{font-size:14px;font-weight:800;color:var(--ink-soft);letter-spacing:.08em;text-transform:uppercase;margin-top:7px}
+.splash-bubbles{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.splash-bubbles i{position:absolute;bottom:-20px;border-radius:50%;background:rgba(255,255,255,.58);animation:splashBubble 3.8s linear infinite}
+.splash-bubbles i:nth-child(1){left:18%;width:10px;height:10px;animation-delay:-.8s}
+.splash-bubbles i:nth-child(2){left:34%;width:6px;height:6px;animation-delay:-2s}
+.splash-bubbles i:nth-child(3){left:67%;width:12px;height:12px;animation-delay:-1.3s}
+.splash-bubbles i:nth-child(4){left:78%;width:7px;height:7px;animation-delay:-2.6s}
+@keyframes splashRise{from{opacity:0;transform:translateY(18px) scale(.96)}to{opacity:1;transform:none}}
+@keyframes splashFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes splashBubble{to{transform:translateY(-110dvh);opacity:0}}
+
+/* growth celebration */
+.growth-celebrate{text-align:center}
+.growth-celebrate .preview{
+  width:168px;height:134px;margin:4px auto 12px;display:flex;align-items:center;justify-content:center;
+  border-radius:28px;background:linear-gradient(180deg,rgba(255,255,255,.72),rgba(255,255,255,.34));
+  box-shadow:var(--shadow-soft);position:relative;overflow:hidden;
+}
+.growth-celebrate .preview::before{
+  content:"";position:absolute;inset:-35%;background:conic-gradient(from 30deg, transparent, rgba(255,255,255,.8), transparent 28%);
+  animation:shineSpin 2.4s linear infinite;
+}
+.growth-celebrate .preview svg{position:relative;width:136px;z-index:1}
+@keyframes shineSpin{to{transform:rotate(360deg)}}
+
 /* milestone toast */
 #toast{
   position:fixed;top:calc(14px + env(safe-area-inset-top));left:50%;transform:translateX(-50%) translateY(-140%);
@@ -589,6 +646,33 @@ nav#tabs button.on{color:var(--ink)}
 </head>
 <body>
 <div id="app">
+
+<!-- ================= LAUNCH SPLASH ================= -->
+<div id="splash" aria-hidden="true">
+  <div class="splash-bubbles"><i></i><i></i><i></i><i></i></div>
+  <div class="splash-inner">
+    <div class="splash-orb">
+      <svg viewBox="0 0 200 160" aria-hidden="true">
+        <defs>
+          <radialGradient id="splash-body" cx="38%" cy="30%" r="85%">
+            <stop offset="0%" stop-color="#FFD9E0"/>
+            <stop offset="60%" stop-color="#FFAEBB"/>
+            <stop offset="100%" stop-color="#E98CA0"/>
+          </radialGradient>
+        </defs>
+        <path d="M118 92 Q148 70 176 72 Q178 90 160 102 Q178 108 170 122 Q144 130 122 110z" fill="#F2708A" opacity=".75"/>
+        <ellipse cx="96" cy="100" rx="39" ry="27" fill="url(#splash-body)"/>
+        <circle cx="74" cy="72" r="39" fill="url(#splash-body)"/>
+        <circle cx="56" cy="68" r="7" fill="#2A2320"/><circle cx="59" cy="65" r="2.4" fill="#fff"/>
+        <circle cx="90" cy="68" r="7" fill="#2A2320"/><circle cx="93" cy="65" r="2.4" fill="#fff"/>
+        <path d="M63 88 q11 8 22 0" stroke="#B4536B" stroke-width="3.4" fill="none" stroke-linecap="round"/>
+        <circle cx="52" cy="82" r="7" fill="#F2708A" opacity=".36"/><circle cx="96" cy="82" r="7" fill="#F2708A" opacity=".36"/>
+      </svg>
+    </div>
+    <div class="splash-title">Gillie</div>
+    <div class="splash-sub">Grow clean</div>
+  </div>
+</div>
 
 <!-- ================= ONBOARDING ================= -->
 <section id="onboarding">
@@ -1019,6 +1103,18 @@ nav#tabs button.on{color:var(--ink)}
   </div>
 </div>
 
+<!-- Growth celebration -->
+<div class="overlay" id="growth-overlay" hidden>
+  <div class="sheet growth-celebrate">
+    <div class="grab"></div>
+    <div class="preview"><svg viewBox="0 0 200 160" id="growth-preview"></svg></div>
+    <div class="eyebrow">Gillie grew</div>
+    <h2 id="growth-title">New form unlocked</h2>
+    <p class="sub" id="growth-copy">Your clean streak is changing the tank.</p>
+    <button class="btn coral" id="growth-close">Keep going</button>
+  </div>
+</div>
+
 <div id="toast"><span class="em">🌊</span><span id="toast-msg"></span></div>
 
 </div><!-- /#app -->
@@ -1157,6 +1253,7 @@ const defaultState = () => ({
   cravings: [],          // [{at, trigger, resisted}]
   checkins: [],          // [{date:'YYYY-MM-DD', mood, clean, intensity, note}]
   milestonesSeen: [],
+  growthSeen: [],
   cost: { style: "disposables", unitsPerWeek: 2, costPerUnit: 15, puffsPerDay: 200 },
   goal: null,            // {name, price} — Plus feature
   theme: "clear",        // tank theme id — Plus feature
@@ -1412,6 +1509,31 @@ function renderGrowthCard() {
     : `${leftDays} clean days until ${next.name}.`;
 }
 
+function checkGrowthStages() {
+  const ms = currentStreakMs();
+  const reached = GROWTH_STAGES.filter((g) => ms >= g.days * dayMs);
+  if (!reached.length) return;
+  const unseen = reached.filter((g) => !state.growthSeen.includes(g.id));
+  if (!unseen.length) return;
+  unseen.forEach((g) => state.growthSeen.push(g.id));
+  save();
+  const newest = unseen[unseen.length - 1];
+  if (newest.id !== "hatchling") openGrowthCelebration(newest);
+}
+
+function openGrowthCelebration(growth) {
+  $("#growth-preview").innerHTML = axoSVG(state.skin, state.hat, "happy", "growth");
+  $("#growth-preview").dataset.growth = growth.id;
+  $("#growth-title").textContent = `${state.petName} is now ${growth.name}`;
+  $("#growth-copy").textContent = `${growth.desc} Keep stacking clean days and the next form will come.`;
+  $("#growth-overlay").hidden = false;
+  axoCelebrate();
+}
+$("#growth-close").onclick = () => {
+  $("#growth-overlay").hidden = true;
+  toast("🫧", `${state.petName} is growing with you.`);
+};
+
 /* ---------- live timer ---------- */
 let tickHandle = null;
 function startTick() {
@@ -1431,6 +1553,7 @@ function tick() {
   $("#stat-money").textContent = money >= 100 ? "$" + Math.round(money) : "$" + money.toFixed(2);
   $("#stat-puffs").textContent = Math.floor((state.cost.puffsPerDay / dayMs) * lifetimeCleanMs()).toLocaleString();
   checkMilestones();
+  checkGrowthStages();
   renderNextMilestone();
 }
 
@@ -2240,8 +2363,15 @@ function toast(em, msg) {
 /* ============================================================
    Boot
    ============================================================ */
+function playSplash() {
+  const splash = $("#splash");
+  if (!splash) return;
+  setTimeout(() => splash.classList.add("hide"), REDUCED_MOTION ? 350 : 1450);
+  setTimeout(() => splash.remove(), REDUCED_MOTION ? 900 : 2150);
+}
 if (state.onboarded) enterMain();
 else obRender();
+playSplash();
 document.addEventListener("visibilitychange", () => { if (!document.hidden && state.onboarded) { renderAxo(); renderAll(); } });
 </script>
 </body>
