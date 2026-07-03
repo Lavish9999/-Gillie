@@ -1,0 +1,8 @@
+{
+  "appId": "com.lavish9999.gillie",
+  "appName": "Gillie",
+  "webDir": "www",
+  "server": {
+    "iosScheme": "capacitor"
+  }
+}
