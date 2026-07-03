@@ -15,7 +15,7 @@ workflows:
         BUNDLE_ID: "com.lavish9999.gillie"
         XCODE_PROJECT: "ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
-        GILLIE_BUILD_NUMBER: "11"
+        GILLIE_BUILD_NUMBER: "12"
       ios_signing:
         distribution_type: app_store
         bundle_identifier: "com.lavish9999.gillie"
@@ -44,7 +44,8 @@ workflows:
           sed -i '' -E "s/CURRENT_PROJECT_VERSION = [0-9]+;/CURRENT_PROJECT_VERSION = ${build_number};/g" App.xcodeproj/project.pbxproj
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${build_number}" App/Info.plist
           echo "Info.plist CFBundleVersion: $(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' App/Info.plist)"
-          xcodebuild -project App.xcodeproj -scheme App -showBuildSettings | grep -E "CURRENT_PROJECT_VERSION|MARKETING_VERSION"
+          echo "Release build settings:"
+          xcodebuild -project App.xcodeproj -scheme App -configuration Release -showBuildSettings | grep -E "CURRENT_PROJECT_VERSION|MARKETING_VERSION"
 
       - name: Strip iOS app icon alpha
         script: |
@@ -89,6 +90,40 @@ workflows:
             --project "$XCODE_PROJECT" \
             --scheme "$XCODE_SCHEME" \
             --archive-xcargs "CURRENT_PROJECT_VERSION=${GILLIE_BUILD_NUMBER}"
+
+      - name: Verify archived iOS build number
+        script: |
+          set -euo pipefail
+          echo "Expected Gillie build number: $GILLIE_BUILD_NUMBER"
+          echo "Project Release build settings before publish:"
+          xcodebuild -project "$XCODE_PROJECT" -scheme "$XCODE_SCHEME" -configuration Release -showBuildSettings | grep -E "CURRENT_PROJECT_VERSION|MARKETING_VERSION"
+
+          archive_path="$(find build/ios/archive -name "*.xcarchive" -type d | head -n 1)"
+          if [ -z "$archive_path" ]; then
+            echo "No .xcarchive found under build/ios/archive"
+            exit 1
+          fi
+
+          app_plist="$archive_path/Products/Applications/App.app/Info.plist"
+          if [ ! -f "$app_plist" ]; then
+            echo "Archived app Info.plist not found at $app_plist"
+            exit 1
+          fi
+
+          short_version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app_plist")"
+          build_version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$app_plist")"
+          echo "Archived CFBundleShortVersionString: $short_version"
+          echo "Archived CFBundleVersion: $build_version"
+
+          if [ "$build_version" = "1" ]; then
+            echo "Refusing to publish: archived CFBundleVersion is still 1."
+            exit 1
+          fi
+
+          if [ "$build_version" != "$GILLIE_BUILD_NUMBER" ]; then
+            echo "Refusing to publish: archived CFBundleVersion $build_version does not match GILLIE_BUILD_NUMBER $GILLIE_BUILD_NUMBER."
+            exit 1
+          fi
 
     artifacts:
       - build/ios/ipa/*.ipa
