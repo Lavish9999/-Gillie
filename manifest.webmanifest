@@ -6,7 +6,7 @@
   "scope": "./",
   "display": "standalone",
   "background_color": "#E8F2EF",
-  "theme_color": "#075E5A",
+  "theme_color": "#E8F2EF",
   "icons": [
     {
       "src": "./assets/gillie-icon-192.png",
