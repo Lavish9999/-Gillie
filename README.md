@@ -40,6 +40,29 @@ In Xcode:
 4. Build on a simulator/device.
 5. Archive and upload to App Store Connect for TestFlight/App Store review.
 
+## Build iOS without a Mac
+
+Gillie includes a root `codemagic.yaml` workflow for building the Capacitor iOS app in Codemagic on macOS.
+
+1. Connect the GitHub repo `Lavish9999/-Gillie` to Codemagic.
+2. Select the `native-ios-launch` branch.
+3. In Codemagic, connect an App Store Connect API key integration.
+4. Set the Bundle ID to `com.lavish9999.gillie`.
+5. Create an Apple Distribution certificate and App Store provisioning profile through Codemagic automatic code signing, or upload profiles from Apple Developer.
+6. Run the `Gillie iOS App Store` workflow.
+7. Codemagic will install npm dependencies, prepare the Capacitor web assets, sync iOS, install pods if needed, build `ios/App/App.xcworkspace` with scheme `App`, and produce an App Store IPA.
+8. Use the generated IPA for TestFlight/App Store Connect upload, or keep `submit_to_testflight: true` once signing is confirmed.
+
+Add these in Codemagic only. Do not commit them to GitHub:
+
+- App Store Connect API key issuer ID
+- App Store Connect API key ID
+- App Store Connect API private key `.p8`
+- Apple Developer team ID
+- Apple Distribution certificate, if not created automatically
+- Certificate password, if uploading a `.p12`
+- App Store provisioning profile for `com.lavish9999.gillie`, if not created automatically
+
 ## Gillie Plus Purchase Architecture
 
 Gillie Plus is not unlocked by URL params, console commands, or localStorage-only state.
