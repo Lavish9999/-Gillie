@@ -15,7 +15,7 @@ workflows:
         BUNDLE_ID: "com.lavish9999.gillie"
         XCODE_PROJECT: "ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
-        GILLIE_BUILD_NUMBER: "16"
+        GILLIE_BUILD_NUMBER: "17"
       ios_signing:
         distribution_type: app_store
         bundle_identifier: "com.lavish9999.gillie"
@@ -126,7 +126,7 @@ workflows:
           fi
 
           if [ "$build_version" != "$GILLIE_BUILD_NUMBER" ]; then
-            echo "Refusing to publish: IPA CFBundleVersion $build_version does not match GILLIE_BUILD_NUMBER $GILLIE_BUILD_NUMBER."
+            echo "Refusing to publish: IPA CFBundleVersion $build_version does not match GILLIE_BUILD_NUMBER."
             exit 1
           fi
 
