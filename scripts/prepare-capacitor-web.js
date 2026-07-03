@@ -16,6 +16,22 @@ const pricingReplacements = [
 
 const appBehaviorReplacements = [
   [
+    "position:fixed;top:calc(14px + env(safe-area-inset-top));left:50%;transform:translateX(-50%) translateY(-140%);",
+    "position:fixed;top:calc(52px + env(safe-area-inset-top));left:50%;transform:translateX(-50%) translateY(-160%);",
+  ],
+  [
+    "transition:transform .45s cubic-bezier(.2,.9,.3,1);display:flex;gap:12px;align-items:center;",
+    "opacity:0;pointer-events:none;\n  transition:transform .35s cubic-bezier(.2,.9,.3,1), opacity .25s ease;display:flex;gap:12px;align-items:center;",
+  ],
+  [
+    "#toast.show{transform:translateX(-50%) translateY(0)}",
+    "#toast.show{transform:translateX(-50%) translateY(0);opacity:1}",
+  ],
+  [
+    "toastHandle = setTimeout(() => $(\"#toast\").classList.remove(\"show\"), 3800);",
+    "toastHandle = setTimeout(() => $(\"#toast\").classList.remove(\"show\"), 2800);",
+  ],
+  [
     '<meta name="theme-color" content="#075E5A">',
     '<meta name="theme-color" content="#E8F2EF">',
   ],
