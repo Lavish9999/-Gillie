@@ -57,6 +57,14 @@ const appBehaviorReplacements = [
     "function toast(em, msg) {\n  $(\"#toast .em\").textContent = em;",
     "function toast(em, msg) {\n  if (!state.onboarded || document.body.classList.contains(\"sheet-open\")) return;\n  $(\"#toast .em\").textContent = em;",
   ],
+  [
+    "$(\"#plus-soft-close\").onclick = () => closeSheetOverlay($(\"#plus-overlay\"), true);",
+    "$(\"#plus-soft-close\").onclick = (e) => {\n  e.stopPropagation();\n  closeSheetOverlay($(\"#plus-overlay\"), true);\n};",
+  ],
+  [
+    "return (onPlusTop || (nearTop && !interactive)) && sheet.scrollTop <= 1;",
+    "return !interactive && (onPlusTop || nearTop) && sheet.scrollTop <= 1;",
+  ],
 ];
 
 function copyRecursive(src, dest) {
