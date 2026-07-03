@@ -13,7 +13,7 @@ workflows:
       cocoapods: default
       vars:
         BUNDLE_ID: "com.lavish9999.gillie"
-        XCODE_WORKSPACE: "ios/App/App.xcworkspace"
+        XCODE_PROJECT: "ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
       ios_signing:
         distribution_type: app_store
@@ -53,7 +53,7 @@ workflows:
       - name: Build App Store IPA
         script: |
           xcode-project build-ipa \
-            --workspace "$XCODE_WORKSPACE" \
+            --project "$XCODE_PROJECT" \
             --scheme "$XCODE_SCHEME"
 
     artifacts:
