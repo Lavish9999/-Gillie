@@ -2,6 +2,7 @@
   "appId": "com.lavish9999.gillie",
   "appName": "Gillie",
   "webDir": "www",
+  "backgroundColor": "#E8F2EF",
   "server": {
     "iosScheme": "capacitor"
   }
