@@ -5,6 +5,15 @@ const root = path.resolve(__dirname, "..");
 const out = path.join(root, "www");
 const entries = ["index.html", "manifest.webmanifest", "privacy.html", "support.html", "assets"];
 
+const pricingReplacements = [
+  ["monthlyLabel: \"$4.99 / month\"", "monthlyLabel: \"$3.99 / month\""],
+  ["yearlyLabel: \"$39.99 / year — best value\"", "yearlyLabel: \"$29.99 / year — best value\""],
+  ["$4.99 / month", "$3.99 / month"],
+  ["$39.99 / year", "$29.99 / year"],
+  ["$4.99/mo", "$3.99/mo"],
+  ["$39.99/yr", "$29.99/yr"],
+];
+
 function copyRecursive(src, dest) {
   const stat = fs.statSync(src);
   if (stat.isDirectory()) {
@@ -18,6 +27,27 @@ function copyRecursive(src, dest) {
   fs.copyFileSync(src, dest);
 }
 
+function applyLaunchPricing(filePath) {
+  if (!fs.existsSync(filePath)) return;
+  let html = fs.readFileSync(filePath, "utf8");
+  let changed = false;
+
+  for (const [from, to] of pricingReplacements) {
+    if (html.includes(from)) {
+      html = html.split(from).join(to);
+      changed = true;
+    }
+  }
+
+  if (changed) {
+    fs.writeFileSync(filePath, html, "utf8");
+    console.log(`Applied Gillie Plus launch pricing to ${path.relative(root, filePath) || "index.html"}`);
+  }
+}
+
+// Keep the source preview and native copy aligned when this prep step runs.
+applyLaunchPricing(path.join(root, "index.html"));
+
 fs.rmSync(out, { recursive: true, force: true });
 fs.mkdirSync(out, { recursive: true });
 
@@ -25,5 +55,7 @@ for (const entry of entries) {
   const src = path.join(root, entry);
   if (fs.existsSync(src)) copyRecursive(src, path.join(out, entry));
 }
+
+applyLaunchPricing(path.join(out, "index.html"));
 
 console.log("Prepared Capacitor web assets in www/");
