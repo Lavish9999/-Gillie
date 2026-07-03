@@ -34,6 +34,71 @@ workflows:
         script: |
           npx cap sync ios
 
+      - name: Flatten iOS app icons
+        script: |
+          cat > /tmp/flatten-ios-icons.swift <<'SWIFT'
+          import AppKit
+          import Foundation
+
+          enum IconError: Error {
+            case unreadable(String)
+            case context(String)
+            case pngData(String)
+          }
+
+          func flattenIcon(at path: String) throws {
+            let url = URL(fileURLWithPath: path)
+            guard let image = NSImage(contentsOf: url),
+                  let tiff = image.tiffRepresentation,
+                  let sourceRep = NSBitmapImageRep(data: tiff) else {
+              throw IconError.unreadable(path)
+            }
+
+            let width = sourceRep.pixelsWide
+            let height = sourceRep.pixelsHigh
+            guard let outputRep = NSBitmapImageRep(
+              bitmapDataPlanes: nil,
+              pixelsWide: width,
+              pixelsHigh: height,
+              bitsPerSample: 8,
+              samplesPerPixel: 3,
+              hasAlpha: false,
+              isPlanar: false,
+              colorSpaceName: .deviceRGB,
+              bytesPerRow: 0,
+              bitsPerPixel: 0
+            ) else {
+              throw IconError.context(path)
+            }
+
+            outputRep.size = NSSize(width: width, height: height)
+            NSGraphicsContext.saveGraphicsState()
+            NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: outputRep)
+            NSColor(red: 3.0 / 255.0, green: 47.0 / 255.0, blue: 59.0 / 255.0, alpha: 1.0).setFill()
+            NSRect(x: 0, y: 0, width: width, height: height).fill()
+            image.draw(in: NSRect(x: 0, y: 0, width: width, height: height), from: .zero, operation: .sourceOver, fraction: 1.0)
+            NSGraphicsContext.restoreGraphicsState()
+
+            guard let data = outputRep.representation(using: .png, properties: [:]) else {
+              throw IconError.pngData(path)
+            }
+            try data.write(to: url)
+            print("Flattened \(path)")
+          }
+
+          for path in CommandLine.arguments.dropFirst() {
+            try flattenIcon(at: path)
+          }
+          SWIFT
+
+          swift /tmp/flatten-ios-icons.swift ios/App/App/Assets.xcassets/AppIcon.appiconset/*.png
+          for icon in ios/App/App/Assets.xcassets/AppIcon.appiconset/*.png; do
+            if sips -g hasAlpha "$icon" | grep -q "hasAlpha: yes"; then
+              echo "App icon still has alpha: $icon"
+              exit 1
+            fi
+          done
+
       - name: Install CocoaPods dependencies if present
         script: |
           if [ -f "ios/App/Podfile" ]; then
