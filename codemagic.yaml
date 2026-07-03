@@ -15,6 +15,7 @@ workflows:
         BUNDLE_ID: "com.lavish9999.gillie"
         XCODE_PROJECT: "ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
+        GILLIE_BUILD_NUMBER: "11"
       ios_signing:
         distribution_type: app_store
         bundle_identifier: "com.lavish9999.gillie"
@@ -37,25 +38,12 @@ workflows:
       - name: Set iOS build number
         script: |
           set -euo pipefail
-          build_number="${BUILD_NUMBER:-2}"
-          if ! [[ "$build_number" =~ ^[0-9]+$ ]]; then
-            build_number="$(date +%Y%m%d%H%M)"
-          fi
-          if [ "$build_number" -le 1 ]; then
-            build_number="2"
-          fi
-          echo "Setting iOS build number to $build_number"
+          build_number="$GILLIE_BUILD_NUMBER"
+          echo "Hard-setting iOS build number to $build_number"
           cd ios/App
-          xcrun agvtool new-version -all "$build_number" || true
-          python3 - <<PY
-          from pathlib import Path
-          build_number = "$build_number"
-          pbx = Path("App.xcodeproj/project.pbxproj")
-          text = pbx.read_text()
-          text = text.replace("CURRENT_PROJECT_VERSION = 1;", f"CURRENT_PROJECT_VERSION = {build_number};")
-          pbx.write_text(text)
-          print(f"Forced CURRENT_PROJECT_VERSION={build_number}")
-          PY
+          sed -i '' -E "s/CURRENT_PROJECT_VERSION = [0-9]+;/CURRENT_PROJECT_VERSION = ${build_number};/g" App.xcodeproj/project.pbxproj
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${build_number}" App/Info.plist
+          echo "Info.plist CFBundleVersion: $(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' App/Info.plist)"
           xcodebuild -project App.xcodeproj -scheme App -showBuildSettings | grep -E "CURRENT_PROJECT_VERSION|MARKETING_VERSION"
 
       - name: Strip iOS app icon alpha
@@ -100,7 +88,7 @@ workflows:
           xcode-project build-ipa \
             --project "$XCODE_PROJECT" \
             --scheme "$XCODE_SCHEME" \
-            --archive-xcargs "CURRENT_PROJECT_VERSION=${BUILD_NUMBER:-2}"
+            --archive-xcargs "CURRENT_PROJECT_VERSION=${GILLIE_BUILD_NUMBER}"
 
     artifacts:
       - build/ios/ipa/*.ipa
