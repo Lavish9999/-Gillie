@@ -1,9 +1,11 @@
 const fs = require("fs");
 const path = require("path");
+const { execFileSync } = require("child_process");
 
 const root = path.resolve(__dirname, "..");
 const out = path.join(root, "www");
 const entries = ["index.html", "manifest.webmanifest", "privacy.html", "support.html", "assets"];
+const plusPaywallPatch = path.join(root, "scripts", "gillie-plus-paywall.patch");
 
 const pricingReplacements = [
   ["monthlyLabel: \"$4.99 / month\"", "monthlyLabel: \"$3.99 / month\""],
@@ -89,6 +91,13 @@ function applyBuildPatches(filePath) {
 }
 
 // Keep the source preview and native copy aligned when this prep step runs.
+if (fs.existsSync(plusPaywallPatch) && fs.existsSync(path.join(root, "index.html"))) {
+  const sourceHTML = fs.readFileSync(path.join(root, "index.html"), "utf8");
+  if (!sourceHTML.includes("plus-tank-hero")) {
+    execFileSync("git", ["apply", "--whitespace=nowarn", plusPaywallPatch], { cwd: root, stdio: "inherit" });
+    console.log("Applied Gillie Plus paywall patch to index.html");
+  }
+}
 applyBuildPatches(path.join(root, "index.html"));
 
 fs.rmSync(out, { recursive: true, force: true });
