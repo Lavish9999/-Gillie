@@ -73,10 +73,10 @@ The web app calls a native Capacitor plugin:
 - `GilliePurchases.restorePurchases()`
 - `GilliePurchases.getEntitlementStatus()`
 
-Product IDs:
+Product IDs and launch pricing:
 
-- Monthly: `gillie.plus.monthly`
-- Yearly: `gillie.plus.yearly`
+- Monthly: `gillie.plus.monthly` — `$3.99 / month`
+- Yearly: `gillie.plus.yearly` — `$29.99 / year`
 
 The native iOS file is:
 
@@ -92,8 +92,8 @@ That file uses StoreKit 2 and only returns `active: true` after a verified curre
 4. Add monthly product ID `gillie.plus.monthly`.
 5. Add yearly product ID `gillie.plus.yearly`.
 6. Match App Store prices to the prices shown in the app:
-   - `$4.99 / month`
-   - `$39.99 / year`
+   - `$3.99 / month`
+   - `$29.99 / year`
 7. Add Privacy Policy URL:
    - `https://lavish9999.github.io/-Gillie/privacy.html`
 8. Add Support URL:
@@ -143,4 +143,4 @@ Before syncing iOS, run:
 npm run prepare:cap
 ```
 
-This copies the root static app, assets, `privacy.html`, and `support.html` into `www/`, which Capacitor then copies into the iOS project.
+This copies the root static app, assets, `privacy.html`, and `support.html` into `www/`, which Capacitor then copies into the iOS project. The prepare step also applies the current Gillie Plus launch pricing to the app copy used by the native build.
