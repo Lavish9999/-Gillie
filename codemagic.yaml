@@ -91,43 +91,47 @@ workflows:
             --scheme "$XCODE_SCHEME" \
             --archive-xcargs "CURRENT_PROJECT_VERSION=${GILLIE_BUILD_NUMBER}"
 
-      - name: Verify archived iOS build number
+      - name: Verify IPA iOS build number
         script: |
           set -euo pipefail
           echo "Expected Gillie build number: $GILLIE_BUILD_NUMBER"
           echo "Project Release build settings before publish:"
           xcodebuild -project "$XCODE_PROJECT" -scheme "$XCODE_SCHEME" -configuration Release -showBuildSettings | grep -E "CURRENT_PROJECT_VERSION|MARKETING_VERSION"
 
-          archive_path="$(find build/ios/archive -name "*.xcarchive" -type d | head -n 1)"
-          if [ -z "$archive_path" ]; then
-            echo "No .xcarchive found under build/ios/archive"
+          ipa_path="$(find build/ios/ipa -name "*.ipa" -type f | head -n 1)"
+          if [ -z "$ipa_path" ]; then
+            echo "No .ipa found under build/ios/ipa"
             exit 1
           fi
 
-          app_plist="$archive_path/Products/Applications/App.app/Info.plist"
-          if [ ! -f "$app_plist" ]; then
-            echo "Archived app Info.plist not found at $app_plist"
+          echo "Verifying uploaded IPA artifact: $ipa_path"
+          rm -rf /tmp/gillie-ipa-verify
+          mkdir -p /tmp/gillie-ipa-verify
+          unzip -q "$ipa_path" -d /tmp/gillie-ipa-verify
+
+          app_plist="$(find /tmp/gillie-ipa-verify/Payload -path "*.app/Info.plist" -type f | head -n 1)"
+          if [ -z "$app_plist" ]; then
+            echo "App Info.plist not found inside IPA Payload"
             exit 1
           fi
 
           short_version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app_plist")"
           build_version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$app_plist")"
-          echo "Archived CFBundleShortVersionString: $short_version"
-          echo "Archived CFBundleVersion: $build_version"
+          echo "IPA CFBundleShortVersionString: $short_version"
+          echo "IPA CFBundleVersion: $build_version"
 
           if [ "$build_version" = "1" ]; then
-            echo "Refusing to publish: archived CFBundleVersion is still 1."
+            echo "Refusing to publish: IPA CFBundleVersion is still 1."
             exit 1
           fi
 
           if [ "$build_version" != "$GILLIE_BUILD_NUMBER" ]; then
-            echo "Refusing to publish: archived CFBundleVersion $build_version does not match GILLIE_BUILD_NUMBER $GILLIE_BUILD_NUMBER."
+            echo "Refusing to publish: IPA CFBundleVersion $build_version does not match GILLIE_BUILD_NUMBER $GILLIE_BUILD_NUMBER."
             exit 1
           fi
 
     artifacts:
       - build/ios/ipa/*.ipa
-      - build/ios/archive/*.xcarchive
       - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
       - /tmp/xcodebuild_logs/*.log
 
