@@ -14,6 +14,25 @@ const pricingReplacements = [
   ["$39.99/yr", "$29.99/yr"],
 ];
 
+const appBehaviorReplacements = [
+  [
+    "  enterMain();\n  toast(\"🐣\", `${state.petName} hatched. Your quit is officially live.`);\n};",
+    "  enterMain();\n};",
+  ],
+  [
+    "  document.body.classList.toggle(\"sheet-open\", anyOpen);\n}",
+    "  document.body.classList.toggle(\"sheet-open\", anyOpen);\n  if (anyOpen) dismissToast();\n}",
+  ],
+  [
+    "let toastHandle = null;\nfunction toast(em, msg) {",
+    "let toastHandle = null;\nfunction dismissToast() {\n  clearTimeout(toastHandle);\n  $(\"#toast\").classList.remove(\"show\");\n}\nfunction toast(em, msg) {",
+  ],
+  [
+    "function toast(em, msg) {\n  $(\"#toast .em\").textContent = em;",
+    "function toast(em, msg) {\n  if (!state.onboarded || document.body.classList.contains(\"sheet-open\")) return;\n  $(\"#toast .em\").textContent = em;",
+  ],
+];
+
 function copyRecursive(src, dest) {
   const stat = fs.statSync(src);
   if (stat.isDirectory()) {
@@ -27,12 +46,12 @@ function copyRecursive(src, dest) {
   fs.copyFileSync(src, dest);
 }
 
-function applyLaunchPricing(filePath) {
+function applyBuildPatches(filePath) {
   if (!fs.existsSync(filePath)) return;
   let html = fs.readFileSync(filePath, "utf8");
   let changed = false;
 
-  for (const [from, to] of pricingReplacements) {
+  for (const [from, to] of [...pricingReplacements, ...appBehaviorReplacements]) {
     if (html.includes(from)) {
       html = html.split(from).join(to);
       changed = true;
@@ -41,12 +60,12 @@ function applyLaunchPricing(filePath) {
 
   if (changed) {
     fs.writeFileSync(filePath, html, "utf8");
-    console.log(`Applied Gillie Plus launch pricing to ${path.relative(root, filePath) || "index.html"}`);
+    console.log(`Applied Gillie build patches to ${path.relative(root, filePath) || "index.html"}`);
   }
 }
 
 // Keep the source preview and native copy aligned when this prep step runs.
-applyLaunchPricing(path.join(root, "index.html"));
+applyBuildPatches(path.join(root, "index.html"));
 
 fs.rmSync(out, { recursive: true, force: true });
 fs.mkdirSync(out, { recursive: true });
@@ -56,6 +75,6 @@ for (const entry of entries) {
   if (fs.existsSync(src)) copyRecursive(src, path.join(out, entry));
 }
 
-applyLaunchPricing(path.join(out, "index.html"));
+applyBuildPatches(path.join(out, "index.html"));
 
 console.log("Prepared Capacitor web assets in www/");
