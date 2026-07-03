@@ -16,6 +16,14 @@ const pricingReplacements = [
 
 const appBehaviorReplacements = [
   [
+    '<meta name="theme-color" content="#075E5A">',
+    '<meta name="theme-color" content="#E8F2EF">',
+  ],
+  [
+    "html{height:100%}",
+    "html{height:100%;background:var(--bg)}",
+  ],
+  [
     "  enterMain();\n  toast(\"🐣\", `${state.petName} hatched. Your quit is officially live.`);\n};",
     "  enterMain();\n};",
   ],
