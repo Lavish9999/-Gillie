@@ -17,6 +17,12 @@ public class GilliePurchasesPlugin: CAPPlugin, CAPBridgedPlugin {
         "gillie.plus.yearly"
     ]
 
+    private func productDiagnosticsMessage(_ products: [Product]) -> String {
+        let returnedProductIDs = products.map { $0.id }
+        let missingProductIDs = productIDs.filter { requested in !returnedProductIDs.contains(requested) }
+        return "Requested: \(productIDs.joined(separator: ", ")). Returned: \(returnedProductIDs.isEmpty ? "none" : returnedProductIDs.joined(separator: ", ")). Missing: \(missingProductIDs.isEmpty ? "none" : missingProductIDs.joined(separator: ", "))."
+    }
+
     // App Store Connect setup:
     // 1. Create auto-renewable subscription group "Gillie Plus".
     // 2. Add product IDs gillie.plus.monthly and gillie.plus.yearly.
@@ -41,9 +47,16 @@ public class GilliePurchasesPlugin: CAPPlugin, CAPBridgedPlugin {
 
         Task {
             do {
-                let products = try await Product.products(for: [productID])
-                guard let product = products.first else {
-                    call.reject("Gillie Plus product is not available. Check App Store Connect product IDs.")
+                let products = try await Product.products(for: productIDs)
+                NSLog("GilliePurchases requested products: %@; StoreKit returned: %@", productIDs.joined(separator: ","), products.map { $0.id }.joined(separator: ","))
+
+                guard !products.isEmpty else {
+                    call.reject("Gillie Plus products are not available. StoreKit returned 0 products. \(productDiagnosticsMessage(products))")
+                    return
+                }
+
+                guard let product = products.first(where: { $0.id == productID }) else {
+                    call.reject("Selected Gillie Plus product is not available: \(productID). \(productDiagnosticsMessage(products))")
                     return
                 }
 
@@ -55,10 +68,15 @@ public class GilliePurchasesPlugin: CAPPlugin, CAPBridgedPlugin {
                     let active = await hasActiveGilliePlusEntitlement()
                     call.resolve([
                         "active": active,
-                        "source": "storekit2"
+                        "source": "storekit2",
+                        "productId": transaction.productID
                     ])
                 case .userCancelled:
-                    call.reject("Purchase cancelled.")
+                    call.resolve([
+                        "active": false,
+                        "source": "storekit2",
+                        "cancelled": true
+                    ])
                 case .pending:
                     call.resolve([
                         "active": false,
