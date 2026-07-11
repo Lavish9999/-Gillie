@@ -4,6 +4,7 @@
 
   const purchases = () => window.Capacitor?.Plugins?.GilliePurchases || null;
   const notifications = () => window.Capacitor?.Plugins?.LocalNotifications || null;
+  const CRAVING_FOLLOWUP_NOTIFICATION_ID = 810004;
 
   function track(name, properties = {}) {
     try { purchases()?.trackEvent?.({ name, properties }); } catch (_) {}
@@ -99,12 +100,56 @@
     }
   }
 
+  async function cancelCravingFollowupNotification() {
+    const plugin = notifications();
+    if (!plugin?.cancel) return;
+    try { await plugin.cancel({ notifications: [{ id: CRAVING_FOLLOWUP_NOTIFICATION_ID }] }); } catch (_) {}
+  }
+
+  async function rescheduleActiveCravingFollowup() {
+    const plugin = notifications();
+    const dueAt = state?.pendingFollowup?.dueAt;
+    if (!plugin?.schedule || !state?.reminders?.craving || !dueAt || dueAt <= Date.now()) return;
+    try {
+      const permission = await plugin.checkPermissions();
+      if (permission?.display !== "granted") return;
+      await cancelCravingFollowupNotification();
+      await plugin.schedule({
+        notifications: [{
+          id: CRAVING_FOLLOWUP_NOTIFICATION_ID,
+          title: "Still with you",
+          body: "Gillie is checking back again. Open the app when you are ready to say whether the craving passed.",
+          schedule: { at: new Date(dueAt) },
+          extra: { route: "craving-followup" },
+          threadIdentifier: "gillie-craving",
+          relevanceScore: 0.9,
+        }],
+      });
+      track("craving_followup_rescheduled");
+    } catch (error) {
+      track("craving_followup_reschedule_error", { message: String(error?.message || error).slice(0, 80) });
+    }
+  }
+
+  function installFollowupNotificationControls() {
+    document.querySelector("#followup-fighting")?.addEventListener("click", () => {
+      setTimeout(rescheduleActiveCravingFollowup, 75);
+    });
+    document.querySelector("#followup-made")?.addEventListener("click", () => {
+      setTimeout(cancelCravingFollowupNotification, 75);
+    });
+    document.querySelector("#followup-used")?.addEventListener("click", () => {
+      setTimeout(cancelCravingFollowupNotification, 75);
+    });
+  }
+
   function install() {
     hardenSettingsRendering();
     const purchaseButton = document.querySelector("#plus-purchase");
     const restoreButton = document.querySelector("#plus-restore");
     if (purchaseButton) purchaseButton.onclick = purchaseSelectedPlan;
     if (restoreButton) restoreButton.onclick = restorePurchase;
+    installFollowupNotificationControls();
     try { renderAll(); } catch (_) {}
     renderReminderStatus();
   }
