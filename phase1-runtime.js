@@ -456,6 +456,78 @@
     refreshProducts();
   }
 
+  function installPurchaseControls() {
+    const purchaseButton = document.querySelector("#plus-purchase");
+    const restoreButton = document.querySelector("#plus-restore");
+    const legal = () => document.querySelector("#plus-legal");
+
+    if (purchaseButton) {
+      purchaseButton.onclick = async () => {
+        const plan = CONFIG.plus.products[selectedPlusPlan] || CONFIG.plus.products.yearly;
+        const bridge = purchasePlugin();
+        if (!bridge?.purchase) {
+          legal().textContent = "Purchases are available in the iOS App Store build.";
+          return;
+        }
+        legal().textContent = `Opening Apple purchase sheet for ${plan.name}...`;
+        track("purchase_started", { plan: selectedPlusPlan });
+        try {
+          const result = await bridge.purchase({ productId: plan.id });
+          if (result?.active) {
+            applyEntitlementStatus(result);
+            document.querySelector("#plus-overlay").hidden = true;
+            toast("👑", "Gillie Plus active. Your Coach plan is unlocked.");
+            track("purchase_completed", { plan: selectedPlusPlan });
+            syncNotifications();
+          } else if (result?.cancelled) {
+            legal().textContent = "Purchase cancelled. Nothing was charged.";
+            track("purchase_cancelled", { plan: selectedPlusPlan });
+          } else if (result?.pending) {
+            legal().textContent = "Purchase is pending with Apple. Gillie will unlock after Apple approves it.";
+            track("purchase_pending", { plan: selectedPlusPlan });
+          } else {
+            if (result?.verified) applyEntitlementStatus(result);
+            legal().textContent = "Apple returned without an active Gillie Plus subscription. Try Restore purchases or try again.";
+          }
+        } catch (error) {
+          const message = String(error?.message || "Purchase was not completed.");
+          legal().textContent = /cancel/i.test(message) ? "Purchase cancelled. Nothing was charged." : message;
+          track("purchase_error", { message: message.slice(0, 80) });
+        }
+      };
+    }
+
+    if (restoreButton) {
+      restoreButton.onclick = async () => {
+        const bridge = purchasePlugin();
+        if (!bridge?.restorePurchases) {
+          legal().textContent = "Restore is available in the iOS App Store build.";
+          return;
+        }
+        legal().textContent = "Checking Apple purchases...";
+        track("restore_started");
+        try {
+          const result = await bridge.restorePurchases();
+          if (result?.active) {
+            applyEntitlementStatus(result);
+            document.querySelector("#plus-overlay").hidden = true;
+            toast("👑", "Gillie Plus restored.");
+            track("restore_completed", { active: true });
+            syncNotifications();
+          } else {
+            if (result?.verified) applyEntitlementStatus(result);
+            legal().textContent = "No active Gillie Plus purchase was found for this Apple ID.";
+            track("restore_completed", { active: false });
+          }
+        } catch (error) {
+          const message = String(error?.message || "Could not restore purchases right now.");
+          legal().textContent = message;
+          track("restore_error", { message: message.slice(0, 80) });
+        }
+      };
+    }
+  }
+
   function renderNotificationSettings() {
     const checkinValue = document.querySelector("#set-reminder-checkin-v");
     const cravingValue = document.querySelector("#set-reminder-craving-v");
@@ -468,6 +540,14 @@
   }
 
   function installReminderControls() {
+    if (typeof renderSettings === "function" && !renderSettings.__phase1Wrapped) {
+      const originalRenderSettings = renderSettings;
+      renderSettings = function renderSettingsPhase1() {
+        originalRenderSettings();
+        renderNotificationSettings();
+      };
+      renderSettings.__phase1Wrapped = true;
+    }
     const checkinButton = document.querySelector("#set-reminder-checkin");
     const cravingButton = document.querySelector("#set-reminder-craving");
     if (checkinButton) {
