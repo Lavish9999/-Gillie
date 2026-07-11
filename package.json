@@ -4,12 +4,13 @@
   "private": true,
   "description": "Gillie quit-vaping wellness companion.",
   "scripts": {
-    "prepare:cap": "node scripts/prepare-capacitor-web.js",
+    "prepare:cap": "node scripts/prepare-capacitor-web.js && node scripts/inject-phase3.js",
     "cap:sync:ios": "npm run prepare:cap && npx cap sync ios",
     "cap:open:ios": "npx cap open ios",
     "icons:ios": "powershell -ExecutionPolicy Bypass -File scripts/generate-ios-icons.ps1",
-    "validate:phase1": "node --check phase1-runtime.js && node --check phase1-commerce.js && node --check phase2-polish.js && node --check scripts/prepare-capacitor-web.js && npm run prepare:cap && node --check www/phase2-polish.js",
-    "validate:phase2": "npm run validate:phase1"
+    "validate:phase1": "node --check phase1-runtime.js && node --check phase1-commerce.js && node --check phase2-polish.js && node --check phase3-ship.js && node --check scripts/prepare-capacitor-web.js && node --check scripts/inject-phase3.js && npm run prepare:cap && node --check www/phase2-polish.js && node --check www/phase3-ship.js",
+    "validate:phase2": "npm run validate:phase1",
+    "validate:ship": "npm run validate:phase2"
   },
   "dependencies": {
     "@capacitor/cli": "^8.4.1",
