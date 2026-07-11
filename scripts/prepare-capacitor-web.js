@@ -60,4 +60,73 @@ for (const entry of entries) {
   copyRecursive(src, path.join(out, entry));
 }
 
-console.log("Prepared canonical Gillie web assets in www/ with Phase 2 premium polish.");
+/*
+ * Production startup fix.
+ *
+ * The original Reef MutationObserver watched child-list and all attribute
+ * mutations. Its callback then rewrote observed data attributes, ARIA text,
+ * and badge text every time it ran. That created a self-sustaining microtask
+ * loop which starved splash-removal timers and WKWebView recovery work.
+ *
+ * Make the generated iOS asset idempotent and only observe class changes,
+ * which are the actual ownership/equipped-state signal.
+ */
+const phase2OutputPath = path.join(out, "phase2-polish.js");
+let phase2Output = fs.readFileSync(phase2OutputPath, "utf8");
+
+const observerNeedle = '    const observer = new MutationObserver(decorateReefCards);\n    [$("#theme-row"), $("#buddy-grid"), $("#shop-grid")].filter(Boolean).forEach((node) => observer.observe(node, { childList: true, subtree: true, attributes: true }));';
+const observerReplacement = '    let reefDecorateQueued = false;\n    const observer = new MutationObserver(() => {\n      if (reefDecorateQueued) return;\n      reefDecorateQueued = true;\n      requestAnimationFrame(() => {\n        reefDecorateQueued = false;\n        decorateReefCards();\n      });\n    });\n    [$("#theme-row"), $("#buddy-grid"), $("#shop-grid")].filter(Boolean).forEach((node) => observer.observe(node, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] }));';
+
+if (!phase2Output.includes(observerNeedle)) {
+  throw new Error("Phase 2 Reef observer marker changed; refusing to build without the startup-loop fix.");
+}
+phase2Output = phase2Output.replace(observerNeedle, observerReplacement);
+
+const functionStart = phase2Output.indexOf("  function decorateReefCards() {");
+const functionEnd = phase2Output.indexOf("\n\n  function filterReef", functionStart);
+if (functionStart < 0 || functionEnd < 0) {
+  throw new Error("Could not locate decorateReefCards for the startup-loop fix.");
+}
+
+const fixedDecorator = `  function decorateReefCards() {
+    $$("#view-reef .theme-card, #view-reef .shop-card, #view-reef .buddy-card").forEach((card) => {
+      const text = card.textContent.toLowerCase();
+      const owned = card.classList.contains("owned") || card.classList.contains("equipped") || /owned|equipped|wearing|active/.test(text);
+      const plus = /plus|locked/.test(text) || card.classList.contains("locked");
+      const ownedValue = owned ? "true" : "false";
+      const plusValue = plus ? "true" : "false";
+      const badgeText = owned ? (card.classList.contains("equipped") ? "Equipped" : "Owned") : plus ? "Plus" : "Pearls";
+      const description = plus && !appState()?.premium
+        ? "Gillie Plus item. Tap to see how to unlock it."
+        : owned
+          ? "Owned item."
+          : "Available Reef item.";
+
+      if (card.dataset.phase2Owned !== ownedValue) card.dataset.phase2Owned = ownedValue;
+      if (card.dataset.phase2Plus !== plusValue) card.dataset.phase2Plus = plusValue;
+
+      let badge = $(".phase2-card-badge", card);
+      if (!badge) {
+        badge = document.createElement("span");
+        badge.className = "phase2-card-badge";
+        badge.textContent = badgeText;
+        card.appendChild(badge);
+      } else if (badge.textContent !== badgeText) {
+        badge.textContent = badgeText;
+      }
+
+      if (card.getAttribute("aria-description") !== description) {
+        card.setAttribute("aria-description", description);
+      }
+    });
+  }`;
+
+phase2Output = `${phase2Output.slice(0, functionStart)}${fixedDecorator}${phase2Output.slice(functionEnd)}`;
+phase2Output = `/* Gillie Reef mutation-loop startup fix applied. */\n${phase2Output}`;
+fs.writeFileSync(phase2OutputPath, phase2Output, "utf8");
+
+if (!phase2Output.includes("Gillie Reef mutation-loop startup fix applied")) {
+  throw new Error("Generated Phase 2 startup fix marker is missing.");
+}
+
+console.log("Prepared Gillie web assets with the Reef mutation-loop startup fix.");
