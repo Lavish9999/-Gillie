@@ -1,0 +1,42 @@
+name: Gillie Phase 1 CI
+
+on:
+  pull_request:
+    branches:
+      - native-ios-launch
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Validate canonical web source
+        run: npm run validate:phase1
+
+      - name: Sync Capacitor iOS
+        run: npx cap sync ios
+
+      - name: Compile iOS simulator build
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            build | xcpretty
