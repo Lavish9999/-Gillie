@@ -15,7 +15,7 @@ workflows:
         BUNDLE_ID: "com.lavish9999.gillie"
         XCODE_PROJECT: "ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
-        GILLIE_BUILD_NUMBER: "26"
+        GILLIE_BUILD_NUMBER: "27"
       ios_signing:
         distribution_type: app_store
         bundle_identifier: "com.lavish9999.gillie"
@@ -26,13 +26,17 @@ workflows:
           set -euo pipefail
           npm install
 
-      - name: Validate Phase 2 source
+      - name: Validate ship-quality source
         script: |
           set -euo pipefail
-          npm run validate:phase2
+          npm run validate:ship
           grep -q "Gillie startup, motion, and compact Home fixes applied" www/phase2-polish.js
           grep -q "phase2SpeechSafe" www/phase2-polish.css
-          grep -q "phase2-home-focus" www/phase2-polish.css
+          grep -q "gillieShipPolishInstalled" www/phase3-ship.js
+          grep -q "ship-progress-activation" www/phase3-ship.js
+          grep -q "YOUR PERSONAL QUIT PLAN" www/phase3-ship.js
+          grep -q "ship-status-scrim" www/phase3-ship.css
+          grep -q 'data-gillie-phase3="true"' www/index.html
 
       - name: Sync Capacitor iOS
         script: |
