@@ -6,6 +6,7 @@ const out = path.join(root, "www");
 const entries = [
   "index.html",
   "phase1-runtime.js",
+  "phase1-commerce.js",
   "manifest.webmanifest",
   "privacy.html",
   "terms.html",
@@ -32,6 +33,7 @@ const source = fs.readFileSync(indexPath, "utf8");
 const requiredMarkers = [
   "plus-tank-hero",
   '<script src="./phase1-runtime.js"></script>',
+  '<script src="./phase1-commerce.js"></script>',
   "gillie.plus.monthly",
   "gillie.plus.yearly",
 ];
