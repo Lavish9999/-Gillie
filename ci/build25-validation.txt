@@ -1,0 +1,1 @@
+Validates the Gillie tap bubble, single-tap reaction, fluid motion bundle, Capacitor sync, and iOS simulator build.
