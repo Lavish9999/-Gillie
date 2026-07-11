@@ -80,11 +80,6 @@ workflows:
       - name: Set up App Store code signing
         script: |
           set -euo pipefail
-          keychain initialize
-          app-store-connect fetch-signing-files "$BUNDLE_ID" \
-            --type IOS_APP_STORE \
-            --create
-          keychain add-certificates
           xcode-project use-profiles
 
       - name: Build App Store IPA
