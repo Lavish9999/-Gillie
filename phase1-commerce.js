@@ -161,3 +161,26 @@
     if (!document.hidden) renderReminderStatus();
   });
 })();
+
+/* Load the isolated Phase 2 polish layer after the production runtime. */
+(() => {
+  "use strict";
+  const load = () => {
+    if (!document.querySelector('link[data-gillie-phase2="true"]')) {
+      const stylesheet = document.createElement("link");
+      stylesheet.rel = "stylesheet";
+      stylesheet.href = "./phase2-polish.css";
+      stylesheet.dataset.gilliePhase2 = "true";
+      document.head.appendChild(stylesheet);
+    }
+    if (!document.querySelector('script[data-gillie-phase2="true"]')) {
+      const script = document.createElement("script");
+      script.src = "./phase2-polish.js";
+      script.defer = true;
+      script.dataset.gilliePhase2 = "true";
+      document.head.appendChild(script);
+    }
+  };
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", load, { once: true });
+  else load();
+})();

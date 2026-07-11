@@ -1,4 +1,4 @@
-name: Gillie Phase 1 CI
+name: Gillie Phase 2 CI
 
 on:
   pull_request:
@@ -23,7 +23,7 @@ jobs:
         run: npm install
 
       - name: Validate canonical web source
-        run: npm run validate:phase1
+        run: npm run validate:phase2
 
       - name: Sync Capacitor iOS
         run: npx cap sync ios
