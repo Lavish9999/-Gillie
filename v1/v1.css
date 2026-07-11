@@ -88,6 +88,47 @@
 #view-reef .v1-reef-archived-owned{opacity:.72}
 #view-reef .phase2-card-badge{box-shadow:none!important;border:1px solid var(--g-line)!important}
 
+/* Reef live preview: the clone loses its original IDs, so restore a controlled aquarium layout. */
+#phase2-tank-preview .phase2-preview-frame{
+  position:relative;
+  aspect-ratio:1/1.04;
+  background:#6f9d93;
+}
+#phase2-tank-preview .v1-tank-preview{
+  position:relative!important;
+  width:100%!important;
+  height:100%!important;
+  aspect-ratio:auto!important;
+  overflow:hidden!important;
+  pointer-events:none!important;
+}
+#phase2-tank-preview .v1-preview-axo-wrap{
+  position:absolute!important;
+  left:50%!important;
+  top:44%!important;
+  width:43%!important;
+  z-index:4!important;
+  transform:translate(-50%,-50%)!important;
+  transform-origin:50% 55%!important;
+  animation:none!important;
+  transition:none!important;
+  filter:none!important;
+}
+#phase2-tank-preview .v1-preview-axo-svg{
+  display:block!important;
+  width:100%!important;
+  height:auto!important;
+  max-width:none!important;
+  overflow:visible!important;
+  transform:none!important;
+  animation:none!important;
+}
+#phase2-tank-preview .v1-preview-axo-svg .axo-core,
+#phase2-tank-preview .v1-preview-axo-svg .axo-tail,
+#phase2-tank-preview .v1-preview-axo-svg .gill{
+  filter:none!important;
+}
+
 /* Coach */
 #coach-overlay .coach-room{padding-bottom:max(28px,env(safe-area-inset-bottom))!important}
 #coach-overlay .coach-actions{margin:16px 0 4px!important}
@@ -115,4 +156,5 @@
   .v1-insight-grid>div{padding:10px 7px}
   .v1-insight-grid b{font-size:18px}
   .v1-onboarding-details summary{padding-left:12px;padding-right:12px}
+  #phase2-tank-preview .v1-preview-axo-wrap{width:40%!important}
 }

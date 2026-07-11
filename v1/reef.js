@@ -26,6 +26,37 @@
       return [...archivedNames].find((name) => text.includes(name)) || text;
     }
 
+    function repairTankPreview() {
+      const overlay = qs("#phase2-tank-preview");
+      const frame = overlay && qs(".phase2-preview-frame", overlay);
+      const tank = frame && qs(".phase2-tank-clone", frame);
+      if (!tank) return;
+
+      tank.classList.add("v1-tank-preview");
+      tank.setAttribute("aria-hidden", "true");
+      tank.querySelectorAll(".bubble, .mote, .phase2-tank-heart, .phase2-food, .phase2-celebration").forEach((node) => node.remove());
+
+      const axoSvg = tank.querySelector("svg[data-growth]");
+      const axoWrap = axoSvg?.parentElement;
+      if (!axoSvg || !axoWrap) return;
+
+      axoWrap.classList.remove(
+        "phase2-alive",
+        "phase2-following",
+        "phase2-petted",
+        "phase2-playful",
+        "phase2-curious",
+        "phase2-snoozy",
+        "phase2-proud",
+        "phase2-feeding",
+      );
+      axoWrap.classList.add("v1-preview-axo-wrap");
+      axoSvg.classList.remove("flip", "swim", "celebrate", "tapjoy");
+      axoSvg.classList.add("v1-preview-axo-svg");
+
+      tank.dataset.v1PreviewRepaired = "true";
+    }
+
     function decorate() {
       let intro = qs("#v1-reef-intro", view);
       if (!intro) {
@@ -59,5 +90,14 @@
       setTimeout(decorate, 180);
       track("reef_opened_curated");
     });
+
+    const previewButton = qs("#phase2-preview-tank");
+    if (previewButton && previewButton.dataset.v1PreviewRepair !== "true") {
+      previewButton.dataset.v1PreviewRepair = "true";
+      previewButton.addEventListener("click", () => {
+        requestAnimationFrame(repairTankPreview);
+        setTimeout(repairTankPreview, 40);
+      });
+    }
   });
 })();
