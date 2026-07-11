@@ -1,0 +1,62 @@
+/* Gillie Phase 5 hotfix — refined benefit emblems and non-blocking cancellation feedback. */
+
+.gp-benefit-list{
+  gap:14px!important;
+}
+
+.gp-benefit-list>div{
+  grid-template-columns:28px minmax(0,1fr)!important;
+  gap:12px!important;
+}
+
+.gp-benefit-icon{
+  width:28px!important;
+  height:28px!important;
+  border-radius:50%!important;
+  color:#176c5c!important;
+  background:rgba(23,108,92,.055)!important;
+  border:1px solid rgba(23,108,92,.16)!important;
+  box-shadow:none!important;
+}
+
+.gp-benefit-svg{
+  width:15px!important;
+  height:15px!important;
+  stroke-width:1.75!important;
+}
+
+.gp-benefit-list>div:nth-child(2) .gp-benefit-icon{
+  color:#0f5d51!important;
+  background:rgba(15,93,81,.045)!important;
+}
+
+.gp-benefit-list>div:nth-child(3) .gp-benefit-icon{
+  color:#3b7669!important;
+  background:rgba(59,118,105,.045)!important;
+}
+
+/* Cancellation is not an error and should never cover the paywall. */
+.gp-status-banner.info{
+  display:none!important;
+}
+
+.gp-status-banner{
+  pointer-events:none!important;
+}
+
+@media (max-width:370px){
+  .gp-benefit-list>div{
+    grid-template-columns:26px minmax(0,1fr)!important;
+    gap:10px!important;
+  }
+
+  .gp-benefit-icon{
+    width:26px!important;
+    height:26px!important;
+  }
+
+  .gp-benefit-svg{
+    width:14px!important;
+    height:14px!important;
+  }
+}
