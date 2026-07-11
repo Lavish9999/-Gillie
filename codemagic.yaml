@@ -15,7 +15,6 @@ workflows:
         BUNDLE_ID: "com.lavish9999.gillie"
         XCODE_PROJECT: "ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
-        GILLIE_BUILD_NUMBER: "38"
       ios_signing:
         distribution_type: app_store
         bundle_identifier: "com.lavish9999.gillie"
@@ -60,11 +59,18 @@ workflows:
           set -euo pipefail
           npx cap sync ios
 
-      - name: Set iOS build number
+      - name: Set automatic iOS build number
         script: |
           set -euo pipefail
-          build_number="$GILLIE_BUILD_NUMBER"
-          echo "Hard-setting iOS build number to $build_number"
+          sequence="${PROJECT_BUILD_NUMBER:-${BUILD_NUMBER:-1}}"
+          case "$sequence" in
+            ''|*[!0-9]*)
+              echo "Codemagic build sequence is not numeric: $sequence"
+              exit 1
+              ;;
+          esac
+          build_number=$((1000 + sequence))
+          echo "Using automatic iOS build number: $build_number (Codemagic project sequence: $sequence)"
           cd ios/App
           sed -i '' -E "s/CURRENT_PROJECT_VERSION = [0-9]+;/CURRENT_PROJECT_VERSION = ${build_number};/g" App.xcodeproj/project.pbxproj
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${build_number}" App/Info.plist
@@ -109,15 +115,20 @@ workflows:
       - name: Build App Store IPA
         script: |
           set -euo pipefail
+          sequence="${PROJECT_BUILD_NUMBER:-${BUILD_NUMBER:-1}}"
+          build_number=$((1000 + sequence))
+          echo "Building IPA with automatic build number: $build_number"
           xcode-project build-ipa \
             --project "$XCODE_PROJECT" \
             --scheme "$XCODE_SCHEME" \
-            --archive-xcargs "CURRENT_PROJECT_VERSION=${GILLIE_BUILD_NUMBER}"
+            --archive-xcargs "CURRENT_PROJECT_VERSION=${build_number}"
 
       - name: Verify IPA iOS build number
         script: |
           set -euo pipefail
-          echo "Expected Gillie build number: $GILLIE_BUILD_NUMBER"
+          sequence="${PROJECT_BUILD_NUMBER:-${BUILD_NUMBER:-1}}"
+          expected_build_number=$((1000 + sequence))
+          echo "Expected Gillie build number: $expected_build_number"
           xcodebuild -project "$XCODE_PROJECT" -scheme "$XCODE_SCHEME" -configuration Release -showBuildSettings | grep -E "CURRENT_PROJECT_VERSION|MARKETING_VERSION"
 
           ipa_path="$(find build/ios/ipa -name "*.ipa" -type f | head -n 1)"
@@ -145,8 +156,8 @@ workflows:
             echo "Refusing to publish: IPA CFBundleVersion is still 1."
             exit 1
           fi
-          if [ "$build_version" != "$GILLIE_BUILD_NUMBER" ]; then
-            echo "Refusing to publish: IPA CFBundleVersion $build_version does not match GILLIE_BUILD_NUMBER $GILLIE_BUILD_NUMBER."
+          if [ "$build_version" != "$expected_build_number" ]; then
+            echo "Refusing to publish: IPA CFBundleVersion $build_version does not match automatic build number $expected_build_number."
             exit 1
           fi
 
