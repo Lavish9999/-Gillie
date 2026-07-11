@@ -41,14 +41,19 @@ workflows:
           grep -q "A quit plan that adapts to you" www/phase5-paywall.js
           grep -q "gp-paywall-sheet" www/phase5-paywall.js
           grep -q "gp-primary-cta" www/phase5-paywall.css
-          grep -q "premium benefit emblems" www/phase5-paywall-hotfix.css
-          grep -q "gp-status-banner.info" www/phase5-paywall-hotfix.css
+          grep -q "Gillie V1 visual foundation" www/gillie-foundation.css
+          grep -q -- "--g-icon-size" www/gillie-foundation.css
+          grep -q "gp-status-banner.info" www/gillie-foundation.css
           grep -q "ship-reef-plus-strip" www/phase4-launch.css
           grep -q "ship-status-scrim" www/phase3-ship.css
           grep -q 'data-gillie-phase3="true"' www/index.html
           grep -q 'data-gillie-phase4="true"' www/index.html
           grep -q 'data-gillie-phase5="true"' www/index.html
-          grep -q 'data-gillie-phase5-hotfix="true"' www/index.html
+          grep -q 'data-gillie-foundation="true"' www/index.html
+          if grep -q 'data-gillie-phase5-hotfix="true"' www/index.html; then
+            echo "Legacy paywall hotfix is still injected"
+            exit 1
+          fi
 
       - name: Sync Capacitor iOS
         script: |
