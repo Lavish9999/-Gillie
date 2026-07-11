@@ -103,9 +103,10 @@ public class GilliePurchasesPlugin: CAPPlugin, CAPBridgedPlugin {
                 case .success(let verification):
                     let transaction = try checkVerified(verification)
                     await transaction.finish()
-                    let status = await currentEntitlementStatus()
+                    var status = await currentEntitlementStatus()
+                    status["productId"] = transaction.productID
                     recordEvent(name: "purchase_completed_native", properties: ["productId": transaction.productID])
-                    call.resolve(status.merging(["productId": transaction.productID]) { current, _ in current })
+                    call.resolve(status)
                 case .userCancelled:
                     recordEvent(name: "purchase_cancelled_native", properties: ["productId": productID])
                     call.resolve(["active": false, "verified": true, "source": "storekit2", "cancelled": true])
@@ -185,18 +186,21 @@ public class GilliePurchasesPlugin: CAPPlugin, CAPBridgedPlugin {
             guard let transaction = try? checkVerified(result) else { continue }
             guard productIDs.contains(transaction.productID), transaction.revocationDate == nil else { continue }
             if let expiration = transaction.expirationDate, expiration <= Date() { continue }
-            let expiresAt: Any = transaction.expirationDate.map { $0.timeIntervalSince1970 * 1000 } ?? NSNull()
-            let status: [String: Any] = [
+
+            var status: [String: Any] = [
                 "active": true,
                 "verified": true,
                 "source": "storekit2",
                 "productId": transaction.productID,
-                "expiresAt": expiresAt,
                 "checkedAt": Date().timeIntervalSince1970 * 1000
             ]
+            if let expiration = transaction.expirationDate {
+                status["expiresAt"] = expiration.timeIntervalSince1970 * 1000
+            }
             cacheEntitlement(status)
             return status
         }
+
         let status: [String: Any] = [
             "active": false,
             "verified": true,
@@ -245,9 +249,9 @@ public class GilliePurchasesPlugin: CAPPlugin, CAPBridgedPlugin {
         for (key, value) in source.prefix(12) {
             guard key.count <= 40,
                   key.range(of: "^[A-Za-z0-9_.-]+$", options: .regularExpression) != nil else { continue }
-            if let text = value as? String { output[key] = String(text.prefix(80)) }
+            if let boolean = value as? Bool { output[key] = boolean }
+            else if let text = value as? String { output[key] = String(text.prefix(80)) }
             else if let number = value as? NSNumber { output[key] = number }
-            else if let boolean = value as? Bool { output[key] = boolean }
         }
         return output
     }
