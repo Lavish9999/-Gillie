@@ -163,7 +163,7 @@ for (const required of [
   "gp-status-banner",
   "gp-benefit-svg",
   "A quit plan that adapts to you",
-  "Purchase cancelled — nothing was charged.",
+  "Nothing charged. You can try again anytime.",
   "paywall_cta_tapped",
 ]) {
   if (!phase5.includes(required)) throw new Error(`Generated Phase 5 JavaScript is missing marker: ${required}`);
