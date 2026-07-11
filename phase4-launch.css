@@ -85,6 +85,11 @@
   min-height:44px;
 }
 
+/* The rebuilt paywall no longer needs a second stats/context strip in the hero. */
+#plus-overlay .gp-context{
+  display:none!important;
+}
+
 @media (max-width:360px){
   #view-reef .ship-reef-plus-strip{
     grid-template-columns:1fr!important;
