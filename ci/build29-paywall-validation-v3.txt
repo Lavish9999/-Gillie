@@ -1,0 +1,1 @@
+Validates the final Gillie Plus paywall with the redundant context strip removed, observer-safe plan copy, Phase 5 injection, Capacitor sync, and iOS Simulator compilation.
