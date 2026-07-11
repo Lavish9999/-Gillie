@@ -67,9 +67,6 @@ for (const entry of entries) {
  * mutations. Its callback then rewrote observed data attributes, ARIA text,
  * and badge text every time it ran. That created a self-sustaining microtask
  * loop which starved splash-removal timers and WKWebView recovery work.
- *
- * Make the generated iOS asset idempotent and only observe class changes,
- * which are the actual ownership/equipped-state signal.
  */
 const phase2OutputPath = path.join(out, "phase2-polish.js");
 let phase2Output = fs.readFileSync(phase2OutputPath, "utf8");
@@ -82,9 +79,9 @@ if (!phase2Output.includes(observerNeedle)) {
 }
 phase2Output = phase2Output.replace(observerNeedle, observerReplacement);
 
-const functionStart = phase2Output.indexOf("  function decorateReefCards() {");
-const functionEnd = phase2Output.indexOf("\n\n  function filterReef", functionStart);
-if (functionStart < 0 || functionEnd < 0) {
+const decoratorStart = phase2Output.indexOf("  function decorateReefCards() {");
+const decoratorEnd = phase2Output.indexOf("\n\n  function filterReef", decoratorStart);
+if (decoratorStart < 0 || decoratorEnd < 0) {
   throw new Error("Could not locate decorateReefCards for the startup-loop fix.");
 }
 
@@ -120,13 +117,169 @@ const fixedDecorator = `  function decorateReefCards() {
       }
     });
   }`;
+phase2Output = `${phase2Output.slice(0, decoratorStart)}${fixedDecorator}${phase2Output.slice(decoratorEnd)}`;
 
-phase2Output = `${phase2Output.slice(0, functionStart)}${fixedDecorator}${phase2Output.slice(functionEnd)}`;
-phase2Output = `/* Gillie Reef mutation-loop startup fix applied. */\n${phase2Output}`;
-fs.writeFileSync(phase2OutputPath, phase2Output, "utf8");
-
-if (!phase2Output.includes("Gillie Reef mutation-loop startup fix applied")) {
-  throw new Error("Generated Phase 2 startup fix marker is missing.");
+/*
+ * Tap and motion fix.
+ *
+ * Phase 2 previously animated transform on #axo-wrap and #axo-svg while the
+ * production aquarium already used those same transform properties for
+ * centering, drifting, flipping, and floating. Touch pointermove also fired
+ * the desktop follow behavior. The result was snapping and duplicate tap
+ * reactions. Keep mobile taps single, leave route movement to the production
+ * drift loop, and use the existing inner-SVG tap animation.
+ */
+const aliveStart = phase2Output.indexOf("  function installGillieAlive() {");
+const aliveEnd = phase2Output.indexOf("\n\n  function spawnTankHearts() {", aliveStart);
+if (aliveStart < 0 || aliveEnd < 0) {
+  throw new Error("Could not locate Gillie Alive functions for the motion fix.");
 }
 
-console.log("Prepared Gillie web assets with the Reef mutation-loop startup fix.");
+const fixedAlive = `  function installGillieAlive() {
+    const tank = $("#tank");
+    const wrap = $("#axo-wrap");
+    if (!tank || !wrap) return;
+    wrap.classList.add("phase2-alive");
+
+    tank.addEventListener("pointermove", (event) => {
+      if (preferences.reducedMotion) return;
+      if (event.pointerType !== "mouse" && event.pointerType !== "pen") return;
+      const rect = tank.getBoundingClientRect();
+      const x = ((event.clientX - rect.left) / rect.width - 0.5) * 2;
+      const y = ((event.clientY - rect.top) / rect.height - 0.5) * 2;
+      tank.style.setProperty("--phase2-look-x", x.toFixed(3));
+      tank.style.setProperty("--phase2-look-y", y.toFixed(3));
+      wrap.classList.add("phase2-following");
+      clearTimeout(tank.__phase2FollowTimer);
+      tank.__phase2FollowTimer = setTimeout(() => wrap.classList.remove("phase2-following"), 900);
+    }, { passive: true });
+
+    tank.addEventListener("pointerleave", () => wrap.classList.remove("phase2-following"));
+
+    wrap.addEventListener("pointerdown", (event) => {
+      event.stopImmediatePropagation();
+      reactToTankTap();
+    }, { capture: true });
+
+    clearInterval(aliveTimer);
+    aliveTimer = setInterval(() => {
+      if (document.hidden || preferences.reducedMotion || $("#main")?.hidden) return;
+      const moods = ["phase2-curious", "phase2-snoozy", "phase2-proud"];
+      wrap.classList.remove(...moods);
+      const current = appState();
+      const recentSlip = current?.justSlippedAt && now() - current.justSlippedAt < 6 * 3600000;
+      const mood = recentSlip ? "phase2-snoozy" : moods[Math.floor(Math.random() * moods.length)];
+      wrap.classList.add(mood);
+      clearTimeout(wrap.__phase2MoodTimer);
+      wrap.__phase2MoodTimer = setTimeout(() => wrap.classList.remove(mood), 3800);
+    }, 9000);
+  }
+
+  function reactToTankTap() {
+    const svg = $("#axo-svg");
+    const speech = $("#speech");
+    if (!svg || !speech) return;
+    const lines = [
+      "I’m here, team.",
+      "One clean decision at a time.",
+      "That tap counts as checking in on me.",
+      "The water remembers every hour you protected.",
+      "You handle the urge. I’ll handle the bubbles.",
+    ];
+
+    svg.classList.remove("tapjoy");
+    void svg.offsetWidth;
+    svg.classList.add("tapjoy");
+    clearTimeout(svg.__phase2TapTimer);
+    svg.__phase2TapTimer = setTimeout(() => svg.classList.remove("tapjoy"), 760);
+
+    speech.textContent = lines[Math.floor(Math.random() * lines.length)];
+    speech.classList.remove("phase2-speech-pop");
+    void speech.offsetWidth;
+    speech.classList.add("phase2-speech-pop");
+    clearTimeout(speech.__phase2PopTimer);
+    speech.__phase2PopTimer = setTimeout(() => speech.classList.remove("phase2-speech-pop"), 650);
+
+    haptic("medium");
+    tone("bubble");
+    spawnTankHearts();
+    track("tank_gillie_tapped");
+  }`;
+phase2Output = `${phase2Output.slice(0, aliveStart)}${fixedAlive}${phase2Output.slice(aliveEnd)}`;
+phase2Output = `/* Gillie startup and companion-motion fixes applied. */\n${phase2Output}`;
+fs.writeFileSync(phase2OutputPath, phase2Output, "utf8");
+
+const phase2CssOutputPath = path.join(out, "phase2-polish.css");
+let phase2CssOutput = fs.readFileSync(phase2CssOutputPath, "utf8");
+phase2CssOutput += `
+
+/* Build 25: preserve aquarium centering and keep tap speech inside the tank. */
+#axo-wrap{
+  transition:left 4.8s cubic-bezier(.37,0,.18,1),top 4.8s cubic-bezier(.37,0,.18,1),width 1.2s ease,filter .45s ease!important;
+  backface-visibility:hidden;
+  -webkit-backface-visibility:hidden;
+}
+#axo-wrap.phase2-alive{
+  animation:float 6.4s ease-in-out infinite!important;
+  transform-origin:50% 55%;
+  will-change:left,top,transform;
+}
+#axo-wrap.phase2-alive #axo-svg{
+  animation:none!important;
+  will-change:transform;
+}
+#axo-wrap.phase2-alive #axo-svg.tapjoy{
+  animation:tapBounce .7s cubic-bezier(.35,.9,.4,1)!important;
+}
+#axo-wrap.phase2-alive #axo-svg.celebrate{
+  animation:celebrate .95s cubic-bezier(.35,.8,.35,1)!important;
+}
+#axo-wrap.phase2-following{
+  animation:float 6.4s ease-in-out infinite!important;
+  translate:calc(var(--phase2-look-x,0) * 12px) calc(var(--phase2-look-y,0) * 7px);
+  transition:left 4.8s cubic-bezier(.37,0,.18,1),top 4.8s cubic-bezier(.37,0,.18,1),translate .42s cubic-bezier(.2,.75,.25,1),filter .45s ease!important;
+}
+#axo-wrap.phase2-petted,
+#axo-wrap.phase2-playful,
+#axo-wrap.phase2-feeding{
+  animation:float 6.4s ease-in-out infinite!important;
+}
+#axo-wrap.phase2-curious{animation-duration:6.4s!important;filter:brightness(1.03)}
+#axo-wrap.phase2-playful{filter:saturate(1.06) brightness(1.03)}
+#axo-wrap.phase2-feeding{filter:brightness(1.06)}
+
+#speech{
+  left:50%!important;
+  right:auto!important;
+  width:calc(100% - 28px)!important;
+  max-width:360px!important;
+  transform:translateX(-50%)!important;
+  white-space:normal;
+  overflow-wrap:anywhere;
+  word-break:normal;
+  line-height:1.28;
+  z-index:30;
+  will-change:transform,opacity;
+}
+#speech.phase2-speech-pop{
+  animation:phase2SpeechSafe .55s cubic-bezier(.2,.85,.3,1) both!important;
+}
+@keyframes phase2SpeechSafe{
+  0%{opacity:.18;transform:translateX(-50%) translateY(8px) scale(.97)}
+  65%{opacity:1;transform:translateX(-50%) translateY(-2px) scale(1.01)}
+  100%{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}
+}
+`;
+fs.writeFileSync(phase2CssOutputPath, phase2CssOutput, "utf8");
+
+for (const marker of [
+  "Gillie startup and companion-motion fixes applied",
+  "event.pointerType !== \"mouse\"",
+  "phase2SpeechSafe",
+  "attributeFilter: [\"class\"]",
+]) {
+  const target = marker === "phase2SpeechSafe" ? phase2CssOutput : phase2Output;
+  if (!target.includes(marker)) throw new Error(`Generated Gillie fix marker is missing: ${marker}`);
+}
+
+console.log("Prepared Gillie web assets with startup, tap-bubble, and fluid-motion fixes.");
