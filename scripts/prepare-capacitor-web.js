@@ -206,7 +206,75 @@ const fixedAlive = `  function installGillieAlive() {
     track("tank_gillie_tapped");
   }`;
 phase2Output = `${phase2Output.slice(0, aliveStart)}${fixedAlive}${phase2Output.slice(aliveEnd)}`;
-phase2Output = `/* Gillie startup and companion-motion fixes applied. */\n${phase2Output}`;
+
+/*
+ * Home layout fix.
+ *
+ * The horizontal card rail exposed a clipped next card, fought the vertical
+ * page gesture on iPhone, and let the fixed SOS pill cover its swipe hint.
+ * Replace it with a compact, fully vertical hierarchy that scrolls naturally.
+ */
+const homeStart = phase2Output.indexOf("  function installHomeHierarchy() {");
+const homeEnd = phase2Output.indexOf("\n\n  function primaryActionData() {", homeStart);
+if (homeStart < 0 || homeEnd < 0) {
+  throw new Error("Could not locate Home hierarchy for the compact layout fix.");
+}
+
+const fixedHome = `  function installHomeHierarchy() {
+    const view = $("#view-home");
+    const streak = $(".streak-block", view);
+    if (!view || !streak) return;
+
+    if (!$("#phase2-primary-action")) {
+      const primary = document.createElement("button");
+      primary.id = "phase2-primary-action";
+      primary.className = "phase2-primary-action";
+      primary.innerHTML = \`<span class="phase2-primary-icon">◌</span><span class="phase2-primary-copy"><small>Next best move</small><b>Check in with Gillie</b><em>Thirty seconds sharpens tomorrow.</em></span><span class="phase2-primary-arrow">›</span>\`;
+      streak.insertAdjacentElement("afterend", primary);
+      primary.addEventListener("click", runPrimaryAction);
+    }
+
+    $("#phase2-home-carousel")?.remove();
+    $(".phase2-swipe-hint")?.remove();
+
+    let focus = $("#phase2-home-focus");
+    if (!focus) {
+      focus = document.createElement("section");
+      focus.id = "phase2-home-focus";
+      focus.className = "phase2-home-focus";
+      focus.setAttribute("aria-label", "Today and growth");
+      $("#phase2-primary-action")?.insertAdjacentElement("afterend", focus);
+    }
+
+    let secondary = $("#phase2-home-secondary");
+    if (!secondary) {
+      secondary = document.createElement("section");
+      secondary.id = "phase2-home-secondary";
+      secondary.className = "phase2-home-secondary";
+      secondary.setAttribute("aria-label", "More Gillie tools");
+      focus.insertAdjacentElement("afterend", secondary);
+    }
+
+    ["growth-card", "plan-preview"].forEach((id) => {
+      const card = document.getElementById(id);
+      if (!card) return;
+      card.classList.remove("phase2-carousel-card");
+      focus.appendChild(card);
+    });
+
+    ["goal-card", "coach-card", "checkin-card", "next-milestone"].forEach((id) => {
+      const card = document.getElementById(id);
+      if (!card) return;
+      card.classList.remove("phase2-carousel-card");
+      secondary.appendChild(card);
+    });
+
+    refreshPrimaryAction();
+    clearInterval(primaryRefreshTimer);
+    primaryRefreshTimer = setInterval(refreshPrimaryAction, 60000);
+  }`;
+phase2Output = `${phase2Output.slice(0, homeStart)}${fixedHome}${phase2Output.slice(homeEnd)}`;
+phase2Output = `/* Gillie startup, motion, and compact Home fixes applied. */\n${phase2Output}`;
 fs.writeFileSync(phase2OutputPath, phase2Output, "utf8");
 
 const phase2CssOutputPath = path.join(out, "phase2-polish.css");
@@ -269,17 +337,92 @@ phase2CssOutput += `
   65%{opacity:1;transform:translateX(-50%) translateY(-2px) scale(1.01)}
   100%{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}
 }
+
+/* Build 26: compact Home layout with normal vertical scrolling. */
+#view-home{
+  overflow-x:hidden!important;
+  padding-bottom:calc(188px + env(safe-area-inset-bottom))!important;
+}
+.phase2-home-carousel,.phase2-swipe-hint{display:none!important}
+.phase2-primary-action{margin:12px 0 10px!important}
+.phase2-home-focus,.phase2-home-secondary{
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  gap:10px;
+  width:100%;
+  min-width:0;
+}
+.phase2-home-focus{margin:0 0 10px}
+.phase2-home-secondary{margin:0}
+.phase2-home-focus>*,.phase2-home-secondary>*{
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+  margin:0!important;
+  box-sizing:border-box!important;
+}
+.phase2-home-focus .growth-card{
+  padding:14px 16px!important;
+  border-radius:20px!important;
+  min-height:0!important;
+}
+.phase2-home-focus .growth-card .row{
+  align-items:center!important;
+  flex-wrap:wrap;
+  row-gap:3px;
+}
+.phase2-home-focus .growth-card .gn{font-size:16px!important}
+.phase2-home-focus .growth-card .gv{font-size:12.5px!important}
+.phase2-home-focus .growth-card .bar{height:6px!important;margin-top:9px!important}
+.phase2-home-focus .growth-card .eta{font-size:12px!important;margin-top:6px!important}
+.phase2-home-focus #plan-preview{
+  min-height:0!important;
+  padding:14px 16px!important;
+  border-radius:20px!important;
+  overflow:hidden;
+}
+.phase2-home-secondary #coach-card,
+.phase2-home-secondary #checkin-card,
+.phase2-home-secondary #next-milestone,
+.phase2-home-secondary #goal-card{
+  min-height:0!important;
+  padding:14px 16px!important;
+  border-radius:20px!important;
+}
+.phase2-home-secondary #checkin-card{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:center;
+  gap:10px;
+}
+.phase2-home-secondary #checkin-card button{
+  margin:0!important;
+  padding:10px 14px!important;
+}
+#sos-fab{
+  left:auto!important;
+  right:16px!important;
+  transform:none!important;
+  bottom:calc(76px + env(safe-area-inset-bottom))!important;
+  padding:12px 18px!important;
+  font-size:14px!important;
+  gap:7px!important;
+  max-width:190px;
+  white-space:nowrap;
+  box-shadow:0 10px 26px rgba(226,83,111,.34)!important;
+}
 `;
 fs.writeFileSync(phase2CssOutputPath, phase2CssOutput, "utf8");
 
 for (const marker of [
-  "Gillie startup and companion-motion fixes applied",
+  "Gillie startup, motion, and compact Home fixes applied",
   "event.pointerType !== \"mouse\"",
   "phase2SpeechSafe",
+  "phase2-home-focus",
   "attributeFilter: [\"class\"]",
 ]) {
-  const target = marker === "phase2SpeechSafe" ? phase2CssOutput : phase2Output;
+  const target = marker === "phase2SpeechSafe" || marker === "phase2-home-focus" ? phase2CssOutput : phase2Output;
   if (!target.includes(marker)) throw new Error(`Generated Gillie fix marker is missing: ${marker}`);
 }
 
-console.log("Prepared Gillie web assets with startup, tap-bubble, and fluid-motion fixes.");
+console.log("Prepared Gillie web assets with startup, motion, and compact Home fixes.");
