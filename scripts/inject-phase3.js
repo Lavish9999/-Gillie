@@ -158,14 +158,32 @@ for (const required of ["ship-reef-plus-strip", "padding-bottom:calc", "#plus-pu
 for (const required of [
   "gilliePaywallRebuildInstalled",
   "gp-paywall-sheet",
+  "gp-paywall-scroll",
+  "gp-purchase-dock",
+  "gp-status-banner",
+  "gp-benefit-svg",
   "A quit plan that adapts to you",
-  "Purchase cancelled. Nothing was charged.",
+  "Purchase cancelled — nothing was charged.",
   "paywall_cta_tapped",
 ]) {
   if (!phase5.includes(required)) throw new Error(`Generated Phase 5 JavaScript is missing marker: ${required}`);
 }
-for (const required of ["#plus-overlay.gp-paywall-overlay", ".gp-hero-card", ".gp-benefit-list", ".gp-primary-cta"]) {
+for (const required of [
+  "#plus-overlay.gp-paywall-overlay",
+  ".gp-hero-card",
+  ".gp-benefit-list",
+  ".gp-benefit-svg",
+  ".gp-paywall-scroll",
+  ".gp-purchase-dock",
+  ".gp-status-banner",
+  ".gp-primary-cta",
+]) {
   if (!phase5Css.includes(required)) throw new Error(`Generated Phase 5 CSS is missing marker: ${required}`);
+}
+for (const forbidden of [".gp-cta-wrap", "position:sticky", "◔", "↺"]) {
+  if (phase5.includes(forbidden) || phase5Css.includes(forbidden)) {
+    throw new Error(`Generated Phase 5 paywall still contains forbidden legacy marker: ${forbidden}`);
+  }
 }
 if (!html.includes('data-gillie-phase3="true"') || !html.includes('data-gillie-phase4="true"') || !html.includes('data-gillie-phase5="true"')) {
   throw new Error("Phase 3/4/5 tags were not injected into www/index.html.");
