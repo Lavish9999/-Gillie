@@ -5,7 +5,7 @@
   if (window.__gilliePaywallRebuildInstalled) return;
   window.__gilliePaywallRebuildInstalled = true;
 
-  const VERSION = "phase5-paywall-2026.07.11-premium-v2";
+  const VERSION = "phase5-paywall-2026.07.11-premium-v3";
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
   const appState = () => (typeof state !== "undefined" && state ? state : null);
@@ -32,10 +32,10 @@
   function benefitSvg(kind) {
     const common = 'class="gp-benefit-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"';
     if (kind === "clock") {
-      return `<svg ${common}><circle cx="12" cy="12" r="8.25"></circle><path d="M12 7.5v5l3.35 1.9"></path></svg>`;
+      return `<svg ${common}><circle cx="12" cy="12" r="8.25"></circle><path d="M12 7.75v4.5l3.1 1.8"></path></svg>`;
     }
     if (kind === "move") {
-      return `<svg ${common}><path d="M5 12h12.5"></path><path d="m13.5 7.5 4.5 4.5-4.5 4.5"></path></svg>`;
+      return `<svg ${common}><path d="M4.75 12h13.5"></path><path d="m13.75 7.5 4.5 4.5-4.5 4.5"></path></svg>`;
     }
     return `<svg ${common}><path d="M7.1 8.1A6.8 6.8 0 1 1 6 15.3"></path><path d="M7.1 3.9v4.2H2.9"></path><path d="m9.15 12 1.9 1.9 4-4.15"></path></svg>`;
   }
@@ -48,7 +48,7 @@
     if (!sheet || sheet.dataset.gpDragGuard === "1") return;
     const blockLegacyDrag = (event) => {
       if (event.target.closest("button,input,textarea,select,a,label")) return;
-      if (event.target.closest(".gp-hero-card,.gp-paywall-scroll")) event.stopImmediatePropagation();
+      if (event.target.closest(".gp-hero-card,.gp-paywall-scroll,.gp-purchase-dock")) event.stopImmediatePropagation();
     };
     sheet.addEventListener("pointerdown", blockLegacyDrag, true);
     sheet.addEventListener("touchstart", blockLegacyDrag, { capture: true, passive: true });
@@ -84,29 +84,28 @@
     const scroll = create("div", "gp-paywall-scroll");
     scroll.id = "gp-paywall-scroll";
 
-    const hero = create("section", "gp-hero-card");
+    const hero = create("header", "gp-hero-card");
     hero.setAttribute("aria-labelledby", "plus-title");
-    hero.innerHTML = `
-      <div class="gp-hero-orb gp-hero-orb-one"></div>
-      <div class="gp-hero-orb gp-hero-orb-two"></div>
-      <div class="gp-hero-shimmer" aria-hidden="true"></div>`;
+
+    close.className = "gp-close";
+    hero.appendChild(close);
+
+    const mascotPanel = create("div", "gp-mascot-panel");
+    mascotPanel.innerHTML = `<span class="gp-mascot-halo" aria-hidden="true"></span>`;
+    mascot.className = "plus-mascot-wrap gp-mascot-wrap";
+    mascotPanel.appendChild(mascot);
+    hero.appendChild(mascotPanel);
 
     const heroCopy = create("div", "gp-hero-copy");
     kicker.className = "plus-kicker gp-kicker";
     title.className = "gp-title";
     subtitle.className = "gp-subtitle";
     heroCopy.append(kicker, title, subtitle);
-
-    const mascotPanel = create("div", "gp-mascot-panel");
-    mascot.className = "plus-mascot-wrap gp-mascot-wrap";
-    mascotPanel.appendChild(mascot);
-
-    close.className = "gp-close";
-    hero.append(heroCopy, mascotPanel, close);
+    hero.appendChild(heroCopy);
     scroll.appendChild(hero);
 
     const value = create("section", "gp-value-section");
-    value.innerHTML = `<div class="gp-section-label">What Plus changes</div>`;
+    value.setAttribute("aria-label", "What Gillie Plus includes");
     proof.className = "plus-proof gp-benefit-list";
     value.appendChild(proof);
     scroll.appendChild(value);
@@ -115,26 +114,12 @@
     scroll.appendChild(now);
 
     const pricing = create("section", "gp-pricing-section");
-    pricing.innerHTML = `<div class="gp-pricing-head"><span>Choose a plan</span><small>Yearly selected</small></div>`;
+    pricing.innerHTML = `<div class="gp-pricing-head"><span>Choose your plan</span><small class="gp-sr-only" aria-live="polite"></small></div>`;
     plans.className = "plus-plans gp-plan-list";
     plans.setAttribute("role", "radiogroup");
     plans.setAttribute("aria-label", "Gillie Plus plan");
     pricing.appendChild(plans);
     scroll.appendChild(pricing);
-
-    const action = create("section", "gp-purchase-dock");
-    action.id = "gp-purchase-dock";
-
-    const status = create("div", "gp-status-banner");
-    status.id = "gp-status-banner";
-    status.setAttribute("role", "status");
-    status.setAttribute("aria-live", "polite");
-    status.hidden = true;
-
-    purchase.className = "btn plus-cta gp-primary-cta";
-    const caption = create("div", "gp-cta-caption", "Secure Apple billing · Cancel anytime");
-    action.append(status, purchase, caption);
-    scroll.appendChild(action);
 
     const reassurance = freeNote || create("div", "phase2-plus-free-note");
     reassurance.id = "phase2-plus-free-note";
@@ -144,7 +129,7 @@
 
     const footer = create("footer", "gp-footer");
     restoreRow.className = "plus-restore-row gp-restore-row";
-    const links = create("div", "gp-legal-links", `<a href="./terms.html">Terms</a><span>·</span><a href="./privacy.html">Privacy</a>`);
+    const links = create("div", "gp-legal-links", `<span aria-hidden="true">·</span><a href="./terms.html">Terms</a><span aria-hidden="true">·</span><a href="./privacy.html">Privacy</a>`);
     legal.className = "plus-legal gp-legal-source";
     legal.setAttribute("aria-hidden", "true");
     footer.append(restoreRow, links, legal);
@@ -157,14 +142,27 @@
     hiddenSources.appendChild(stats);
     scroll.appendChild(hiddenSources);
 
-    sheet.appendChild(scroll);
+    const action = create("div", "gp-purchase-dock");
+    action.id = "gp-purchase-dock";
+
+    const status = create("div", "gp-status-banner");
+    status.id = "gp-status-banner";
+    status.setAttribute("role", "status");
+    status.setAttribute("aria-live", "polite");
+    status.hidden = true;
+
+    purchase.className = "btn plus-cta gp-primary-cta";
+    const caption = create("div", "gp-cta-caption", "Auto-renews through Apple · Cancel anytime");
+    action.append(status, purchase, caption);
+
+    sheet.append(scroll, action);
     if (oldHero) oldHero.remove();
 
     overlay.classList.add("gp-paywall-overlay");
     installDragGuard(sheet);
     installLegalObserver();
     installPlanObserver();
-    track("paywall_rebuilt", { layout: "premium_single_scroll" });
+    track("paywall_rebuilt", { layout: "premium_native_v3" });
     return true;
   }
 
@@ -189,35 +187,29 @@
     });
     const selected = plans.find((button) => button.classList.contains("on"));
     const head = $(".gp-pricing-head small");
-    if (head) head.textContent = selected?.dataset.plusPlan === "monthly" ? "Monthly selected" : "Yearly selected";
+    if (head) {
+      const label = selected?.dataset.plusPlan === "monthly" ? "Monthly selected" : "Yearly selected";
+      if (head.textContent !== label) head.textContent = label;
+    }
   }
 
+  /* Plan copy is enforced idempotently: Phase 4 rewrites notes with CONFIG copy
+     after localizing prices, so compare before writing to avoid observer loops. */
   function cleanPlanCopy() {
     const yearly = $('[data-plus-plan="yearly"]');
     const monthly = $('[data-plus-plan="monthly"]');
     if (yearly) {
       const name = $(".name", yearly);
       const note = $(".note", yearly);
-      if (name && name.dataset.gpCopy !== "yearly") {
-        name.innerHTML = `Yearly <span class="badge">BEST VALUE</span>`;
-        name.dataset.gpCopy = "yearly";
-      }
-      if (note && note.dataset.gpCopy !== "yearly") {
-        note.textContent = "Save 37% · about $2.50/month";
-        note.dataset.gpCopy = "yearly";
-      }
+      const nameHtml = `Yearly <span class="badge">Save 37%</span>`;
+      if (name && name.innerHTML !== nameHtml) name.innerHTML = nameHtml;
+      if (note && note.textContent !== "Billed once a year") note.textContent = "Billed once a year";
     }
     if (monthly) {
       const name = $(".name", monthly);
       const note = $(".note", monthly);
-      if (name && name.dataset.gpCopy !== "monthly") {
-        name.textContent = "Monthly";
-        name.dataset.gpCopy = "monthly";
-      }
-      if (note && note.dataset.gpCopy !== "monthly") {
-        note.textContent = "Flexible access · cancel anytime";
-        note.dataset.gpCopy = "monthly";
-      }
+      if (name && name.textContent !== "Monthly") name.textContent = "Monthly";
+      if (note && note.textContent !== "Cancel anytime") note.textContent = "Cancel anytime";
     }
     updatePlanAccessibility();
   }
