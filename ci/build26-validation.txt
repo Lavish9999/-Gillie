@@ -1,0 +1,1 @@
+Validates the compact vertical Home layout, fixed SOS placement, generated JavaScript, Capacitor sync, and iOS simulator build.
