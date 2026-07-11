@@ -1,0 +1,1 @@
+Validates the generated idempotent Reef observer bundle and iOS simulator build.
