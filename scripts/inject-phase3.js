@@ -24,11 +24,16 @@ const injection = `${marker}\n<link rel="stylesheet" href="./phase3-ship.css" da
 if (!html.includes(marker)) {
   if (!html.includes("</body>")) throw new Error("Cannot inject Phase 3 assets: missing </body>.");
   html = html.replace("</body>", `${injection}\n</body>`);
-  fs.writeFileSync(indexPath, html, "utf8");
 }
+
+html = html
+  .replace('kicker: "Paywall is the tank"', 'kicker: "Your personal quit plan"')
+  .replace('cta: "Unlock Gillie Plus"', 'cta: "Start Gillie Plus"');
+fs.writeFileSync(indexPath, html, "utf8");
 
 const jsPath = path.join(out, "phase3-ship.js");
 let js = fs.readFileSync(jsPath, "utf8");
+
 const openPlusNeedle = `    try {
       if (typeof window.openPlus === "function") window.openPlus();
       else if (typeof openPlus === "function") openPlus();
@@ -68,6 +73,13 @@ const refreshReplacement = `  function refresh() {
   }`;
 if (!js.includes(refreshNeedle)) throw new Error("Phase 3 refresh marker changed.");
 js = js.replace(refreshNeedle, refreshReplacement);
+
+const badgeRemovalNeedle = `    $$("#shop-grid .phase2-card-badge", view).forEach((badge) => badge.remove());
+    buildReefStarterMessage();`;
+const badgeRemovalReplacement = `    buildReefStarterMessage();`;
+if (!js.includes(badgeRemovalNeedle)) throw new Error("Phase 3 Reef badge marker changed.");
+js = js.replace(badgeRemovalNeedle, badgeRemovalReplacement);
+
 js = `/* Phase 3 observer guard applied. */\n${js}`;
 fs.writeFileSync(jsPath, js, "utf8");
 
@@ -85,5 +97,7 @@ for (const required of ["#ship-status-scrim", ".ship-home-flow", ".ship-paywall"
   if (!css.includes(required)) throw new Error(`Generated Phase 3 CSS is missing marker: ${required}`);
 }
 if (!html.includes('data-gillie-phase3="true"')) throw new Error("Phase 3 tags were not injected into www/index.html.");
+if (html.includes('kicker: "Paywall is the tank"')) throw new Error("Internal paywall copy leaked into the generated app.");
+if (js.includes('phase2-card-badge", view).forEach((badge) => badge.remove())')) throw new Error("Generated Phase 3 bundle still removes Phase 2 badges and can cause an observer loop.");
 
-console.log("Injected Gillie Phase 3 ship-quality assets with observer guard into www/.");
+console.log("Injected Gillie Phase 3 ship-quality assets with observer guards into www/.");
