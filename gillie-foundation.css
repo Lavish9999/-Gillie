@@ -1,0 +1,125 @@
+/* Gillie V1 visual foundation — canonical tokens and shared premium UI rules. */
+:root{
+  --g-radius-xs:10px;
+  --g-radius-sm:14px;
+  --g-radius-md:18px;
+  --g-radius-lg:28px;
+  --g-line:rgba(17,51,47,.10);
+  --g-line-strong:rgba(17,51,47,.16);
+  --g-surface:#fff;
+  --g-surface-soft:#f4f8f6;
+  --g-icon-size:34px;
+  --g-icon-glyph:20px;
+  --g-icon-bg:rgba(15,91,80,.065);
+  --g-icon-border:rgba(15,91,80,.11);
+  --g-icon-ink:#0f5b50;
+  --g-shadow-card:0 8px 24px rgba(17,51,47,.07);
+  --g-shadow-modal:0 22px 56px rgba(7,31,29,.18);
+}
+
+button:focus-visible,
+[role="button"]:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible{
+  outline:3px solid rgba(47,156,119,.32);
+  outline-offset:3px;
+}
+
+/* Canonical benefit-row treatment: quiet, flat, and content-first. */
+.gp-benefit-list{
+  gap:18px!important;
+}
+
+.gp-benefit-list>div{
+  grid-template-columns:var(--g-icon-size) minmax(0,1fr)!important;
+  gap:14px!important;
+  align-items:start!important;
+}
+
+.gp-benefit-icon{
+  position:relative!important;
+  width:var(--g-icon-size)!important;
+  height:var(--g-icon-size)!important;
+  min-width:var(--g-icon-size)!important;
+  min-height:var(--g-icon-size)!important;
+  margin:0!important;
+  padding:0!important;
+  display:grid!important;
+  place-items:center!important;
+  align-self:start!important;
+  line-height:0!important;
+  border-radius:var(--g-radius-xs)!important;
+  color:var(--g-icon-ink)!important;
+  background:var(--g-icon-bg)!important;
+  border:1px solid var(--g-icon-border)!important;
+  box-shadow:none!important;
+  overflow:hidden!important;
+}
+
+.gp-benefit-icon::before,
+.gp-benefit-icon::after{
+  display:none!important;
+  content:none!important;
+}
+
+.gp-benefit-svg{
+  display:block!important;
+  width:var(--g-icon-glyph)!important;
+  height:var(--g-icon-glyph)!important;
+  margin:0!important;
+  padding:0!important;
+  fill:none!important;
+  stroke:currentColor!important;
+  stroke-width:1.75!important;
+  stroke-linecap:round!important;
+  stroke-linejoin:round!important;
+  opacity:1!important;
+  transform:none!important;
+  vector-effect:non-scaling-stroke;
+}
+
+.gp-benefit-list>div:nth-child(2) .gp-benefit-svg{
+  transform:translateX(.4px)!important;
+}
+
+.gp-benefit-list>div:nth-child(3) .gp-benefit-svg{
+  width:19px!important;
+  height:19px!important;
+}
+
+/* Cancellation is a non-event. Never place it over the paywall. */
+.gp-status-banner.info{
+  display:none!important;
+}
+
+.gp-status-banner{
+  pointer-events:none!important;
+}
+
+@media (max-width:370px){
+  :root{
+    --g-icon-size:32px;
+    --g-icon-glyph:18px;
+  }
+
+  .gp-benefit-list{
+    gap:16px!important;
+  }
+
+  .gp-benefit-list>div{
+    gap:12px!important;
+  }
+
+  .gp-benefit-list>div:nth-child(3) .gp-benefit-svg{
+    width:17px!important;
+    height:17px!important;
+  }
+}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    scroll-behavior:auto!important;
+  }
+}

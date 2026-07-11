@@ -10,7 +10,7 @@ const assets = [
   "phase4-launch.css",
   "phase4-launch.js",
   "phase5-paywall.css",
-  "phase5-paywall-hotfix.css",
+  "gillie-foundation.css",
   "phase5-paywall.js",
 ];
 
@@ -27,7 +27,7 @@ for (const asset of assets) {
 
 let html = fs.readFileSync(indexPath, "utf8");
 const marker = "<!-- Gillie Phase 3 ship polish -->";
-const injection = `${marker}\n<link rel="stylesheet" href="./phase3-ship.css" data-gillie-phase3="true">\n<script src="./phase3-ship.js" defer data-gillie-phase3="true"></script>\n<!-- Gillie Phase 4 launch hardening -->\n<link rel="stylesheet" href="./phase4-launch.css" data-gillie-phase4="true">\n<script src="./phase4-launch.js" defer data-gillie-phase4="true"></script>\n<!-- Gillie Phase 5 production paywall -->\n<link rel="stylesheet" href="./phase5-paywall.css" data-gillie-phase5="true">\n<link rel="stylesheet" href="./phase5-paywall-hotfix.css" data-gillie-phase5-hotfix="true">\n<script src="./phase5-paywall.js" defer data-gillie-phase5="true"></script>`;
+const injection = `${marker}\n<link rel="stylesheet" href="./phase3-ship.css" data-gillie-phase3="true">\n<script src="./phase3-ship.js" defer data-gillie-phase3="true"></script>\n<!-- Gillie Phase 4 launch hardening -->\n<link rel="stylesheet" href="./phase4-launch.css" data-gillie-phase4="true">\n<script src="./phase4-launch.js" defer data-gillie-phase4="true"></script>\n<!-- Gillie Phase 5 production paywall -->\n<link rel="stylesheet" href="./phase5-paywall.css" data-gillie-phase5="true">\n<link rel="stylesheet" href="./gillie-foundation.css" data-gillie-foundation="true">\n<script src="./phase5-paywall.js" defer data-gillie-phase5="true"></script>`;
 
 if (!html.includes(marker)) {
   if (!html.includes("</body>")) throw new Error("Cannot inject launch assets: missing </body>.");
@@ -127,7 +127,7 @@ const phase4 = fs.readFileSync(path.join(out, "phase4-launch.js"), "utf8");
 const phase4Css = fs.readFileSync(path.join(out, "phase4-launch.css"), "utf8");
 const phase5 = fs.readFileSync(path.join(out, "phase5-paywall.js"), "utf8");
 const phase5Css = fs.readFileSync(path.join(out, "phase5-paywall.css"), "utf8");
-const phase5HotfixCss = fs.readFileSync(path.join(out, "phase5-paywall-hotfix.css"), "utf8");
+const foundationCss = fs.readFileSync(path.join(out, "gillie-foundation.css"), "utf8");
 
 for (const required of [
   "gillieShipPolishInstalled",
@@ -183,23 +183,25 @@ for (const required of [
   if (!phase5Css.includes(required)) throw new Error(`Generated Phase 5 CSS is missing marker: ${required}`);
 }
 for (const required of [
-  "refined benefit emblems",
-  ".gp-status-banner.info",
+  "Gillie V1 visual foundation",
+  "--g-icon-size",
   ".gp-benefit-icon",
+  ".gp-status-banner.info",
 ]) {
-  if (!phase5HotfixCss.includes(required)) throw new Error(`Generated Phase 5 hotfix CSS is missing marker: ${required}`);
+  if (!foundationCss.includes(required)) throw new Error(`Generated Gillie foundation CSS is missing marker: ${required}`);
 }
 for (const forbidden of [".gp-cta-wrap", "position:sticky", "◔", "↺"]) {
-  if (phase5.includes(forbidden) || phase5Css.includes(forbidden) || phase5HotfixCss.includes(forbidden)) {
+  if (phase5.includes(forbidden) || phase5Css.includes(forbidden) || foundationCss.includes(forbidden)) {
     throw new Error(`Generated Phase 5 paywall still contains forbidden legacy marker: ${forbidden}`);
   }
 }
-if (!html.includes('data-gillie-phase3="true"') || !html.includes('data-gillie-phase4="true"') || !html.includes('data-gillie-phase5="true"') || !html.includes('data-gillie-phase5-hotfix="true"')) {
-  throw new Error("Phase 3/4/5 tags were not injected into www/index.html.");
+if (!html.includes('data-gillie-phase3="true"') || !html.includes('data-gillie-phase4="true"') || !html.includes('data-gillie-phase5="true"') || !html.includes('data-gillie-foundation="true"')) {
+  throw new Error("Phase 3/4/5 and Gillie foundation tags were not injected into www/index.html.");
 }
+if (html.includes('data-gillie-phase5-hotfix="true"')) throw new Error("Legacy Phase 5 hotfix stylesheet is still injected.");
 if (html.includes('kicker: "Paywall is the tank"')) throw new Error("Internal paywall copy leaked into the generated app.");
 if (phase3.includes('phase2-card-badge", view).forEach((badge) => badge.remove())')) {
   throw new Error("Generated Phase 3 bundle still removes observed Reef badges.");
 }
 
-console.log("Injected Gillie Phase 3, Phase 4, rebuilt Phase 5 paywall, and paywall hotfix assets.");
+console.log("Injected Gillie Phase 3, Phase 4, rebuilt Phase 5 paywall, and canonical V1 visual foundation assets.");
