@@ -1,4 +1,159 @@
-/* Gillie Phase 1 commerce and settings hardening. */
+/* Gillie Phase 1 commerce, settings hardening, and startup recovery. */
+
+/*
+ * Startup guard: the canonical inline app boots before this file. If legacy or
+ * malformed local data makes that boot throw, the old splash could otherwise
+ * remain forever. This guard repairs recoverable state, retries the visible
+ * shell, and always removes the splash after the normal boot window.
+ */
+(() => {
+  "use strict";
+
+  let bootErrorMessage = "";
+
+  window.addEventListener("error", (event) => {
+    if (document.querySelector("#splash")) {
+      bootErrorMessage = String(event?.message || "Unknown startup error").slice(0, 160);
+    }
+  }, true);
+
+  const asArray = (value) => {
+    if (Array.isArray(value)) return value;
+    if (value && typeof value === "object") return Object.values(value);
+    return [];
+  };
+
+  function repairState() {
+    if (typeof state === "undefined" || !state || typeof state !== "object") return false;
+
+    [
+      "ownedItems",
+      "equippedDecor",
+      "reasons",
+      "slips",
+      "cravings",
+      "sosRewards",
+      "checkins",
+      "milestonesSeen",
+      "milestonesRewarded",
+      "growthSeen",
+      "buddies",
+    ].forEach((key) => { state[key] = asArray(state[key]); });
+
+    state.reminders = state.reminders && typeof state.reminders === "object"
+      ? state.reminders
+      : { checkin: true, craving: true };
+    if (typeof state.reminders.checkin !== "boolean") state.reminders.checkin = true;
+    if (typeof state.reminders.craving !== "boolean") state.reminders.craving = true;
+
+    state.cost = {
+      substance: "vape",
+      style: "disposables",
+      unitsPerWeek: 2,
+      costPerUnit: 15,
+      puffsPerDay: 200,
+      ...(state.cost && typeof state.cost === "object" ? state.cost : {}),
+    };
+    state.coach = state.coach && typeof state.coach === "object"
+      ? state.coach
+      : { missionDate: null, completed: {}, reviews: [] };
+    state.coach.completed = state.coach.completed && typeof state.coach.completed === "object"
+      ? state.coach.completed
+      : {};
+    state.coach.reviews = asArray(state.coach.reviews);
+    state.premiumEntitlement = state.premiumEntitlement && typeof state.premiumEntitlement === "object"
+      ? state.premiumEntitlement
+      : { active: false, checkedAt: 0, source: "unknown" };
+    state.pendingFollowup = state.pendingFollowup && typeof state.pendingFollowup === "object"
+      ? state.pendingFollowup
+      : null;
+    state.petName = typeof state.petName === "string" && state.petName.trim()
+      ? state.petName.slice(0, 14)
+      : "Gillie";
+    state.skin = typeof state.skin === "string" ? state.skin : "pink";
+    state.theme = typeof state.theme === "string" ? state.theme : "clear";
+    state.pearls = Number.isFinite(Number(state.pearls)) ? Math.max(0, Number(state.pearls)) : 0;
+    state.justSlippedAt = Number(state.justSlippedAt) || 0;
+
+    try { if (typeof save === "function") save(); } catch (_) {}
+    return true;
+  }
+
+  function dismissSplash() {
+    const splash = document.querySelector("#splash");
+    if (!splash) return;
+    splash.classList.add("hide");
+    splash.style.pointerEvents = "none";
+    setTimeout(() => splash.remove(), 420);
+  }
+
+  function showRecovery(error) {
+    dismissSplash();
+    if (document.querySelector("#gillie-startup-recovery")) return;
+
+    const panel = document.createElement("div");
+    panel.id = "gillie-startup-recovery";
+    panel.setAttribute("role", "alert");
+    panel.style.cssText = "position:fixed;inset:0;z-index:500;background:linear-gradient(180deg,#e8f2ef,#dceae6);display:grid;place-items:center;padding:24px;color:#11332f;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif";
+    panel.innerHTML = `
+      <div style="width:min(390px,100%);background:#fff;border-radius:26px;padding:24px;box-shadow:0 18px 48px rgba(17,51,47,.16);text-align:center">
+        <div style="font-size:38px;margin-bottom:10px">🫧</div>
+        <h1 style="font-size:25px;line-height:1.1;margin:0 0 10px">Gillie hit a startup snag.</h1>
+        <p style="font-size:15px;line-height:1.45;color:#48645e;margin:0 0 18px">Your progress is still on this device. Try opening the app again first.</p>
+        <button id="gillie-retry-startup" style="width:100%;min-height:50px;border:0;border-radius:999px;background:#11332f;color:#fff;font-weight:800;font-size:16px">Try again</button>
+        <button id="gillie-reset-startup" style="width:100%;min-height:46px;border:0;background:transparent;color:#7e958f;font-weight:700;margin-top:8px">Start fresh on this device</button>
+        <small style="display:block;margin-top:12px;color:#9aaca7">${String(error?.message || bootErrorMessage || "Startup recovery could not complete.").replace(/[<>]/g, "").slice(0, 120)}</small>
+      </div>`;
+    document.body.appendChild(panel);
+    panel.querySelector("#gillie-retry-startup").onclick = () => location.reload();
+    panel.querySelector("#gillie-reset-startup").onclick = () => {
+      if (!confirm("Start fresh? This permanently deletes Gillie progress stored on this device.")) return;
+      try { localStorage.removeItem("gillie_v1"); } catch (_) {}
+      location.reload();
+    };
+  }
+
+  function recoverStartup() {
+    const splash = document.querySelector("#splash");
+    if (!splash) return;
+
+    try {
+      if (!repairState()) throw new Error(bootErrorMessage || "Gillie state was unavailable.");
+      const current = state;
+      const onboarding = document.querySelector("#onboarding");
+      const main = document.querySelector("#main");
+
+      if (current.onboarded) {
+        if (onboarding) onboarding.hidden = true;
+        if (main) main.hidden = false;
+        if (typeof renderAxo === "function") renderAxo();
+        if (typeof renderAll === "function") renderAll();
+        if (typeof startTick === "function") startTick();
+        if (typeof scheduleBubbles === "function") scheduleBubbles();
+        if (typeof spawnMotes === "function") spawnMotes();
+        if (typeof behaviorLoop === "function") behaviorLoop();
+        if (typeof wireTapPlay === "function") wireTapPlay();
+      } else {
+        if (main) main.hidden = true;
+        if (onboarding) onboarding.hidden = false;
+        if (typeof obRender === "function") obRender();
+      }
+
+      dismissSplash();
+      try {
+        window.Capacitor?.Plugins?.GilliePurchases?.trackEvent?.({
+          name: "startup_recovered",
+          properties: { hadError: Boolean(bootErrorMessage) },
+        });
+      } catch (_) {}
+    } catch (error) {
+      showRecovery(error);
+    }
+  }
+
+  setTimeout(recoverStartup, 2800);
+})();
+
 (() => {
   "use strict";
 
@@ -108,7 +263,7 @@
 
   async function rescheduleActiveCravingFollowup() {
     const plugin = notifications();
-    const dueAt = state?.pendingFollowup?.dueAt;
+    const dueAt = typeof state !== "undefined" ? state?.pendingFollowup?.dueAt : null;
     if (!plugin?.schedule || !state?.reminders?.craving || !dueAt || dueAt <= Date.now()) return;
     try {
       const permission = await plugin.checkPermissions();
@@ -150,7 +305,7 @@
     if (purchaseButton) purchaseButton.onclick = purchaseSelectedPlan;
     if (restoreButton) restoreButton.onclick = restorePurchase;
     installFollowupNotificationControls();
-    try { renderAll(); } catch (_) {}
+    try { if (typeof renderAll === "function") renderAll(); } catch (_) {}
     renderReminderStatus();
   }
 
