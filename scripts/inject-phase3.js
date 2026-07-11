@@ -59,6 +59,23 @@ if (!phase3.includes(openPlusNeedle)) throw new Error("Phase 3 paywall fallback 
 phase3 = phase3.replace(openPlusNeedle, openPlusReplacement);
 
 /*
+ * Phase 5 owns the rebuilt paywall. Without this guard, the Phase 3 observer
+ * rewrites the hero and benefit markup after Phase 5 renders it, causing the
+ * narrow, vertically wrapped cards seen in TestFlight.
+ */
+const paywallOwnerNeedle = `  function tunePaywall() {
+    const overlay = $("#plus-overlay");
+    const current = appState();
+    if (!overlay || overlay.hidden || !current) return;`;
+const paywallOwnerReplacement = `  function tunePaywall() {
+    const overlay = $("#plus-overlay");
+    const current = appState();
+    if (!overlay || overlay.hidden || !current) return;
+    if (window.__gilliePaywallRebuildInstalled || overlay.classList.contains("gp-paywall-overlay")) return;`;
+if (!phase3.includes(paywallOwnerNeedle)) throw new Error("Phase 3 paywall ownership marker changed.");
+phase3 = phase3.replace(paywallOwnerNeedle, paywallOwnerReplacement);
+
+/*
  * Disconnect the observer during reconciliation. Retry the starter grant on
  * every safe refresh so a person who finishes onboarding in this app session
  * immediately receives enough pearls for a first Reef purchase.
@@ -101,7 +118,7 @@ const badgeRemovalReplacement = `    buildReefStarterMessage();`;
 if (!phase3.includes(badgeRemovalNeedle)) throw new Error("Phase 3 Reef badge marker changed.");
 phase3 = phase3.replace(badgeRemovalNeedle, badgeRemovalReplacement);
 
-phase3 = `/* Phase 3 observer, starter grant, insights, and Reef guards applied. */\n${phase3}`;
+phase3 = `/* Phase 3 observer, starter grant, insights, Reef, and paywall ownership guards applied. */\n${phase3}`;
 fs.writeFileSync(phase3Path, phase3, "utf8");
 
 const phase3Css = fs.readFileSync(path.join(out, "phase3-ship.css"), "utf8");
@@ -115,9 +132,11 @@ for (const required of [
   "starter_pearls_granted",
   "ship-progress-activation",
   "YOUR PERSONAL QUIT PLAN",
-  "Phase 3 observer, starter grant, insights, and Reef guards applied",
+  "Phase 3 observer, starter grant, insights, Reef, and paywall ownership guards applied",
   "grantStarterPearls();",
   "current.premium && ready",
+  "window.__gilliePaywallRebuildInstalled",
+  'overlay.classList.contains("gp-paywall-overlay")',
 ]) {
   if (!phase3.includes(required)) throw new Error(`Generated Phase 3 JavaScript is missing marker: ${required}`);
 }
