@@ -1,0 +1,1 @@
+Validates observer-safe Phase 3 assets, generated paywall copy, safe-area cleanup, Home hierarchy, Progress activation, Reef economy, Capacitor sync, and iOS simulator compilation.
