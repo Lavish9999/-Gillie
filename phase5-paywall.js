@@ -92,11 +92,10 @@
     const mascotPanel = create("div", "gp-mascot-panel");
     mascot.className = "plus-mascot-wrap gp-mascot-wrap";
     mascotPanel.appendChild(mascot);
+
     const context = create("div", "gp-context");
     context.id = "gp-context";
-    mascotPanel.appendChild(context);
-
-    hero.append(heroCopy, mascotPanel, close);
+    hero.append(heroCopy, mascotPanel, close, context);
     sheet.appendChild(hero);
 
     if (oldHero) oldHero.remove();
@@ -190,14 +189,26 @@
     if (yearly) {
       const name = $(".name", yearly);
       const note = $(".note", yearly);
-      if (name) name.innerHTML = `Yearly <span class="badge">BEST VALUE</span>`;
-      if (note) note.textContent = "Save 37% · about $2.50/month";
+      if (name && name.dataset.gpCopy !== "yearly") {
+        name.innerHTML = `Yearly <span class="badge">BEST VALUE</span>`;
+        name.dataset.gpCopy = "yearly";
+      }
+      if (note && note.dataset.gpCopy !== "yearly") {
+        note.textContent = "Save 37% · about $2.50/month";
+        note.dataset.gpCopy = "yearly";
+      }
     }
     if (monthly) {
       const name = $(".name", monthly);
       const note = $(".note", monthly);
-      if (name) name.textContent = "Monthly";
-      if (note) note.textContent = "Flexible access · cancel anytime";
+      if (name && name.dataset.gpCopy !== "monthly") {
+        name.textContent = "Monthly";
+        name.dataset.gpCopy = "monthly";
+      }
+      if (note && note.dataset.gpCopy !== "monthly") {
+        note.textContent = "Flexible access · cancel anytime";
+        note.dataset.gpCopy = "monthly";
+      }
     }
     updatePlanAccessibility();
   }
@@ -246,7 +257,11 @@
       legal.textContent = "Subscriptions renew through Apple until cancelled.";
       legal.dataset.defaultCopy = "1";
     }
-    track("paywall_viewed", { personalized: hasData, danger: Boolean(danger), trigger: Boolean(trigger) });
+
+    if (overlay.dataset.gpViewTracked !== "1") {
+      overlay.dataset.gpViewTracked = "1";
+      track("paywall_viewed", { personalized: hasData, danger: Boolean(danger), trigger: Boolean(trigger) });
+    }
   }
 
   function statusType(text) {
@@ -304,6 +319,7 @@
     if (!overlay || overlayObserver) return;
     overlayObserver = new MutationObserver(() => {
       if (!overlay.hidden) scheduleTune();
+      else overlay.dataset.gpViewTracked = "0";
     });
     overlayObserver.observe(overlay, { attributes: true, attributeFilter: ["hidden"] });
   }
