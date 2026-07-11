@@ -15,7 +15,7 @@ workflows:
         BUNDLE_ID: "com.lavish9999.gillie"
         XCODE_PROJECT: "ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
-        GILLIE_BUILD_NUMBER: "27"
+        GILLIE_BUILD_NUMBER: "28"
       ios_signing:
         distribution_type: app_store
         bundle_identifier: "com.lavish9999.gillie"
@@ -33,10 +33,14 @@ workflows:
           grep -q "Gillie startup, motion, and compact Home fixes applied" www/phase2-polish.js
           grep -q "phase2SpeechSafe" www/phase2-polish.css
           grep -q "gillieShipPolishInstalled" www/phase3-ship.js
-          grep -q "ship-progress-activation" www/phase3-ship.js
-          grep -q "YOUR PERSONAL QUIT PLAN" www/phase3-ship.js
+          grep -q "grantStarterPearls();" www/phase3-ship.js
+          grep -q "current.premium && ready" www/phase3-ship.js
+          grep -q "gillieLaunchHardeningInstalled" www/phase4-launch.js
+          grep -q "store_prices_localized" www/phase4-launch.js
+          grep -q "ship-reef-plus-strip" www/phase4-launch.css
           grep -q "ship-status-scrim" www/phase3-ship.css
           grep -q 'data-gillie-phase3="true"' www/index.html
+          grep -q 'data-gillie-phase4="true"' www/index.html
 
       - name: Sync Capacitor iOS
         script: |
