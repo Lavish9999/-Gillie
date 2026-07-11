@@ -15,7 +15,7 @@ workflows:
         BUNDLE_ID: "com.lavish9999.gillie"
         XCODE_PROJECT: "ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
-        GILLIE_BUILD_NUMBER: "19"
+        GILLIE_BUILD_NUMBER: "20"
       ios_signing:
         distribution_type: app_store
         bundle_identifier: "com.lavish9999.gillie"
@@ -23,14 +23,17 @@ workflows:
     scripts:
       - name: Install npm dependencies
         script: |
+          set -euo pipefail
           npm install
 
-      - name: Prepare Capacitor web assets
+      - name: Validate Phase 1 source
         script: |
-          npm run prepare:cap
+          set -euo pipefail
+          npm run validate:phase1
 
       - name: Sync Capacitor iOS
         script: |
+          set -euo pipefail
           npx cap sync ios
 
       - name: Set iOS build number
@@ -68,6 +71,7 @@ workflows:
 
       - name: Install CocoaPods dependencies if present
         script: |
+          set -euo pipefail
           if [ -f "ios/App/Podfile" ]; then
             cd ios/App
             pod install
@@ -75,6 +79,7 @@ workflows:
 
       - name: Set up App Store code signing
         script: |
+          set -euo pipefail
           keychain initialize
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE \
@@ -84,6 +89,7 @@ workflows:
 
       - name: Build App Store IPA
         script: |
+          set -euo pipefail
           xcode-project build-ipa \
             --project "$XCODE_PROJECT" \
             --scheme "$XCODE_SCHEME" \
@@ -93,7 +99,6 @@ workflows:
         script: |
           set -euo pipefail
           echo "Expected Gillie build number: $GILLIE_BUILD_NUMBER"
-          echo "Project Release build settings before publish:"
           xcodebuild -project "$XCODE_PROJECT" -scheme "$XCODE_SCHEME" -configuration Release -showBuildSettings | grep -E "CURRENT_PROJECT_VERSION|MARKETING_VERSION"
 
           ipa_path="$(find build/ios/ipa -name "*.ipa" -type f | head -n 1)"
@@ -102,7 +107,6 @@ workflows:
             exit 1
           fi
 
-          echo "Verifying uploaded IPA artifact: $ipa_path"
           rm -rf /tmp/gillie-ipa-verify
           mkdir -p /tmp/gillie-ipa-verify
           unzip -q "$ipa_path" -d /tmp/gillie-ipa-verify
@@ -122,7 +126,6 @@ workflows:
             echo "Refusing to publish: IPA CFBundleVersion is still 1."
             exit 1
           fi
-
           if [ "$build_version" != "$GILLIE_BUILD_NUMBER" ]; then
             echo "Refusing to publish: IPA CFBundleVersion $build_version does not match GILLIE_BUILD_NUMBER $GILLIE_BUILD_NUMBER."
             exit 1
