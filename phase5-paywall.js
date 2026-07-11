@@ -1,11 +1,11 @@
-/* Gillie Phase 5 — premium subscription screen using the existing StoreKit wiring. */
+/* Gillie Phase 5 — immersive premium paywall using the existing StoreKit wiring. */
 (() => {
   "use strict";
 
   if (window.__gilliePaywallRebuildInstalled) return;
   window.__gilliePaywallRebuildInstalled = true;
 
-  const VERSION = "phase5-paywall-2026.07.11-premium-v3";
+  const VERSION = "phase5-paywall-2026.07.11-premium-v4";
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
   const appState = () => (typeof state !== "undefined" && state ? state : null);
@@ -48,7 +48,9 @@
     if (!sheet || sheet.dataset.gpDragGuard === "1") return;
     const blockLegacyDrag = (event) => {
       if (event.target.closest("button,input,textarea,select,a,label")) return;
-      if (event.target.closest(".gp-hero-card,.gp-paywall-scroll,.gp-purchase-dock")) event.stopImmediatePropagation();
+      if (event.target.closest(".gp-hero-card,.gp-paywall-scroll,.gp-purchase-dock")) {
+        event.stopImmediatePropagation();
+      }
     };
     sheet.addEventListener("pointerdown", blockLegacyDrag, true);
     sheet.addEventListener("touchstart", blockLegacyDrag, { capture: true, passive: true });
@@ -76,10 +78,30 @@
     const restoreRow = $(".plus-restore-row", sheet);
     const legal = $("#plus-legal", sheet);
 
-    if (![kicker, title, subtitle, close, mascot, stats, proof, now, plans, purchase, restoreRow, legal].every(Boolean)) return false;
+    if (![kicker, title, subtitle, close, mascot, stats, proof, now, plans, purchase, restoreRow, legal].every(Boolean)) {
+      return false;
+    }
 
     sheet.className = "sheet gp-paywall-sheet";
     sheet.innerHTML = "";
+
+    const ambient = create("div", "gp-ambient", `
+      <span class="gp-light-beam gp-light-beam-one" aria-hidden="true"></span>
+      <span class="gp-light-beam gp-light-beam-two" aria-hidden="true"></span>
+      <span class="gp-bubble gp-bubble-one" aria-hidden="true"></span>
+      <span class="gp-bubble gp-bubble-two" aria-hidden="true"></span>
+      <span class="gp-bubble gp-bubble-three" aria-hidden="true"></span>`);
+    sheet.appendChild(ambient);
+
+    close.className = "gp-close";
+    sheet.appendChild(close);
+
+    const status = create("div", "gp-status-banner");
+    status.id = "gp-status-banner";
+    status.setAttribute("role", "status");
+    status.setAttribute("aria-live", "polite");
+    status.hidden = true;
+    sheet.appendChild(status);
 
     const scroll = create("div", "gp-paywall-scroll");
     scroll.id = "gp-paywall-scroll";
@@ -87,82 +109,92 @@
     const hero = create("header", "gp-hero-card");
     hero.setAttribute("aria-labelledby", "plus-title");
 
-    close.className = "gp-close";
-    hero.appendChild(close);
-
-    const mascotPanel = create("div", "gp-mascot-panel");
-    mascotPanel.innerHTML = `<span class="gp-mascot-halo" aria-hidden="true"></span>`;
-    mascot.className = "plus-mascot-wrap gp-mascot-wrap";
-    mascotPanel.appendChild(mascot);
-    hero.appendChild(mascotPanel);
-
     const heroCopy = create("div", "gp-hero-copy");
     kicker.className = "plus-kicker gp-kicker";
     title.className = "gp-title";
     subtitle.className = "gp-subtitle";
     heroCopy.append(kicker, title, subtitle);
-    hero.appendChild(heroCopy);
+
+    const mascotPanel = create("div", "gp-mascot-panel");
+    mascotPanel.innerHTML = `
+      <span class="gp-mascot-ring gp-mascot-ring-one" aria-hidden="true"></span>
+      <span class="gp-mascot-ring gp-mascot-ring-two" aria-hidden="true"></span>`;
+    mascot.className = "plus-mascot-wrap gp-mascot-wrap";
+    mascotPanel.appendChild(mascot);
+
+    hero.append(heroCopy, mascotPanel);
     scroll.appendChild(hero);
 
+    const panel = create("main", "gp-purchase-panel");
+
     const value = create("section", "gp-value-section");
-    value.setAttribute("aria-label", "What Gillie Plus includes");
+    value.innerHTML = `
+      <div class="gp-panel-intro">
+        <span>Gillie learns your pattern</span>
+        <strong>Support that gets smarter as you use it.</strong>
+      </div>`;
     proof.className = "plus-proof gp-benefit-list";
     value.appendChild(proof);
-    scroll.appendChild(value);
+    panel.appendChild(value);
 
     now.className = "plus-now gp-adaptive-note";
-    scroll.appendChild(now);
+    panel.appendChild(now);
 
     const pricing = create("section", "gp-pricing-section");
-    pricing.innerHTML = `<div class="gp-pricing-head"><span>Choose your plan</span><small class="gp-sr-only" aria-live="polite"></small></div>`;
+    pricing.innerHTML = `
+      <div class="gp-pricing-head">
+        <span>Choose your plan</span>
+        <small class="gp-sr-only" aria-live="polite"></small>
+      </div>`;
     plans.className = "plus-plans gp-plan-list";
     plans.setAttribute("role", "radiogroup");
     plans.setAttribute("aria-label", "Gillie Plus plan");
     pricing.appendChild(plans);
-    scroll.appendChild(pricing);
+    panel.appendChild(pricing);
+
+    const action = create("section", "gp-purchase-dock");
+    action.id = "gp-purchase-dock";
+    purchase.className = "btn plus-cta gp-primary-cta";
+    const caption = create("div", "gp-cta-caption", "Secure Apple billing · Cancel anytime");
+    action.append(purchase, caption);
+    panel.appendChild(action);
 
     const reassurance = freeNote || create("div", "phase2-plus-free-note");
     reassurance.id = "phase2-plus-free-note";
     reassurance.className = "phase2-plus-free-note gp-free-note";
-    reassurance.innerHTML = `<span class="gp-free-icon">${shieldSvg()}</span><span><b>Your essentials stay free</b><em>SOS, streaks, check-ins, and your tank never disappear.</em></span>`;
-    scroll.appendChild(reassurance);
+    reassurance.innerHTML = `
+      <span class="gp-free-icon">${shieldSvg()}</span>
+      <span><b>Your quitting essentials stay free</b><em>SOS, streaks, check-ins, and your tank are never locked away.</em></span>`;
+    panel.appendChild(reassurance);
 
     const footer = create("footer", "gp-footer");
     restoreRow.className = "plus-restore-row gp-restore-row";
-    const links = create("div", "gp-legal-links", `<span aria-hidden="true">·</span><a href="./terms.html">Terms</a><span aria-hidden="true">·</span><a href="./privacy.html">Privacy</a>`);
+    const links = create("div", "gp-legal-links", `
+      <a href="./terms.html">Terms</a>
+      <span aria-hidden="true">·</span>
+      <a href="./privacy.html">Privacy</a>`);
     legal.className = "plus-legal gp-legal-source";
     legal.setAttribute("aria-hidden", "true");
     footer.append(restoreRow, links, legal);
-    scroll.appendChild(footer);
+    panel.appendChild(footer);
 
     const hiddenSources = create("div", "gp-hidden-sources");
     stats.id = "plus-stat-chips";
     stats.className = "plus-stat-chips gp-hidden-stats";
     stats.hidden = true;
     hiddenSources.appendChild(stats);
-    scroll.appendChild(hiddenSources);
+    panel.appendChild(hiddenSources);
 
-    const action = create("div", "gp-purchase-dock");
-    action.id = "gp-purchase-dock";
+    scroll.appendChild(panel);
+    sheet.appendChild(scroll);
 
-    const status = create("div", "gp-status-banner");
-    status.id = "gp-status-banner";
-    status.setAttribute("role", "status");
-    status.setAttribute("aria-live", "polite");
-    status.hidden = true;
-
-    purchase.className = "btn plus-cta gp-primary-cta";
-    const caption = create("div", "gp-cta-caption", "Auto-renews through Apple · Cancel anytime");
-    action.append(status, purchase, caption);
-
-    sheet.append(scroll, action);
     if (oldHero) oldHero.remove();
 
     overlay.classList.add("gp-paywall-overlay");
     installDragGuard(sheet);
     installLegalObserver();
     installPlanObserver();
-    track("paywall_rebuilt", { layout: "premium_native_v3" });
+    track("paywall_rebuilt", { layout: "immersive_panel_v4" });
     return true;
   }
 
@@ -193,24 +225,25 @@
     }
   }
 
-  /* Plan copy is enforced idempotently: Phase 4 rewrites notes with CONFIG copy
-     after localizing prices, so compare before writing to avoid observer loops. */
   function cleanPlanCopy() {
     const yearly = $('[data-plus-plan="yearly"]');
     const monthly = $('[data-plus-plan="monthly"]');
+
     if (yearly) {
       const name = $(".name", yearly);
       const note = $(".note", yearly);
       const nameHtml = `Yearly <span class="badge">Save 37%</span>`;
       if (name && name.innerHTML !== nameHtml) name.innerHTML = nameHtml;
-      if (note && note.textContent !== "Billed once a year") note.textContent = "Billed once a year";
+      if (note && note.textContent !== "Best value") note.textContent = "Best value";
     }
+
     if (monthly) {
       const name = $(".name", monthly);
       const note = $(".note", monthly);
       if (name && name.textContent !== "Monthly") name.textContent = "Monthly";
-      if (note && note.textContent !== "Cancel anytime") note.textContent = "Cancel anytime";
+      if (note && note.textContent !== "Flexible") note.textContent = "Flexible";
     }
+
     updatePlanAccessibility();
   }
 
@@ -225,23 +258,33 @@
 
     $("#plus-kicker").textContent = "GILLIE PLUS";
     $("#plus-title").textContent = "A quit plan that adapts to you";
-    $("#plus-subtitle").textContent = "One clear move before the hard moment arrives.";
+    $("#plus-subtitle").textContent = "Know the hard moment before it arrives — and what to do next.";
 
     const proof = $("#plus-proof");
     if (proof) {
       proof.innerHTML = `
-        <div><span class="gp-benefit-icon">${benefitSvg("clock")}</span><span><b>Know your risk windows</b><em>See when cravings usually get louder.</em></span></div>
-        <div><span class="gp-benefit-icon">${benefitSvg("move")}</span><span><b>Get today’s next move</b><em>A practical action based on your latest signals.</em></span></div>
-        <div><span class="gp-benefit-icon">${benefitSvg("recover")}</span><span><b>Recover without spiraling</b><em>Turn a slip into the next clear step.</em></span></div>`;
+        <div>
+          <span class="gp-benefit-icon">${benefitSvg("clock")}</span>
+          <span><b>See your risk windows</b><em>Know when cravings are most likely to hit.</em></span>
+        </div>
+        <div>
+          <span class="gp-benefit-icon">${benefitSvg("move")}</span>
+          <span><b>Get one clear next move</b><em>A practical action shaped by your check-ins.</em></span>
+        </div>
+        <div>
+          <span class="gp-benefit-icon">${benefitSvg("recover")}</span>
+          <span><b>Recover without the spiral</b><em>Turn a slip into a calm, specific reset.</em></span>
+        </div>`;
     }
 
     const note = $("#plus-now");
     if (note) {
-      let label = "Useful immediately";
-      let message = "Your first plan starts today and sharpens with every check-in.";
+      let label = "Starts useful today";
+      let message = "Your first plan is ready immediately and sharpens with every check-in.";
+
       if (danger) {
         label = "Built around your pattern";
-        message = `Gillie is watching ${danger} and can prepare your move before it begins.`;
+        message = `Gillie is already watching ${danger} and can prepare your move before it begins.`;
       } else if (trigger) {
         label = "Built around your signals";
         message = `${trigger} appears in your recent history. Plus turns it into a repeatable response.`;
@@ -249,12 +292,18 @@
         label = "Your pattern is forming";
         message = "Gillie is already using your latest check-ins to make tomorrow more specific.";
       }
-      note.innerHTML = `<span class="gp-note-mark" aria-hidden="true"></span><span><strong>${label}</strong><em>${message}</em></span>`;
+
+      note.innerHTML = `
+        <span class="gp-note-mark" aria-hidden="true">✦</span>
+        <span><strong>${label}</strong><em>${message}</em></span>`;
     }
 
     cleanPlanCopy();
+
     const purchase = $("#plus-purchase");
-    if (purchase && !purchase.classList.contains("phase2-loading")) purchase.textContent = "Start Gillie Plus";
+    if (purchase && !purchase.classList.contains("phase2-loading")) {
+      purchase.textContent = "Start Gillie Plus";
+    }
 
     const legal = $("#plus-legal");
     if (legal && !statusType(legal.textContent)) {
@@ -264,7 +313,11 @@
 
     if (overlay.dataset.gpViewTracked !== "1") {
       overlay.dataset.gpViewTracked = "1";
-      track("paywall_viewed", { personalized: hasData, danger: Boolean(danger), trigger: Boolean(trigger) });
+      track("paywall_viewed", {
+        personalized: hasData,
+        danger: Boolean(danger),
+        trigger: Boolean(trigger)
+      });
     }
   }
 
@@ -293,28 +346,37 @@
     banner.textContent = message;
     banner.className = `gp-status-banner ${type}`;
     banner.hidden = false;
-    if (temporary) statusTimer = setTimeout(clearStatus, 2200);
+    if (temporary) statusTimer = setTimeout(clearStatus, 1800);
   }
 
   function handleLegalChange() {
     if (resettingLegal) return;
     const legal = $("#plus-legal");
     if (!legal) return;
+
     const text = legal.textContent.trim();
     const type = statusType(text);
 
     if (type === "working") {
-      showStatus(/checking/i.test(text) ? "Checking your Apple purchases…" : "Opening Apple’s secure purchase sheet…", "working");
+      showStatus(
+        /checking/i.test(text)
+          ? "Checking your Apple purchases…"
+          : "Opening Apple’s secure purchase sheet…",
+        "working"
+      );
       return;
     }
+
     if (type === "pending") {
       showStatus("Purchase pending with Apple. Gillie will unlock when approved.", "pending");
       return;
     }
+
     if (type === "error") {
       showStatus(text || "We couldn’t complete the purchase. Please try again.", "error");
       return;
     }
+
     if (type === "cancelled") {
       showStatus("Nothing charged. You can try again anytime.", "info", true);
       resettingLegal = true;
@@ -324,6 +386,7 @@
       }, 80);
       return;
     }
+
     clearStatus();
   }
 
@@ -341,7 +404,12 @@
       clearTimeout(refreshTimer);
       refreshTimer = setTimeout(cleanPlanCopy, 20);
     });
-    planObserver.observe(plans, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
+    planObserver.observe(plans, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["class"]
+    });
   }
 
   function scheduleTune() {
@@ -351,6 +419,7 @@
   function installOverlayObserver() {
     const overlay = $("#plus-overlay");
     if (!overlay || overlayObserver) return;
+
     overlayObserver = new MutationObserver(() => {
       if (!overlay.hidden) {
         clearStatus();
@@ -360,6 +429,7 @@
         clearStatus();
       }
     });
+
     overlayObserver.observe(overlay, { attributes: true, attributeFilter: ["hidden"] });
   }
 
@@ -370,12 +440,22 @@
     document.addEventListener("click", (event) => {
       const target = event.target.closest("button, [role='button']");
       if (!target) return;
-      if (target.matches("#plus-open, #set-plus, [data-act='plus'], #ship-premium-teaser")) scheduleTune();
-      if (target.matches("[data-plus-plan]")) setTimeout(updatePlanAccessibility, 20);
+
+      if (target.matches("#plus-open, #set-plus, [data-act='plus'], #ship-premium-teaser")) {
+        scheduleTune();
+      }
+
+      if (target.matches("[data-plus-plan]")) {
+        setTimeout(updatePlanAccessibility, 20);
+      }
+
       if (target.matches("#plus-purchase")) {
         clearStatus();
-        track("paywall_cta_tapped", { plan: typeof selectedPlusPlan !== "undefined" ? selectedPlusPlan : "unknown" });
+        track("paywall_cta_tapped", {
+          plan: typeof selectedPlusPlan !== "undefined" ? selectedPlusPlan : "unknown"
+        });
       }
+
       if (target.matches("#plus-restore")) clearStatus();
     }, true);
 
@@ -392,6 +472,9 @@
     setTimeout(() => wait(attempt + 1), 50);
   }
 
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => wait(), { once: true });
-  else wait();
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => wait(), { once: true });
+  } else {
+    wait();
+  }
 })();
