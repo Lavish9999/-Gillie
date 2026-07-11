@@ -1,11 +1,11 @@
-/* Gillie Phase 5 — full-screen production paywall using the app's existing StoreKit wiring. */
+/* Gillie Phase 5 — premium subscription screen using the existing StoreKit wiring. */
 (() => {
   "use strict";
 
   if (window.__gilliePaywallRebuildInstalled) return;
   window.__gilliePaywallRebuildInstalled = true;
 
-  const VERSION = "phase5-paywall-2026.07.11-redesign";
+  const VERSION = "phase5-paywall-2026.07.11-premium-v2";
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
   const appState = () => (typeof state !== "undefined" && state ? state : null);
@@ -32,12 +32,16 @@
   function benefitSvg(kind) {
     const common = 'class="gp-benefit-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"';
     if (kind === "clock") {
-      return `<svg ${common}><circle cx="12" cy="12" r="8.25"></circle><path d="M12 7.5v5l3.35 1.9"></path><path d="M6.7 4.9 5.25 3.45M17.3 4.9l1.45-1.45"></path></svg>`;
+      return `<svg ${common}><circle cx="12" cy="12" r="8.25"></circle><path d="M12 7.5v5l3.35 1.9"></path></svg>`;
     }
     if (kind === "move") {
-      return `<svg ${common}><path d="M5 12h12.5"></path><path d="m13.5 7.5 4.5 4.5-4.5 4.5"></path><path d="M5.5 7.25h3M5.5 16.75h3"></path></svg>`;
+      return `<svg ${common}><path d="M5 12h12.5"></path><path d="m13.5 7.5 4.5 4.5-4.5 4.5"></path></svg>`;
     }
     return `<svg ${common}><path d="M7.1 8.1A6.8 6.8 0 1 1 6 15.3"></path><path d="M7.1 3.9v4.2H2.9"></path><path d="m9.15 12 1.9 1.9 4-4.15"></path></svg>`;
+  }
+
+  function shieldSvg() {
+    return `<svg class="gp-free-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5 19 6v5.1c0 4.35-2.75 7.65-7 9.4-4.25-1.75-7-5.05-7-9.4V6l7-2.5Z"></path><path d="m8.8 12.1 2 2 4.4-4.5"></path></svg>`;
   }
 
   function installDragGuard(sheet) {
@@ -83,9 +87,9 @@
     const hero = create("section", "gp-hero-card");
     hero.setAttribute("aria-labelledby", "plus-title");
     hero.innerHTML = `
-      <div class="gp-hero-glow gp-hero-glow-one"></div>
-      <div class="gp-hero-glow gp-hero-glow-two"></div>
-      <div class="gp-hero-bubbles" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>`;
+      <div class="gp-hero-orb gp-hero-orb-one"></div>
+      <div class="gp-hero-orb gp-hero-orb-two"></div>
+      <div class="gp-hero-shimmer" aria-hidden="true"></div>`;
 
     const heroCopy = create("div", "gp-hero-copy");
     kicker.className = "plus-kicker gp-kicker";
@@ -95,15 +99,14 @@
 
     const mascotPanel = create("div", "gp-mascot-panel");
     mascot.className = "plus-mascot-wrap gp-mascot-wrap";
-    const mascotHalo = create("div", "gp-mascot-halo");
-    mascotPanel.append(mascotHalo, mascot);
+    mascotPanel.appendChild(mascot);
 
     close.className = "gp-close";
     hero.append(heroCopy, mascotPanel, close);
     scroll.appendChild(hero);
 
     const value = create("section", "gp-value-section");
-    value.innerHTML = `<div class="gp-section-label">Built for the hard moments</div>`;
+    value.innerHTML = `<div class="gp-section-label">What Plus changes</div>`;
     proof.className = "plus-proof gp-benefit-list";
     value.appendChild(proof);
     scroll.appendChild(value);
@@ -112,32 +115,15 @@
     scroll.appendChild(now);
 
     const pricing = create("section", "gp-pricing-section");
-    pricing.innerHTML = `<div class="gp-pricing-head"><span>Choose your plan</span><small>Yearly selected</small></div>`;
+    pricing.innerHTML = `<div class="gp-pricing-head"><span>Choose a plan</span><small>Yearly selected</small></div>`;
     plans.className = "plus-plans gp-plan-list";
     plans.setAttribute("role", "radiogroup");
     plans.setAttribute("aria-label", "Gillie Plus plan");
     pricing.appendChild(plans);
     scroll.appendChild(pricing);
 
-    const reassurance = freeNote || create("div", "phase2-plus-free-note");
-    reassurance.id = "phase2-plus-free-note";
-    reassurance.className = "phase2-plus-free-note gp-free-note";
-    reassurance.innerHTML = `
-      <span class="gp-free-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24"><path d="M12 3.5 19 6v5.1c0 4.35-2.75 7.65-7 9.4-4.25-1.75-7-5.05-7-9.4V6l7-2.5Z"></path><path d="m8.8 12.1 2 2 4.4-4.5"></path></svg>
-      </span>
-      <span><b>Core quitting tools stay free</b><em>SOS, streaks, check-ins, and your tank are never taken away.</em></span>`;
-    scroll.appendChild(reassurance);
-
-    const hiddenSources = create("div", "gp-hidden-sources");
-    stats.id = "plus-stat-chips";
-    stats.className = "plus-stat-chips gp-hidden-stats";
-    stats.hidden = true;
-    hiddenSources.appendChild(stats);
-    scroll.appendChild(hiddenSources);
-
-    const dock = create("div", "gp-purchase-dock");
-    dock.id = "gp-purchase-dock";
+    const action = create("section", "gp-purchase-dock");
+    action.id = "gp-purchase-dock";
 
     const status = create("div", "gp-status-banner");
     status.id = "gp-status-banner";
@@ -146,7 +132,15 @@
     status.hidden = true;
 
     purchase.className = "btn plus-cta gp-primary-cta";
-    const caption = create("div", "gp-cta-caption", "Billed securely by Apple. Cancel anytime.");
+    const caption = create("div", "gp-cta-caption", "Secure Apple billing · Cancel anytime");
+    action.append(status, purchase, caption);
+    scroll.appendChild(action);
+
+    const reassurance = freeNote || create("div", "phase2-plus-free-note");
+    reassurance.id = "phase2-plus-free-note";
+    reassurance.className = "phase2-plus-free-note gp-free-note";
+    reassurance.innerHTML = `<span class="gp-free-icon">${shieldSvg()}</span><span><b>Your essentials stay free</b><em>SOS, streaks, check-ins, and your tank never disappear.</em></span>`;
+    scroll.appendChild(reassurance);
 
     const footer = create("footer", "gp-footer");
     restoreRow.className = "plus-restore-row gp-restore-row";
@@ -154,16 +148,23 @@
     legal.className = "plus-legal gp-legal-source";
     legal.setAttribute("aria-hidden", "true");
     footer.append(restoreRow, links, legal);
+    scroll.appendChild(footer);
 
-    dock.append(status, purchase, caption, footer);
-    sheet.append(scroll, dock);
+    const hiddenSources = create("div", "gp-hidden-sources");
+    stats.id = "plus-stat-chips";
+    stats.className = "plus-stat-chips gp-hidden-stats";
+    stats.hidden = true;
+    hiddenSources.appendChild(stats);
+    scroll.appendChild(hiddenSources);
 
+    sheet.appendChild(scroll);
     if (oldHero) oldHero.remove();
+
     overlay.classList.add("gp-paywall-overlay");
     installDragGuard(sheet);
     installLegalObserver();
     installPlanObserver();
-    track("paywall_rebuilt", { layout: "full_screen_dock" });
+    track("paywall_rebuilt", { layout: "premium_single_scroll" });
     return true;
   }
 
@@ -232,31 +233,31 @@
 
     $("#plus-kicker").textContent = "GILLIE PLUS";
     $("#plus-title").textContent = "A quit plan that adapts to you";
-    $("#plus-subtitle").textContent = "Know what to do before a craving gets loud — and how to recover without losing momentum.";
+    $("#plus-subtitle").textContent = "One clear move before the hard moment arrives.";
 
     const proof = $("#plus-proof");
     if (proof) {
       proof.innerHTML = `
-        <div><span class="gp-benefit-icon">${benefitSvg("clock")}</span><span><b>Spot risky hours</b><em>Know when cravings are most likely to hit.</em></span></div>
-        <div><span class="gp-benefit-icon">${benefitSvg("move")}</span><span><b>Get one useful move each day</b><em>A practical action based on your latest signals.</em></span></div>
-        <div><span class="gp-benefit-icon">${benefitSvg("recover")}</span><span><b>Recover with a plan</b><em>Turn a slip into the next clear step.</em></span></div>`;
+        <div><span class="gp-benefit-icon">${benefitSvg("clock")}</span><span><b>Know your risk windows</b><em>See when cravings usually get louder.</em></span></div>
+        <div><span class="gp-benefit-icon">${benefitSvg("move")}</span><span><b>Get today’s next move</b><em>A practical action based on your latest signals.</em></span></div>
+        <div><span class="gp-benefit-icon">${benefitSvg("recover")}</span><span><b>Recover without spiraling</b><em>Turn a slip into the next clear step.</em></span></div>`;
     }
 
     const note = $("#plus-now");
     if (note) {
-      let label = "Useful from day one";
-      let message = "Your first plan starts immediately and gets more personal with every check-in.";
+      let label = "Useful immediately";
+      let message = "Your first plan starts today and sharpens with every check-in.";
       if (danger) {
         label = "Built around your pattern";
-        message = `Gillie is watching ${danger} and can prepare your move before that window starts.`;
+        message = `Gillie is watching ${danger} and can prepare your move before it begins.`;
       } else if (trigger) {
         label = "Built around your signals";
-        message = `${trigger} appears in your recent history. Plus turns that trigger into a repeatable response.`;
+        message = `${trigger} appears in your recent history. Plus turns it into a repeatable response.`;
       } else if (hasData) {
         label = "Your pattern is forming";
-        message = "Gillie is already using your latest check-ins to make tomorrow’s plan more specific.";
+        message = "Gillie is already using your latest check-ins to make tomorrow more specific.";
       }
-      note.innerHTML = `<span class="gp-note-spark" aria-hidden="true">✦</span><span><strong>${label}</strong><em>${message}</em></span>`;
+      note.innerHTML = `<span class="gp-note-mark" aria-hidden="true"></span><span><strong>${label}</strong><em>${message}</em></span>`;
     }
 
     cleanPlanCopy();
@@ -300,7 +301,7 @@
     banner.textContent = message;
     banner.className = `gp-status-banner ${type}`;
     banner.hidden = false;
-    if (temporary) statusTimer = setTimeout(clearStatus, 2800);
+    if (temporary) statusTimer = setTimeout(clearStatus, 2200);
   }
 
   function handleLegalChange() {
@@ -315,7 +316,7 @@
       return;
     }
     if (type === "pending") {
-      showStatus("Your purchase is pending with Apple. Gillie will unlock as soon as it is approved.", "pending");
+      showStatus("Purchase pending with Apple. Gillie will unlock when approved.", "pending");
       return;
     }
     if (type === "error") {
@@ -323,7 +324,7 @@
       return;
     }
     if (type === "cancelled") {
-      showStatus("Purchase cancelled — nothing was charged.", "info", true);
+      showStatus("Nothing charged. You can try again anytime.", "info", true);
       resettingLegal = true;
       setTimeout(() => {
         legal.textContent = "Subscriptions renew through Apple until cancelled.";
@@ -349,18 +350,6 @@
       refreshTimer = setTimeout(cleanPlanCopy, 20);
     });
     planObserver.observe(plans, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
-  }
-
-  function purchaseSuccess() {
-    const current = appState();
-    if (!current?.premium) return;
-    clearStatus();
-    const tank = $("#tank");
-    try { if (tank && typeof celebrationBurst === "function") celebrationBurst(tank, "plus"); } catch (_) {}
-    try { if (typeof feedGillie === "function") feedGillie(); } catch (_) {}
-    try { if (typeof haptic === "function") haptic("success"); } catch (_) {}
-    try { if (typeof tone === "function") tone("success"); } catch (_) {}
-    try { if (typeof announce === "function") announce("Gillie Plus is active."); } catch (_) {}
   }
 
   function scheduleTune() {
@@ -397,12 +386,6 @@
       }
       if (target.matches("#plus-restore")) clearStatus();
     }, true);
-
-    const legal = $("#plus-legal");
-    if (legal) new MutationObserver(() => {
-      const text = legal.textContent.toLowerCase();
-      if (/active|restored|unlocked/.test(text)) purchaseSuccess();
-    }).observe(legal, { childList: true, characterData: true, subtree: true });
 
     scheduleTune();
     track("paywall_rebuild_loaded", { version: VERSION });
