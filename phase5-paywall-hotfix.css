@@ -1,25 +1,33 @@
 /* Gillie Phase 5 hotfix — refined benefit emblems; premium benefit emblems with non-blocking cancellation feedback. */
 
 .gp-benefit-list{
-  gap:16px!important;
+  gap:18px!important;
 }
 
 .gp-benefit-list>div{
-  grid-template-columns:36px minmax(0,1fr)!important;
-  gap:13px!important;
+  grid-template-columns:26px minmax(0,1fr)!important;
+  gap:14px!important;
   align-items:start!important;
 }
 
 .gp-benefit-icon{
   position:relative!important;
-  width:34px!important;
-  height:34px!important;
-  margin-top:1px!important;
-  border-radius:11px!important;
-  color:#14594f!important;
-  background:rgba(20,89,79,.065)!important;
-  border:1px solid rgba(20,89,79,.12)!important;
+  width:24px!important;
+  height:24px!important;
+  min-width:24px!important;
+  min-height:24px!important;
+  margin:1px 0 0!important;
+  padding:0!important;
+  display:grid!important;
+  place-items:center!important;
+  align-self:start!important;
+  line-height:0!important;
+  border-radius:0!important;
+  color:#0f5b50!important;
+  background:transparent!important;
+  border:0!important;
   box-shadow:none!important;
+  overflow:visible!important;
 }
 
 .gp-benefit-icon::before,
@@ -29,20 +37,29 @@
 }
 
 .gp-benefit-svg{
-  width:18px!important;
-  height:18px!important;
+  display:block!important;
+  width:20px!important;
+  height:20px!important;
+  margin:0!important;
+  padding:0!important;
+  fill:none!important;
   stroke:currentColor!important;
-  stroke-width:1.8!important;
+  stroke-width:1.7!important;
   stroke-linecap:round!important;
   stroke-linejoin:round!important;
   opacity:1!important;
+  transform:none!important;
+  transform-origin:center!important;
 }
 
-.gp-benefit-list>div:nth-child(2) .gp-benefit-icon,
-.gp-benefit-list>div:nth-child(3) .gp-benefit-icon{
-  color:#14594f!important;
-  background:rgba(20,89,79,.065)!important;
-  border-color:rgba(20,89,79,.12)!important;
+.gp-benefit-list>div:nth-child(2) .gp-benefit-svg{
+  transform:translateX(.5px)!important;
+}
+
+.gp-benefit-list>div:nth-child(3) .gp-benefit-svg{
+  width:19px!important;
+  height:19px!important;
+  transform:translateX(.25px)!important;
 }
 
 /* Cancellation is not an error and should never cover the paywall. */
@@ -55,18 +72,28 @@
 }
 
 @media (max-width:370px){
+  .gp-benefit-list{
+    gap:16px!important;
+  }
+
   .gp-benefit-list>div{
-    grid-template-columns:34px minmax(0,1fr)!important;
-    gap:11px!important;
+    grid-template-columns:24px minmax(0,1fr)!important;
+    gap:12px!important;
   }
 
   .gp-benefit-icon{
-    width:32px!important;
-    height:32px!important;
-    border-radius:10px!important;
+    width:22px!important;
+    height:22px!important;
+    min-width:22px!important;
+    min-height:22px!important;
   }
 
   .gp-benefit-svg{
+    width:18px!important;
+    height:18px!important;
+  }
+
+  .gp-benefit-list>div:nth-child(3) .gp-benefit-svg{
     width:17px!important;
     height:17px!important;
   }
