@@ -273,7 +273,7 @@
     if (/cancelled|canceled/.test(value)) return "cancelled";
     if (/pending|approves/.test(value)) return "pending";
     if (/opening|checking/.test(value)) return "working";
-    if (/failed|could not|not available|not found|without an active|try again|error/.test(value)) return "error";
+    if (/failed|could not|not available|not found|no active|without an active|try again|error/.test(value)) return "error";
     return "";
   }
 
