@@ -1,0 +1,1 @@
+Validates Phase 4 launch hardening, localized StoreKit pricing, starter Reef economy, premium insights, and the complete iOS Simulator build.
