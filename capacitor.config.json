@@ -5,5 +5,10 @@
   "backgroundColor": "#E8F2EF",
   "server": {
     "iosScheme": "capacitor"
+  },
+  "plugins": {
+    "LocalNotifications": {
+      "presentationOptions": ["badge", "sound", "banner", "list"]
+    }
   }
 }
