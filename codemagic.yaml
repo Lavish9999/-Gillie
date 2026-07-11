@@ -15,7 +15,7 @@ workflows:
         BUNDLE_ID: "com.lavish9999.gillie"
         XCODE_PROJECT: "ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
-        GILLIE_BUILD_NUMBER: "24"
+        GILLIE_BUILD_NUMBER: "25"
       ios_signing:
         distribution_type: app_store
         bundle_identifier: "com.lavish9999.gillie"
@@ -30,7 +30,8 @@ workflows:
         script: |
           set -euo pipefail
           npm run validate:phase2
-          grep -q "Gillie Reef mutation-loop startup fix applied" www/phase2-polish.js
+          grep -q "Gillie startup and companion-motion fixes applied" www/phase2-polish.js
+          grep -q "phase2SpeechSafe" www/phase2-polish.css
 
       - name: Sync Capacitor iOS
         script: |
