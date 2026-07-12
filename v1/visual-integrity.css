@@ -44,7 +44,7 @@
   padding:14px!important;
 }
 
-/* Generic Home cards use quiet surfaces; animation and color stay in Gillie's tank. */
+/* Generic Home and Progress cards use quiet surfaces; animation stays in Gillie's tank. */
 .plan-preview{
   background:#fff!important;
   border:1px solid rgba(17,51,47,.10)!important;
@@ -57,12 +57,18 @@
 .checkin-card,
 .coach-room .coach-hero,
 .phase2-primary-action,
-.phase2-progress-summary{
+.phase2-progress-summary,
+.ship-progress-activation{
   background:#153d38!important;
   border:1px solid rgba(255,255,255,.08)!important;
   box-shadow:0 8px 22px rgba(9,42,38,.14)!important;
 }
 .phase2-primary-action::before{display:none!important}
+.ship-premium-teaser{
+  background:#fff!important;
+  border-color:rgba(17,51,47,.10)!important;
+  box-shadow:0 6px 18px rgba(17,51,47,.07)!important;
+}
 .coach-card,
 .checkin-card,
 .plan-preview,
@@ -72,7 +78,9 @@
 .phase2-primary-action,
 .phase2-progress-summary,
 .phase2-chart-card,
-.phase2-comparison{
+.phase2-comparison,
+.ship-progress-activation,
+.ship-premium-teaser{
   border-radius:20px!important;
 }
 .coach-list div{
@@ -120,9 +128,7 @@
   background:rgba(255,255,255,.075)!important;
   border-color:rgba(255,255,255,.08)!important;
 }
-.v1-reef-dashboard-actions button{
-  box-shadow:none!important;
-}
+.v1-reef-dashboard-actions button{box-shadow:none!important}
 .v1-reef-daily-bonus{
   background:#244d48!important;
   box-shadow:none!important;
@@ -175,6 +181,8 @@
   .plus-banner,
   .phase2-primary-action,
   .phase2-progress-summary,
+  .ship-progress-activation,
+  .ship-premium-teaser,
   .v1-reef-dashboard,
   #view-reef .v1-reef-vault{border-radius:18px!important}
 }
