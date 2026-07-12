@@ -55,17 +55,24 @@
 .plan-preview .mini i{background:#2f9c77!important}
 .coach-card:not(.locked),
 .checkin-card,
-.coach-room .coach-hero{
+.coach-room .coach-hero,
+.phase2-primary-action,
+.phase2-progress-summary{
   background:#153d38!important;
   border:1px solid rgba(255,255,255,.08)!important;
   box-shadow:0 8px 22px rgba(9,42,38,.14)!important;
 }
+.phase2-primary-action::before{display:none!important}
 .coach-card,
 .checkin-card,
 .plan-preview,
 .growth-card,
 .next-milestone,
-.goal-card{
+.goal-card,
+.phase2-primary-action,
+.phase2-progress-summary,
+.phase2-chart-card,
+.phase2-comparison{
   border-radius:20px!important;
 }
 .coach-list div{
@@ -153,7 +160,8 @@
 .stage-tag,
 .checkin-entry .pill,
 .theme-chip .plus-tag,
-.shop-card .plus-tag{
+.shop-card .plus-tag,
+.phase2-card-badge{
   letter-spacing:0!important;
 }
 
@@ -165,6 +173,8 @@
   .next-milestone,
   .goal-card,
   .plus-banner,
+  .phase2-primary-action,
+  .phase2-progress-summary,
   .v1-reef-dashboard,
   #view-reef .v1-reef-vault{border-radius:18px!important}
 }
