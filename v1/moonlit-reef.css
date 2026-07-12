@@ -39,7 +39,8 @@
 .moonlit-ray{position:absolute;top:-16%;width:28%;height:112%;transform:rotate(13deg);filter:blur(8px);opacity:.24;background:linear-gradient(180deg,rgba(220,228,255,.65),transparent 78%);animation:moonlitRaySway 10s ease-in-out infinite}
 .moonlit-ray.r1{left:52%}.moonlit-ray.r2{left:69%;animation-delay:-4s;opacity:.16}
 .moonlit-live-particles{position:absolute;inset:0}
-.moonlit-live-particles b{position:absolute;left:var(--x);top:var(--y);width:3px;height:3px;border-radius:50%;background:#edf0ff;box-shadow:0 0 8px rgba(234,238,255,.75);opacity:.25;animation:moonlitParticle calc(5s + (var(--i) * .27s)) ease-in-out infinite;animation-delay:calc(var(--i) * -.43s)}
+.moonlit-live-particles b{position:absolute;left:var(--x);top:var(--y);width:3px;height:3px;border-radius:50%;background:#edf0ff;box-shadow:0 0 8px rgba(234,238,255,.75);opacity:.25;animation:moonlitParticle 6s ease-in-out infinite}
+.moonlit-live-particles b:nth-child(3n){animation-delay:-2s}.moonlit-live-particles b:nth-child(3n+1){animation-delay:-4s}
 .moonlit-live-decor{position:absolute;z-index:3;pointer-events:none;transform-origin:50% 100%}
 .moonlit-live-decor svg{width:100%;height:100%;overflow:visible;filter:drop-shadow(0 8px 12px rgba(13,18,49,.22))}
 .moonlit-crescent-live{left:6%;bottom:13%;width:76px;height:88px;animation:moonlitDecorSway 7.5s ease-in-out infinite}
@@ -67,7 +68,8 @@
 .moonlit-preview-moon::after{content:"";position:absolute;left:-16px;top:-8px;width:72px;height:72px;border-radius:50%;background:#4d6094}
 .moonlit-preview-rays{position:absolute;inset:-25% 0 12%;z-index:1;background:linear-gradient(105deg,transparent 48%,rgba(224,230,255,.18) 55%,transparent 66%),linear-gradient(105deg,transparent 66%,rgba(224,230,255,.11) 72%,transparent 80%);animation:moonlitPreviewRays 11s ease-in-out infinite}
 .moonlit-preview-stars{position:absolute;inset:0;z-index:2}
-.moonlit-preview-stars i{position:absolute;left:var(--x);top:var(--y);width:3px;height:3px;border-radius:50%;background:#f4f5ff;box-shadow:0 0 10px rgba(239,241,255,.85);animation:moonlitParticle calc(4.5s + (var(--i) * .22s)) ease-in-out infinite;animation-delay:calc(var(--i) * -.37s)}
+.moonlit-preview-stars i{position:absolute;left:var(--x);top:var(--y);width:3px;height:3px;border-radius:50%;background:#f4f5ff;box-shadow:0 0 10px rgba(239,241,255,.85);animation:moonlitParticle 5.6s ease-in-out infinite}
+.moonlit-preview-stars i:nth-child(3n){animation-delay:-1.8s}.moonlit-preview-stars i:nth-child(3n+1){animation-delay:-3.6s}
 .moonlit-preview-gillie{position:absolute;left:50%;top:49%;z-index:5;width:54%;transform:translate(-50%,-50%);filter:drop-shadow(0 17px 16px rgba(4,8,25,.24));animation:moonlitPreviewGillie 5.8s ease-in-out infinite}
 .moonlit-preview-gillie svg{display:block;width:100%;overflow:visible}
 .moonlit-preview-crescent{position:absolute;left:5%;bottom:12%;z-index:4;width:23%;animation:moonlitDecorSway 7s ease-in-out infinite}
