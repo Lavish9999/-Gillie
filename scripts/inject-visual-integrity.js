@@ -55,11 +55,14 @@ const css = fs.readFileSync(path.join(out, "v1/visual-integrity.css"), "utf8");
 const js = fs.readFileSync(path.join(out, "v1/visual-integrity.js"), "utf8");
 for (const marker of [
   'register("visual-integrity"',
-  'ENGINE = "visual-integrity-v1"',
+  'ENGINE = "visual-integrity-v1.1"',
   "removeTemplateBadges",
   "normalizeDisplayTracking",
   "removeDecorativeAccentStripes",
   "collapseEmptyOversizedSurfaces",
+  "ensurePaywallDisclosure",
+  "v1-renewal-disclosure",
+  "v1ManageSubscription",
 ]) {
   if (!js.includes(marker)) throw new Error(`Generated visual integrity JavaScript is missing marker: ${marker}`);
 }
@@ -69,8 +72,11 @@ for (const marker of [
   '[data-visual-empty-surface="true"]',
   "#view-reef .v1-reef-vault",
   ".plan-preview",
+  ".v1-renewal-disclosure",
+  ".v1-active-subscription",
+  '#plus-purchase[data-v1-manage-subscription="true"]',
 ]) {
   if (!css.includes(marker)) throw new Error(`Generated visual integrity CSS is missing marker: ${marker}`);
 }
 
-console.log("Injected Gillie's anti-template visual integrity layer and removed decorative status badges.");
+console.log("Injected Gillie's visual integrity, visible subscription disclosure, and active-subscriber management state.");
