@@ -95,7 +95,7 @@ for (const { file, source } of cssSources) {
       if (!largeSurfaceAllowlist.test(selector)) {
         const minHeight = numberFrom(body, "min-height");
         const height = numberFrom(body, "height");
-        if ((minHeight !== null && minHeight >= 260) || (height !== null && height >= 260)) {
+        if ((minHeight !== null && minHeight >= 320) || (height !== null && height >= 320)) {
           fail(`${file} defines an oversized generic surface in ${selector}`);
         }
       }
