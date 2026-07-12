@@ -88,8 +88,9 @@
 #view-reef .v1-reef-archived-owned{opacity:.72}
 #view-reef .phase2-card-badge{box-shadow:none!important;border:1px solid var(--g-line)!important}
 
-/* Reef live preview: render Gillie fresh and contain all scrolling inside the sheet. */
-html.v1-reef-preview-open{
+/* Reef live preview: use solid SVG paint and lock the real scroll container. */
+html.v1-reef-preview-open,
+body.v1-reef-preview-open{
   overflow:hidden!important;
   overscroll-behavior:none!important;
 }
@@ -98,28 +99,37 @@ body.v1-reef-preview-open{
   left:0!important;
   right:0!important;
   width:100%!important;
-  overflow:hidden!important;
-  overscroll-behavior:none!important;
   touch-action:none!important;
 }
 body.v1-reef-preview-open #app{
   height:100dvh!important;
   overflow:hidden!important;
+  pointer-events:none!important;
+  touch-action:none!important;
+}
+body.v1-reef-preview-open #main .view{
+  overflow:hidden!important;
+  overscroll-behavior:none!important;
+  touch-action:none!important;
 }
 #phase2-tank-preview{
   position:fixed!important;
   inset:0!important;
+  z-index:240!important;
+  width:100%!important;
   height:100dvh!important;
   overflow:hidden!important;
-  overscroll-behavior:contain!important;
-  touch-action:none;
+  overscroll-behavior:none!important;
+  touch-action:none!important;
+  pointer-events:auto!important;
 }
 #phase2-tank-preview .phase2-preview-sheet{
   max-height:calc(100dvh - env(safe-area-inset-top))!important;
   overflow-y:auto!important;
   overscroll-behavior:contain!important;
   -webkit-overflow-scrolling:touch;
-  touch-action:pan-y;
+  touch-action:pan-y!important;
+  pointer-events:auto!important;
 }
 #phase2-tank-preview .phase2-preview-frame{
   position:relative;
