@@ -42,9 +42,13 @@ requireMarker(progress, "Advanced predictions", "Premium Progress boundary");
 requireMarker(reef, "Curated aquarium collection", "Reef curation");
 requireMarker(reef, "v1-preview-axo-wrap", "Reef preview character repair");
 requireMarker(reef, "axoSVG(current.skin", "Reef preview fresh Gillie renderer");
-requireMarker(reef, "reefpreview-", "Reef preview unique SVG paint namespace");
+requireMarker(reef, "flattenPreviewPaint", "Reef preview solid SVG paint fallback");
+requireMarker(reef, 'svg.querySelectorAll("[fill]")', "Reef preview paint replacement");
+requireMarker(reef, 'svg.querySelector("defs")?.remove()', "Reef preview paint-server removal");
 requireMarker(reef, "replaceWith(previewWrap)", "Reef preview character replacement");
-requireMarker(reef, "lockPreviewScroll", "Reef preview scroll lock");
+requireMarker(reef, 'qs("#main .view:not([hidden])")', "Reef active scroll-container lock");
+requireMarker(reef, 'app.setAttribute("inert", "")', "Reef background interaction lock");
+requireMarker(reef, "handlePreviewTouchMove", "Reef iOS touch scroll containment");
 requireMarker(reef, "unlockPreviewScroll", "Reef preview scroll restore");
 requireMarker(coach, "What do you need right now?", "Focused Coach flow");
 requireMarker(backup, 'format: "gillie-backup"', "Backup export contract");
@@ -53,8 +57,9 @@ requireMarker(styles, "Gillie V1 canonical screen styles", "V1 styles");
 requireMarker(styles, "#sos-overlay .phase2-sos-data", "SOS reflection deferral");
 requireMarker(styles, "#phase2-tank-preview .v1-preview-axo-wrap", "Reef preview scale contract");
 requireMarker(styles, ".v1-preview-axo-svg *", "Reef preview animation isolation");
-requireMarker(styles, "body.v1-reef-preview-open", "Reef preview background scroll lock");
-requireMarker(styles, "#phase2-tank-preview .phase2-preview-sheet", "Reef preview contained sheet scrolling");
+requireMarker(styles, "body.v1-reef-preview-open #main .view", "Reef nested view scroll lock");
+requireMarker(styles, "pointer-events:none!important", "Reef background pointer isolation");
+requireMarker(styles, "#phase2-tank-preview .phase2-preview-sheet", "Reef contained sheet scrolling");
 
 const canonicalJs = [core, onboarding, sos, progress, reef, coach, backup].join("\n");
 if (canonicalJs.includes("new MutationObserver")) {
@@ -67,4 +72,4 @@ if (html.includes("data-gillie-phase5-hotfix")) {
   throw new Error("Legacy paywall hotfix returned to the generated bundle.");
 }
 
-console.log("Gillie V1 smoke checks passed: onboarding, SOS, Progress, Reef, Coach, backup, architecture, StoreKit, fresh Reef rendering, and preview scroll-lock contracts are present.");
+console.log("Gillie V1 smoke checks passed: onboarding, SOS, Progress, Reef, Coach, backup, architecture, StoreKit, solid Reef character paint, and nested-view scroll lock contracts are present.");
