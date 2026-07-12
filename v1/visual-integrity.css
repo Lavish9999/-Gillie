@@ -133,6 +133,8 @@
   line-height:1.38;
   font-weight:700;
 }
+#plus-overlay.v1-plus-active .gp-pricing-section{display:none!important}
+#plus-overlay.v1-plus-active .gp-purchase-dock{margin-top:12px!important}
 #plus-purchase[data-v1-manage-subscription="true"]{
   color:#fff!important;
   background:#153d38!important;
