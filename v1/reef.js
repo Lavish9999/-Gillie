@@ -129,6 +129,9 @@
     }
 
     function unlockPreviewScroll() {
+      const wasLocked = document.body.classList.contains(PREVIEW_OPEN_CLASS) || Boolean(previewView);
+      if (!wasLocked) return;
+
       const app = qs("#app");
       if (app && !previewAppWasInert) app.removeAttribute("inert");
 
@@ -156,13 +159,10 @@
     }
 
     function openCanonicalPreview() {
-      closeCanonicalPreview();
+      if (previewOverlay) closeCanonicalPreview();
 
       const tank = createPreviewTank();
-      if (!tank) {
-        unlockPreviewScroll();
-        return;
-      }
+      if (!tank) return;
 
       lockPreviewScroll();
 
