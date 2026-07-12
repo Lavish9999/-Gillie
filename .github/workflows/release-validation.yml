@@ -30,7 +30,7 @@ jobs:
       - name: Validate release source and generated bundle
         run: npm run validate:ship
 
-      - name: Verify release privacy and target markers
+      - name: Verify release privacy, paywall, reset, and target markers
         run: |
           grep -q 'NSPrivacyAccessedAPICategoryUserDefaults' ios/App/App/PrivacyInfo.xcprivacy
           grep -q 'CA92.1' ios/App/App/PrivacyInfo.xcprivacy
@@ -38,7 +38,13 @@ jobs:
           grep -q 'TARGETED_DEVICE_FAMILY = 1;' ios/App/App.xcodeproj/project.pbxproj
           grep -q 'clearDiagnostics' www/index.html
           grep -q 'localStorage.clear()' www/index.html
+          grep -q 'GilliePurchases?.clearDiagnostics' ios/App/App/GillieBridgeViewController.swift
+          grep -q 'localStorage.clear()' ios/App/App/GillieBridgeViewController.swift
           grep -q '"reefProgress", "moonlitReef"' www/v1/backup.js
+          grep -q 'v1-renewal-disclosure' www/v1/visual-integrity.js
+          grep -q 'renews automatically unless cancelled at least 24 hours' www/v1/visual-integrity.js
+          grep -q 'v1ManageSubscription' www/v1/visual-integrity.js
+          grep -q '.v1-renewal-disclosure' www/v1/visual-integrity.css
           if grep -qE 'fonts\.googleapis\.com|fonts\.gstatic\.com' www/index.html; then
             echo 'Remote Google Fonts remain in the native bundle'
             exit 1
