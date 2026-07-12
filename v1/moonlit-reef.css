@@ -1,0 +1,98 @@
+/* Gillie V1 Moonlit Reef — animated premium collection, free preview, and live tank treatment. */
+
+/* Seasonal collection card */
+#view-reef .phase2-seasonal.moonlit-seasonal-card{
+  padding:16px!important;
+  border-radius:22px!important;
+  background:
+    radial-gradient(circle at 86% 13%,rgba(219,225,255,.28),transparent 25%),
+    radial-gradient(circle at 14% 100%,rgba(160,140,239,.20),transparent 38%),
+    linear-gradient(140deg,#17264d 0%,#26214d 58%,#123a49 100%)!important;
+  box-shadow:0 16px 34px rgba(26,31,74,.20)!important;
+}
+#view-reef .phase2-seasonal.moonlit-seasonal-card::after{display:none!important}
+.moonlit-seasonal-head{display:grid;grid-template-columns:minmax(0,1fr) 50px;gap:12px;align-items:start}
+.moonlit-seasonal-head small{display:block;text-transform:uppercase;letter-spacing:.11em;font-size:9px;font-weight:900;color:rgba(255,255,255,.56)}
+.moonlit-seasonal-head b{display:block;margin-top:4px;color:#fff;font:850 22px/1.04 var(--font-display)}
+.moonlit-seasonal-head span{display:block;max-width:300px;margin-top:5px;color:rgba(255,255,255,.69);font-size:11.5px;line-height:1.35;font-weight:650}
+.moonlit-seasonal-head>i{width:50px;height:50px;display:grid;place-items:center;border-radius:18px;color:#e2e7ff;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.12);font:normal 31px/1 var(--font-display);box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}
+.moonlit-seasonal-progress{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px;margin-top:14px}
+.moonlit-seasonal-progress>span{height:7px;overflow:hidden;border-radius:999px;background:rgba(255,255,255,.10)}
+.moonlit-seasonal-progress>span i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#a999ef,#e7ebff);box-shadow:0 0 15px rgba(197,188,255,.42);transition:width .45s ease}
+.moonlit-seasonal-progress>b{font-size:9.5px;color:rgba(255,255,255,.64);white-space:nowrap}
+.moonlit-seasonal-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:13px}
+.moonlit-seasonal-actions button{min-height:42px;padding:9px 11px;border-radius:14px;font-size:11px;font-weight:900;color:#202245;background:#fff;box-shadow:0 9px 20px rgba(0,0,0,.12)}
+.moonlit-seasonal-actions button:last-child{color:#fff;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.13);box-shadow:none}
+.moonlit-seasonal-actions button:active{transform:scale(.975)}
+
+/* Live Moonlit tank */
+#tank.moonlit-reef-live{
+  background:
+    radial-gradient(80% 54% at 52% 10%,rgba(158,178,255,.22),transparent 62%),
+    linear-gradient(180deg,#53659a 0%,#293863 48%,#182744 76%,#9296ac 76.5%)!important;
+}
+#tank.moonlit-reef-live #theme-tint{opacity:.82}
+#tank.moonlit-reef-live .sun-shafts{opacity:0!important}
+#moonlit-light-layer{position:absolute;inset:0;z-index:2;pointer-events:none;overflow:hidden}
+.moonlit-moon{position:absolute;right:8%;top:7%;width:58px;height:58px;border-radius:50%;background:radial-gradient(circle at 38% 34%,#fff,#e5eaff 58%,#9ba8d9 100%);box-shadow:0 0 30px rgba(209,219,255,.38)}
+.moonlit-moon::after{content:"";position:absolute;left:-13px;top:-7px;width:58px;height:58px;border-radius:50%;background:#46598d}
+.moonlit-ray{position:absolute;top:-16%;width:28%;height:112%;transform:rotate(13deg);filter:blur(8px);opacity:.24;background:linear-gradient(180deg,rgba(220,228,255,.65),transparent 78%);animation:moonlitRaySway 10s ease-in-out infinite}
+.moonlit-ray.r1{left:52%}.moonlit-ray.r2{left:69%;animation-delay:-4s;opacity:.16}
+.moonlit-live-particles{position:absolute;inset:0}
+.moonlit-live-particles b{position:absolute;left:var(--x);top:var(--y);width:3px;height:3px;border-radius:50%;background:#edf0ff;box-shadow:0 0 8px rgba(234,238,255,.75);opacity:.25;animation:moonlitParticle calc(5s + (var(--i) * .27s)) ease-in-out infinite;animation-delay:calc(var(--i) * -.43s)}
+.moonlit-live-decor{position:absolute;z-index:3;pointer-events:none;transform-origin:50% 100%}
+.moonlit-live-decor svg{width:100%;height:100%;overflow:visible;filter:drop-shadow(0 8px 12px rgba(13,18,49,.22))}
+.moonlit-crescent-live{left:6%;bottom:13%;width:76px;height:88px;animation:moonlitDecorSway 7.5s ease-in-out infinite}
+.moonlit-star-coral-live{right:7%;bottom:14%;width:72px;height:72px;animation:moonlitDecorSway 8.5s -3s ease-in-out infinite reverse}
+.moonlit-jelly-live{position:absolute;right:10%;top:28%;width:61px;height:78px;z-index:5;pointer-events:none;animation:moonlitJellyFloat 6.5s ease-in-out infinite;filter:drop-shadow(0 0 12px rgba(198,205,255,.26))}
+.moonlit-jelly-live svg{width:100%;height:100%;overflow:visible}
+@keyframes moonlitRaySway{0%,100%{transform:translateX(-8px) rotate(13deg)}50%{transform:translateX(15px) rotate(16deg)}}
+@keyframes moonlitParticle{0%,100%{opacity:.16;transform:translateY(5px) scale(.75)}50%{opacity:.75;transform:translateY(-12px) scale(1.2)}}
+@keyframes moonlitDecorSway{0%,100%{transform:rotate(-1.6deg)}50%{transform:rotate(2deg)}}
+@keyframes moonlitJellyFloat{0%,100%{transform:translate(0,5px) rotate(-2deg)}50%{transform:translate(-9px,-10px) rotate(3deg)}}
+
+/* Full-screen free preview */
+#moonlit-reef-preview{position:fixed;inset:0;z-index:260;background:linear-gradient(180deg,#0e1732,#17244a 58%,#0b162f);color:#fff;overflow:hidden}
+#moonlit-reef-preview[hidden]{display:none!important}
+.moonlit-preview-scroll{height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:max(22px,env(safe-area-inset-top)) 18px calc(28px + env(safe-area-inset-bottom));scrollbar-width:none}
+.moonlit-preview-scroll::-webkit-scrollbar{display:none}
+.moonlit-preview-close{position:fixed;right:17px;top:max(16px,env(safe-area-inset-top));z-index:4;width:46px;height:46px;min-height:46px;border-radius:50%;color:#fff;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.12);font-size:28px;line-height:1;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.moonlit-preview-copy{padding:42px 52px 15px 2px}
+.moonlit-preview-copy span{display:block;color:#aab6e4;font-size:10px;font-weight:900;letter-spacing:.12em;text-transform:uppercase}
+.moonlit-preview-copy h2{margin:7px 0 7px;color:#fff;font:850 34px/1 var(--font-display)}
+.moonlit-preview-copy p{max-width:360px;color:rgba(255,255,255,.67);font-size:13px;line-height:1.42;font-weight:650}
+.moonlit-preview-tank{position:relative;width:100%;aspect-ratio:1/.99;overflow:hidden;border-radius:30px;background:radial-gradient(90% 55% at 50% 12%,rgba(159,181,255,.30),transparent 62%),linear-gradient(180deg,#52669b,#2c3c6b 54%,#162742 79%,#8f94ab 79.5%);box-shadow:0 25px 55px rgba(0,0,0,.28),inset 0 0 0 1px rgba(255,255,255,.16)}
+.moonlit-preview-tank::after{content:"";position:absolute;inset:0;z-index:8;pointer-events:none;background:linear-gradient(115deg,rgba(255,255,255,.24),transparent 24%),radial-gradient(90% 72% at 50% 100%,rgba(3,8,28,.40),transparent 70%)}
+.moonlit-preview-moon{position:absolute;right:8%;top:7%;z-index:1;width:72px;height:72px;border-radius:50%;background:radial-gradient(circle at 38% 34%,#fff,#e5eaff 58%,#9ba8d9);box-shadow:0 0 36px rgba(209,219,255,.42)}
+.moonlit-preview-moon::after{content:"";position:absolute;left:-16px;top:-8px;width:72px;height:72px;border-radius:50%;background:#4d6094}
+.moonlit-preview-rays{position:absolute;inset:-25% 0 12%;z-index:1;background:linear-gradient(105deg,transparent 48%,rgba(224,230,255,.18) 55%,transparent 66%),linear-gradient(105deg,transparent 66%,rgba(224,230,255,.11) 72%,transparent 80%);animation:moonlitPreviewRays 11s ease-in-out infinite}
+.moonlit-preview-stars{position:absolute;inset:0;z-index:2}
+.moonlit-preview-stars i{position:absolute;left:var(--x);top:var(--y);width:3px;height:3px;border-radius:50%;background:#f4f5ff;box-shadow:0 0 10px rgba(239,241,255,.85);animation:moonlitParticle calc(4.5s + (var(--i) * .22s)) ease-in-out infinite;animation-delay:calc(var(--i) * -.37s)}
+.moonlit-preview-gillie{position:absolute;left:50%;top:49%;z-index:5;width:54%;transform:translate(-50%,-50%);filter:drop-shadow(0 17px 16px rgba(4,8,25,.24));animation:moonlitPreviewGillie 5.8s ease-in-out infinite}
+.moonlit-preview-gillie svg{display:block;width:100%;overflow:visible}
+.moonlit-preview-crescent{position:absolute;left:5%;bottom:12%;z-index:4;width:23%;animation:moonlitDecorSway 7s ease-in-out infinite}
+.moonlit-preview-crescent svg,.moonlit-preview-coral svg,.moonlit-preview-jelly svg{display:block;width:100%;overflow:visible}
+.moonlit-preview-coral{position:absolute;right:6%;bottom:13%;z-index:4;width:22%;animation:moonlitDecorSway 8s -3s ease-in-out infinite reverse}
+.moonlit-preview-jelly{position:absolute;right:9%;top:30%;z-index:4;width:18%;animation:moonlitJellyFloat 6s ease-in-out infinite;filter:drop-shadow(0 0 13px rgba(198,205,255,.3))}
+.moonlit-preview-sand{position:absolute;left:0;right:0;bottom:0;height:21%;z-index:2;background:radial-gradient(ellipse 50% 30% at 34% 9%,rgba(255,255,255,.20),transparent 70%),linear-gradient(180deg,#9aa0b7,#797f98)}
+@keyframes moonlitPreviewRays{0%,100%{transform:translateX(-8px) skewX(0)}50%{transform:translateX(16px) skewX(-3deg)}}
+@keyframes moonlitPreviewGillie{0%,100%{transform:translate(-52%,-48%) rotate(-1deg)}50%{transform:translate(-47%,-53%) rotate(1.5deg)}}
+.moonlit-preview-items{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+.moonlit-preview-items>div{display:grid;grid-template-columns:34px minmax(0,1fr);align-items:center;gap:9px;min-height:68px;padding:10px;border-radius:17px;background:rgba(255,255,255,.075);border:1px solid rgba(255,255,255,.08)}
+.moonlit-preview-items i{width:34px;height:34px;display:grid;place-items:center;border-radius:12px;background:rgba(195,201,255,.12);color:#e7eaff;font-style:normal;font-size:18px}
+.moonlit-preview-items b,.moonlit-preview-items small{display:block}
+.moonlit-preview-items b{color:#fff;font-size:11px;line-height:1.14}
+.moonlit-preview-items small{margin-top:3px;color:rgba(255,255,255,.48);font-size:9px;line-height:1.25;font-weight:650}
+.moonlit-preview-cta{width:100%;min-height:54px;margin-top:14px;border-radius:18px;color:#18203d;background:linear-gradient(135deg,#f3f5ff,#cfd7ff);font-size:13px;font-weight:900;box-shadow:0 15px 30px rgba(0,0,0,.20)}
+.moonlit-preview-cta:active{transform:scale(.98)}
+.moonlit-preview-note{margin:9px 8px 0;color:rgba(255,255,255,.43);font-size:9.5px;line-height:1.35;text-align:center;font-weight:650}
+body.moonlit-preview-open #sos-fab{display:none!important}
+
+@media (max-width:370px){
+  .moonlit-preview-items{grid-template-columns:1fr}
+  .moonlit-preview-tank{border-radius:25px}
+  .moonlit-seasonal-actions{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){
+  .moonlit-ray,.moonlit-live-particles b,.moonlit-live-decor,.moonlit-jelly-live,.moonlit-preview-rays,.moonlit-preview-stars i,.moonlit-preview-gillie,.moonlit-preview-crescent,.moonlit-preview-coral,.moonlit-preview-jelly{animation:none!important}
+}
