@@ -13,11 +13,13 @@ const assets = [
   "gillie-foundation.css",
   "phase5-paywall.js",
   "v1/v1.css",
+  "v1/reef-dashboard.css",
   "v1/core.js",
   "v1/onboarding.js",
   "v1/sos.js",
   "v1/progress.js",
   "v1/reef.js",
+  "v1/reef-dashboard.js",
   "v1/coach.js",
   "v1/backup.js",
 ];
@@ -36,7 +38,7 @@ for (const asset of assets) {
 
 let html = fs.readFileSync(indexPath, "utf8");
 const marker = "<!-- Gillie Phase 3 ship polish -->";
-const injection = `${marker}\n<link rel="stylesheet" href="./phase3-ship.css" data-gillie-phase3="true">\n<script src="./phase3-ship.js" defer data-gillie-phase3="true"></script>\n<!-- Gillie Phase 4 launch hardening -->\n<link rel="stylesheet" href="./phase4-launch.css" data-gillie-phase4="true">\n<script src="./phase4-launch.js" defer data-gillie-phase4="true"></script>\n<!-- Gillie Phase 5 production paywall -->\n<link rel="stylesheet" href="./phase5-paywall.css" data-gillie-phase5="true">\n<link rel="stylesheet" href="./gillie-foundation.css" data-gillie-foundation="true">\n<script src="./phase5-paywall.js" defer data-gillie-phase5="true"></script>\n<!-- Gillie V1 canonical screen modules -->\n<link rel="stylesheet" href="./v1/v1.css" data-gillie-v1-styles="true">\n<script src="./v1/core.js" defer data-gillie-v1-core="true"></script>\n<script src="./v1/onboarding.js" defer data-gillie-v1-onboarding="true"></script>\n<script src="./v1/sos.js" defer data-gillie-v1-sos="true"></script>\n<script src="./v1/progress.js" defer data-gillie-v1-progress="true"></script>\n<script src="./v1/reef.js" defer data-gillie-v1-reef="true"></script>\n<script src="./v1/coach.js" defer data-gillie-v1-coach="true"></script>\n<script src="./v1/backup.js" defer data-gillie-v1-backup="true"></script>`;
+const injection = `${marker}\n<link rel="stylesheet" href="./phase3-ship.css" data-gillie-phase3="true">\n<script src="./phase3-ship.js" defer data-gillie-phase3="true"></script>\n<!-- Gillie Phase 4 launch hardening -->\n<link rel="stylesheet" href="./phase4-launch.css" data-gillie-phase4="true">\n<script src="./phase4-launch.js" defer data-gillie-phase4="true"></script>\n<!-- Gillie Phase 5 production paywall -->\n<link rel="stylesheet" href="./phase5-paywall.css" data-gillie-phase5="true">\n<link rel="stylesheet" href="./gillie-foundation.css" data-gillie-foundation="true">\n<script src="./phase5-paywall.js" defer data-gillie-phase5="true"></script>\n<!-- Gillie V1 canonical screen modules -->\n<link rel="stylesheet" href="./v1/v1.css" data-gillie-v1-styles="true">\n<link rel="stylesheet" href="./v1/reef-dashboard.css" data-gillie-v1-reef-dashboard-styles="true">\n<script src="./v1/core.js" defer data-gillie-v1-core="true"></script>\n<script src="./v1/onboarding.js" defer data-gillie-v1-onboarding="true"></script>\n<script src="./v1/sos.js" defer data-gillie-v1-sos="true"></script>\n<script src="./v1/progress.js" defer data-gillie-v1-progress="true"></script>\n<script src="./v1/reef.js" defer data-gillie-v1-reef="true"></script>\n<script src="./v1/reef-dashboard.js" defer data-gillie-v1-reef-dashboard="true"></script>\n<script src="./v1/coach.js" defer data-gillie-v1-coach="true"></script>\n<script src="./v1/backup.js" defer data-gillie-v1-backup="true"></script>`;
 
 if (!html.includes(marker)) {
   if (!html.includes("</body>")) throw new Error("Cannot inject launch assets: missing </body>.");
@@ -125,11 +127,13 @@ const phase5 = fs.readFileSync(path.join(out, "phase5-paywall.js"), "utf8");
 const phase5Css = fs.readFileSync(path.join(out, "phase5-paywall.css"), "utf8");
 const foundationCss = fs.readFileSync(path.join(out, "gillie-foundation.css"), "utf8");
 const v1Css = fs.readFileSync(path.join(out, "v1/v1.css"), "utf8");
+const v1ReefDashboardCss = fs.readFileSync(path.join(out, "v1/reef-dashboard.css"), "utf8");
 const v1Core = fs.readFileSync(path.join(out, "v1/core.js"), "utf8");
 const v1Onboarding = fs.readFileSync(path.join(out, "v1/onboarding.js"), "utf8");
 const v1Sos = fs.readFileSync(path.join(out, "v1/sos.js"), "utf8");
 const v1Progress = fs.readFileSync(path.join(out, "v1/progress.js"), "utf8");
 const v1Reef = fs.readFileSync(path.join(out, "v1/reef.js"), "utf8");
+const v1ReefDashboard = fs.readFileSync(path.join(out, "v1/reef-dashboard.js"), "utf8");
 const v1Coach = fs.readFileSync(path.join(out, "v1/coach.js"), "utf8");
 const v1Backup = fs.readFileSync(path.join(out, "v1/backup.js"), "utf8");
 
@@ -166,6 +170,8 @@ for (const required of ["Gillie V1 visual foundation", "--g-icon-size", ".gp-ben
 }
 for (const [source, marker] of [
   [v1Css, "Gillie V1 canonical screen styles"],
+  [v1ReefDashboardCss, "Gillie V1 Reef Dashboard"],
+  [v1ReefDashboardCss, ".v1-reef-daily-bonus"],
   [v1Core, "Gillie V1 canonical coordinator"],
   [v1Core, "late-module safe"],
   [v1Core, "gillieV1ModuleCount"],
@@ -177,6 +183,11 @@ for (const [source, marker] of [
   [v1Reef, 'document.addEventListener("click", handlePreviewCapture, true)'],
   [v1Reef, 'document.addEventListener("touchend", handlePreviewTouchEnd'],
   [v1Reef, "dismissPreviewWithGesture"],
+  [v1ReefDashboard, 'register("reef-dashboard"'],
+  [v1ReefDashboard, 'DASHBOARD_ENGINE = "reef-progression-v1"'],
+  [v1ReefDashboard, "Daily Reef Care"],
+  [v1ReefDashboard, "reefProgress"],
+  [v1ReefDashboard, "claimDailyBonus"],
   [v1Coach, "What do you need right now?"],
   [v1Backup, 'format: "gillie-backup"'],
 ]) {
@@ -187,11 +198,11 @@ for (const forbidden of [".gp-cta-wrap", "position:sticky", "◔", "↺"]) {
     throw new Error(`Generated Phase 5 paywall still contains forbidden legacy marker: ${forbidden}`);
   }
 }
-for (const tag of ["phase3", "phase4", "phase5", "foundation", "v1-styles", "v1-core", "v1-onboarding", "v1-sos", "v1-progress", "v1-reef", "v1-coach", "v1-backup"]) {
+for (const tag of ["phase3", "phase4", "phase5", "foundation", "v1-styles", "v1-reef-dashboard-styles", "v1-core", "v1-onboarding", "v1-sos", "v1-progress", "v1-reef", "v1-reef-dashboard", "v1-coach", "v1-backup"]) {
   if (!html.includes(`data-gillie-${tag}=\"true\"`)) throw new Error(`Generated index is missing Gillie asset tag: ${tag}`);
 }
 if (html.includes('data-gillie-phase5-hotfix="true"')) throw new Error("Legacy Phase 5 hotfix stylesheet is still injected.");
 if (html.includes('kicker: "Paywall is the tank"')) throw new Error("Internal paywall copy leaked into the generated app.");
 if (phase3.includes('phase2-card-badge", view).forEach((badge) => badge.remove())')) throw new Error("Generated Phase 3 bundle still removes observed Reef badges.");
 
-console.log("Injected compatibility layers plus late-safe V1 coordinator and canonical Gillie modules.");
+console.log("Injected compatibility layers plus late-safe V1 coordinator, Reef progression, and canonical Gillie modules.");
