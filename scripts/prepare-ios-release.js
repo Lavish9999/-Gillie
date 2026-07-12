@@ -4,6 +4,7 @@ const path = require("path");
 const root = path.resolve(__dirname, "..");
 const projectPath = path.join(root, "ios", "App", "App.xcodeproj", "project.pbxproj");
 const privacyPath = path.join(root, "ios", "App", "App", "PrivacyInfo.xcprivacy");
+const purchasesPath = path.join(root, "ios", "App", "App", "GilliePurchasesPlugin.swift");
 
 const PRIVACY_FILE_REF = "8A1B30002C00000300AA0001";
 const PRIVACY_BUILD_FILE = "8A1B30012C00000300AA0001";
@@ -20,6 +21,7 @@ function replaceOnce(source, needle, replacement, label) {
 
 requireFile(projectPath, "Xcode project");
 requireFile(privacyPath, "app privacy manifest");
+requireFile(purchasesPath, "Gillie purchases plugin");
 
 const privacy = fs.readFileSync(privacyPath, "utf8");
 for (const marker of [
@@ -81,6 +83,24 @@ for (const marker of [
   if (!project.includes(marker)) throw new Error(`Prepared Xcode project is missing release marker: ${marker}`);
 }
 if (project.includes(universalTarget)) throw new Error("Xcode target still declares universal iPhone/iPad support.");
-
 fs.writeFileSync(projectPath, project, "utf8");
-console.log("Prepared iOS release project: privacy manifest embedded and V1 scoped to iPhone.");
+
+let purchases = fs.readFileSync(purchasesPath, "utf8");
+const clearBefore = `    @objc func clearDiagnostics(_ call: CAPPluginCall) {
+        defaults.removeObject(forKey: eventLogKey)
+        defaults.removeObject(forKey: metricLogKey)
+        call.resolve(["cleared": true])
+    }`;
+const clearAfter = `    @objc func clearDiagnostics(_ call: CAPPluginCall) {
+        defaults.removeObject(forKey: eventLogKey)
+        defaults.removeObject(forKey: metricLogKey)
+        defaults.removeObject(forKey: installIDKey)
+        call.resolve(["cleared": true])
+    }`;
+if (purchases.includes(clearBefore)) purchases = purchases.replace(clearBefore, clearAfter);
+if (!purchases.includes("defaults.removeObject(forKey: installIDKey)")) {
+  throw new Error("Gillie native diagnostics clear action does not remove the local install identifier.");
+}
+fs.writeFileSync(purchasesPath, purchases, "utf8");
+
+console.log("Prepared iOS release project: privacy manifest embedded, V1 scoped to iPhone, and local diagnostics fully erasable.");
