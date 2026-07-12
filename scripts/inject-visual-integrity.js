@@ -26,7 +26,9 @@ html = html
   .replace('<div class="eyebrow">Today preview</div>\n    <div class="row"><div class="t">Your free next step</div><span class="tag free">FREE</span></div>', '<div class="eyebrow">Today preview · Free</div>\n    <div class="row"><div class="t">Your free next step</div></div>')
   .replaceAll('<div class="eyebrow">Gillie Coach</div>\n      <div class="row"><div class="t">Personal quit plan</div><span class="tag">PLUS</span></div>', '<div class="eyebrow">Gillie Coach · Plus</div>\n      <div class="row"><div class="t">Personal quit plan</div></div>')
   .replaceAll('<div class="eyebrow">Gillie Coach</div>\n    <div class="row"><div class="t">Open Coach Room</div><span class="tag">PLUS</span></div>', '<div class="eyebrow">Gillie Coach · Plus</div>\n    <div class="row"><div class="t">Open Coach Room</div></div>')
-  .replace('<div class="eyebrow">Gillie Coach</div>\n      <div class="row"><div class="t">Personal quit plan</div><span class="tag">PLUS</span></div>', '<div class="eyebrow">Gillie Coach · Plus</div>\n      <div class="row"><div class="t">Personal quit plan</div></div>');
+  .replace('<div class="eyebrow">Gillie Coach</div>\n      <div class="row"><div class="t">Personal quit plan</div><span class="tag">PLUS</span></div>', '<div class="eyebrow">Gillie Coach · Plus</div>\n      <div class="row"><div class="t">Personal quit plan</div></div>')
+  .replace(/<span class="tag">\s*LIVE\s*<\/span>/g, "")
+  .replace(/<span class="tag free">\s*FREE\s*<\/span>/g, "");
 
 const styleTag = '<link rel="stylesheet" href="./v1/visual-integrity.css" data-gillie-v1-visual-integrity-styles="true">';
 const scriptTag = '<script src="./v1/visual-integrity.js" defer data-gillie-v1-visual-integrity="true"></script>';
