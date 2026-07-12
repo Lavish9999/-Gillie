@@ -125,6 +125,9 @@ for (const marker of [
   ".v1-reef-dashboard{",
   "#view-reef .v1-reef-vault",
   '[data-visual-empty-surface="true"]',
+  ".v1-renewal-disclosure",
+  ".v1-active-subscription",
+  '#plus-purchase[data-v1-manage-subscription="true"]',
 ]) {
   if (!integrityCss.includes(marker)) fail(`visual integrity CSS is missing ${marker}`);
 }
@@ -134,8 +137,14 @@ for (const marker of [
   "removeDecorativeAccentStripes",
   "compactOversizedStatusPills",
   "collapseEmptyOversizedSurfaces",
+  "ensurePaywallDisclosure",
+  "renews automatically unless cancelled at least 24 hours",
+  "v1ManageSubscription",
+  "openAppleSubscriptionManagement",
 ]) {
   if (!integrityJs.includes(marker)) fail(`visual integrity JavaScript is missing ${marker}`);
 }
 
-console.log("Visual integrity audit passed: no fake LIVE badges, display-size tracking, thick accent stripes, oversized status pills, or giant generic cards.");
+if (/Save\s+37%/i.test(integrityJs)) fail("visual integrity must not reintroduce a hard-coded subscription savings claim");
+
+console.log("Visual integrity audit passed: template UI is controlled, renewal terms are visible, and active subscribers manage through Apple.");
