@@ -1,0 +1,45 @@
+name: Gillie Release Validation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Validate release source and generated bundle
+        run: npm run validate:ship
+
+      - name: Verify release privacy and target markers
+        run: |
+          grep -q 'NSPrivacyAccessedAPICategoryUserDefaults' ios/App/App/PrivacyInfo.xcprivacy
+          grep -q 'CA92.1' ios/App/App/PrivacyInfo.xcprivacy
+          grep -q 'PrivacyInfo.xcprivacy in Resources' ios/App/App.xcodeproj/project.pbxproj
+          grep -q 'TARGETED_DEVICE_FAMILY = 1;' ios/App/App.xcodeproj/project.pbxproj
+          grep -q 'clearDiagnostics' www/index.html
+          grep -q 'localStorage.clear()' www/index.html
+          grep -q '"reefProgress", "moonlitReef"' www/v1/backup.js
+          if grep -qE 'fonts\.googleapis\.com|fonts\.gstatic\.com' www/index.html; then
+            echo 'Remote Google Fonts remain in the native bundle'
+            exit 1
+          fi
