@@ -52,55 +52,55 @@ const phase3Path = path.join(out, "phase3-ship.js");
 let phase3 = fs.readFileSync(phase3Path, "utf8");
 
 const openPlusNeedle = `    try {
-      if (typeof window.openPlus === "function") window.openPlus();
-      else if (typeof openPlus === "function") openPlus();
-      else document.getElementById("plus-open")?.click();
-    } catch (_) {
-      showOverlay("plus-overlay");
-    }`;
+       if (typeof window.openPlus === "function") window.openPlus();
+       else if (typeof openPlus === "function") openPlus();
+       else document.getElementById("plus-open")?.click();
+     } catch (_) {
+       showOverlay("plus-overlay");
+     }`;
 const openPlusReplacement = `    try {
-      if (typeof window.openPlus === "function") window.openPlus();
-      else document.getElementById("plus-open")?.click();
-    } catch (_) {
-      showOverlay("plus-overlay");
-    }`;
+       if (typeof window.openPlus === "function") window.openPlus();
+       else document.getElementById("plus-open")?.click();
+     } catch (_) {
+       showOverlay("plus-overlay");
+     }`;
 if (!phase3.includes(openPlusNeedle)) throw new Error("Phase 3 paywall fallback marker changed.");
 phase3 = phase3.replace(openPlusNeedle, openPlusReplacement);
 
 const paywallOwnerNeedle = `  function tunePaywall() {
-    const overlay = $("#plus-overlay");
-    const current = appState();
-    if (!overlay || overlay.hidden || !current) return;`;
+     const overlay = $("#plus-overlay");
+     const current = appState();
+     if (!overlay || overlay.hidden || !current) return;`;
 const paywallOwnerReplacement = `  function tunePaywall() {
-    const overlay = $("#plus-overlay");
-    const current = appState();
-    if (!overlay || overlay.hidden || !current) return;
-    if (window.__gilliePaywallRebuildInstalled || overlay.classList.contains("gp-paywall-overlay")) return;`;
+     const overlay = $("#plus-overlay");
+     const current = appState();
+     if (!overlay || overlay.hidden || !current) return;
+     if (window.__gilliePaywallRebuildInstalled || overlay.classList.contains("gp-paywall-overlay")) return;`;
 if (!phase3.includes(paywallOwnerNeedle)) throw new Error("Phase 3 paywall ownership marker changed.");
 phase3 = phase3.replace(paywallOwnerNeedle, paywallOwnerReplacement);
 
 const refreshNeedle = `  function refresh() {
-    installStatusScrim();
-    updateActiveView();
-    buildHome();
-    buildProgressActivation();
-    tuneReef();
-    tunePaywall();
-    tuneCopy();
-  }`;
+     installStatusScrim();
+     updateActiveView();
+     buildHome();
+     buildProgressActivation();
+     tuneReef();
+     tunePaywall();
+     tuneCopy();
+   }`;
 const refreshReplacement = `  function refresh() {
-    const main = $("#main");
-    if (observer) observer.disconnect();
-    grantStarterPearls();
-    installStatusScrim();
-    updateActiveView();
-    buildHome();
-    buildProgressActivation();
-    tuneReef();
-    tunePaywall();
-    tuneCopy();
-    if (observer && main) observer.observe(main, { childList: true, subtree: true });
-  }`;
+     const main = $("#main");
+     if (observer) observer.disconnect();
+     grantStarterPearls();
+     installStatusScrim();
+     updateActiveView();
+     buildHome();
+     buildProgressActivation();
+     tuneReef();
+     tunePaywall();
+     tuneCopy();
+     if (observer && main) observer.observe(main, { childList: true, subtree: true });
+   }`;
 if (!phase3.includes(refreshNeedle)) throw new Error("Phase 3 refresh marker changed.");
 phase3 = phase3.replace(refreshNeedle, refreshReplacement);
 
@@ -110,7 +110,7 @@ if (insightMatches !== 2) throw new Error(`Expected two Phase 3 insight visibili
 phase3 = phase3.split(insightsNeedle).join('hideSection(view, "Your insights", "#insights-box", !(current.premium && ready));');
 
 const badgeRemovalNeedle = `    $$("#shop-grid .phase2-card-badge", view).forEach((badge) => badge.remove());
-    buildReefStarterMessage();`;
+     buildReefStarterMessage();`;
 const badgeRemovalReplacement = `    buildReefStarterMessage();`;
 if (!phase3.includes(badgeRemovalNeedle)) throw new Error("Phase 3 Reef badge marker changed.");
 phase3 = phase3.replace(badgeRemovalNeedle, badgeRemovalReplacement);
@@ -173,8 +173,10 @@ for (const [source, marker] of [
   [v1Sos, "I made it through this moment"],
   [v1Progress, "Always free"],
   [v1Reef, "Curated aquarium collection"],
-  [v1Reef, 'PREVIEW_ENGINE = "canonical-v2"'],
+  [v1Reef, 'PREVIEW_ENGINE = "canonical-v3-swipe"'],
   [v1Reef, 'document.addEventListener("click", handlePreviewCapture, true)'],
+  [v1Reef, 'document.addEventListener("touchend", handlePreviewTouchEnd'],
+  [v1Reef, "dismissPreviewWithGesture"],
   [v1Coach, "What do you need right now?"],
   [v1Backup, 'format: "gillie-backup"'],
 ]) {
