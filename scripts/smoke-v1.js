@@ -92,6 +92,9 @@ requireMarker(styles, "Canonical tab isolation", "V1 tab isolation styles");
 requireMarker(styles, '#main > .view[data-v1-active="true"]:not([hidden])', "V1 active view layout");
 requireMarker(styles, '#main > .view[data-v1-active="false"]', "V1 inactive view layout");
 requireMarker(styles, "display:none!important", "V1 inactive display exclusion");
+requireMarker(styles, "position:absolute!important", "V1 inactive flex-layout exclusion");
+requireMarker(styles, "flex:0 0 0!important", "V1 inactive flex-size exclusion");
+requireMarker(styles, "contain:strict!important", "V1 inactive containment boundary");
 requireMarker(styles, "height:100dvh!important", "V1 single scroll-shell height");
 requireMarker(styles, "#sos-overlay .phase2-sos-data", "SOS reflection deferral");
 requireMarker(styles, "#phase2-tank-preview .v1-preview-axo-wrap", "Reef preview scale contract");
@@ -111,4 +114,4 @@ if (html.includes("data-gillie-phase5-hotfix")) {
   throw new Error("Legacy paywall hotfix returned to the generated bundle.");
 }
 
-console.log("Gillie V1 smoke checks passed: strict tab isolation, canonical Reef rendering, swipe dismissal, progression, daily care, and premium collection value are present.");
+console.log("Gillie V1 smoke checks passed: strict tab isolation, flex-layout exclusion, canonical Reef rendering, swipe dismissal, progression, daily care, and premium collection value are present.");
