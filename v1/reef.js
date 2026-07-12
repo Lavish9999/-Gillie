@@ -26,34 +26,62 @@
       return [...archivedNames].find((name) => text.includes(name)) || text;
     }
 
+    function namespacePreviewSvgIds(svg) {
+      const prefix = `reef-preview-${Date.now().toString(36)}`;
+      const nodes = Array.from(svg.querySelectorAll("[id]"));
+      const idMap = new Map(nodes.map((node) => [node.id, `${prefix}-${node.id}`]));
+
+      nodes.forEach((node) => {
+        const original = node.id;
+        node.id = idMap.get(original);
+      });
+
+      [svg, ...svg.querySelectorAll("*")].forEach((node) => {
+        Array.from(node.attributes || []).forEach((attribute) => {
+          let next = attribute.value;
+          idMap.forEach((replacement, original) => {
+            next = next.split(`#${original}`).join(`#${replacement}`);
+          });
+          if (next !== attribute.value) node.setAttribute(attribute.name, next);
+        });
+      });
+    }
+
+    function createPreviewCharacter() {
+      const sourceSvg = qs("#axo-svg");
+      if (!sourceSvg) return null;
+
+      const previewSvg = sourceSvg.cloneNode(true);
+      previewSvg.removeAttribute("id");
+      previewSvg.classList.remove("flip", "swim", "celebrate", "tapjoy");
+      previewSvg.classList.add("v1-preview-axo-svg");
+      previewSvg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+      previewSvg.setAttribute("aria-hidden", "true");
+      namespacePreviewSvgIds(previewSvg);
+
+      const previewWrap = document.createElement("div");
+      previewWrap.className = "v1-preview-axo-wrap";
+      previewWrap.setAttribute("aria-hidden", "true");
+      previewWrap.appendChild(previewSvg);
+      return previewWrap;
+    }
+
     function repairTankPreview() {
       const overlay = qs("#phase2-tank-preview");
       const frame = overlay && qs(".phase2-preview-frame", overlay);
       const tank = frame && qs(".phase2-tank-clone", frame);
-      if (!tank) return;
+      if (!tank || tank.dataset.v1PreviewRepaired === "true") return;
 
       tank.classList.add("v1-tank-preview");
       tank.setAttribute("aria-hidden", "true");
       tank.querySelectorAll(".bubble, .mote, .phase2-tank-heart, .phase2-food, .phase2-celebration").forEach((node) => node.remove());
 
-      const axoSvg = tank.querySelector("svg[data-growth]");
-      const axoWrap = axoSvg?.parentElement;
-      if (!axoSvg || !axoWrap) return;
+      const clonedSvg = tank.querySelector("svg[data-growth]");
+      const clonedWrap = clonedSvg?.parentElement;
+      const previewWrap = createPreviewCharacter();
+      if (!clonedSvg || !clonedWrap || !previewWrap) return;
 
-      axoWrap.classList.remove(
-        "phase2-alive",
-        "phase2-following",
-        "phase2-petted",
-        "phase2-playful",
-        "phase2-curious",
-        "phase2-snoozy",
-        "phase2-proud",
-        "phase2-feeding",
-      );
-      axoWrap.classList.add("v1-preview-axo-wrap");
-      axoSvg.classList.remove("flip", "swim", "celebrate", "tapjoy");
-      axoSvg.classList.add("v1-preview-axo-svg");
-
+      clonedWrap.replaceWith(previewWrap);
       tank.dataset.v1PreviewRepaired = "true";
     }
 
