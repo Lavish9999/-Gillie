@@ -3,9 +3,13 @@ const path = require("path");
 
 const root = path.resolve(__dirname, "..");
 const indexPath = path.join(root, "www", "index.html");
+const commercePath = path.join(root, "www", "phase1-commerce.js");
 
-if (!fs.existsSync(indexPath)) throw new Error("Missing generated www/index.html for release safety pass.");
+for (const [file, label] of [[indexPath, "www/index.html"], [commercePath, "www/phase1-commerce.js"]]) {
+  if (!fs.existsSync(file)) throw new Error(`Missing generated ${label} for release safety pass.`);
+}
 let html = fs.readFileSync(indexPath, "utf8");
+let commerce = fs.readFileSync(commercePath, "utf8");
 
 for (const line of [
   '<link rel="preconnect" href="https://fonts.googleapis.com">\n',
@@ -43,12 +47,31 @@ const eraseAfter = `    onConfirm: async () => {
 if (!html.includes(eraseBefore)) throw new Error("Erase Everything marker changed; refusing to ship without native diagnostic deletion.");
 html = html.replace(eraseBefore, eraseAfter);
 
+const recoveryBefore = `    panel.querySelector("#gillie-reset-startup").onclick = () => {
+      if (!confirm("Start fresh? This permanently deletes Gillie progress stored on this device.")) return;
+      try { localStorage.removeItem("gillie_v1"); } catch (_) {}
+      location.reload();
+    };`;
+const recoveryAfter = `    panel.querySelector("#gillie-reset-startup").onclick = async () => {
+      if (!confirm("Start fresh? This permanently deletes Gillie progress and local diagnostics stored on this device.")) return;
+      try { await window.Capacitor?.Plugins?.GilliePurchases?.clearDiagnostics?.(); } catch (_) {}
+      try { localStorage.clear(); } catch (_) {}
+      location.reload();
+    };`;
+if (!commerce.includes(recoveryBefore)) throw new Error("Startup recovery reset marker changed; refusing to ship with partial local deletion.");
+commerce = commerce.replace(recoveryBefore, recoveryAfter);
+
 for (const forbidden of ["fonts.googleapis.com", "fonts.gstatic.com", "Dopamine signaling is rebalancing", "localStorage.removeItem(CONFIG.storageKey)"]) {
   if (html.includes(forbidden)) throw new Error(`Generated native bundle still contains forbidden release marker: ${forbidden}`);
 }
+if (commerce.includes('localStorage.removeItem("gillie_v1")')) throw new Error("Startup recovery still performs a partial reset.");
 for (const required of ["clearDiagnostics", "localStorage.clear()", "experiences vary", "general wellness information, not medical advice"]) {
   if (!html.includes(required)) throw new Error(`Generated native bundle is missing release marker: ${required}`);
 }
+for (const required of ["clearDiagnostics", "localStorage.clear()", "local diagnostics stored on this device"]) {
+  if (!commerce.includes(required)) throw new Error(`Generated startup recovery is missing release marker: ${required}`);
+}
 
 fs.writeFileSync(indexPath, html, "utf8");
+fs.writeFileSync(commercePath, commerce, "utf8");
 console.log("Applied release safety pass: no remote fonts, softer wellness copy, and complete local diagnostic erase.");
