@@ -70,9 +70,10 @@ class GillieBridgeViewController: CAPBridgeViewController {
               </div>`;
             document.body.appendChild(panel);
             panel.querySelector('#gillie-native-retry').onclick = () => location.reload();
-            panel.querySelector('#gillie-native-reset').onclick = () => {
-              if (!confirm('Start fresh? This permanently deletes Gillie progress stored on this device.')) return;
-              try { localStorage.removeItem('gillie_v1'); } catch (_) {}
+            panel.querySelector('#gillie-native-reset').onclick = async () => {
+              if (!confirm('Start fresh? This permanently deletes Gillie progress, preferences, and local diagnostics stored on this device.')) return;
+              try { await window.Capacitor?.Plugins?.GilliePurchases?.clearDiagnostics?.(); } catch (_) {}
+              try { localStorage.clear(); } catch (_) {}
               location.reload();
             };
           };
