@@ -6,7 +6,7 @@ Run every blocking item on a physical iPhone using the newest TestFlight build p
 
 - [ ] Codemagic uses `npm ci` and `npm run validate:ship` succeeds.
 - [ ] `npx cap sync ios` installs Local Notifications and preserves the app privacy manifest.
-- [ ] Xcode/Codemagic compiles `GilliePurchasesPlugin.swift` and `AppDelegate.swift` without errors.
+- [ ] Xcode/Codemagic compiles `GilliePurchasesPlugin.swift`, `GillieBridgeViewController.swift`, and `AppDelegate.swift` without errors.
 - [ ] The final IPA bundle ID is `com.lavish9999.gillie` and its build number matches Codemagic’s automatic build number.
 - [ ] The final IPA contains `PrivacyInfo.xcprivacy` with the UserDefaults reason `CA92.1`.
 - [ ] The final IPA targets iPhone only for V1; no untested native iPad target is included.
@@ -22,6 +22,7 @@ Run every blocking item on a physical iPhone using the newest TestFlight build p
 - [ ] Reef and You each remain isolated from every other tab.
 - [ ] Rapidly switch Home → Progress → Reef → You at least ten times with no stacked screens, frozen scrolling, or tab mismatch.
 - [ ] Force-close from each tab and reopen; the app launches normally.
+- [ ] If startup recovery appears, **Try again** preserves data and **Start fresh** clears recovery data, preferences, and local diagnostics before returning to onboarding.
 
 ## 3. Onboarding and core recovery
 
@@ -54,6 +55,9 @@ Run every blocking item on a physical iPhone using the newest TestFlight build p
 - [ ] Pending Ask to Buy does not falsely unlock Plus.
 - [ ] Restore succeeds on the purchasing Apple ID and does not unlock on an Apple ID with no entitlement.
 - [ ] Manage Subscription opens Apple subscription settings.
+- [ ] The paywall visibly states that payment is charged through Apple and that the subscription auto-renews unless cancelled at least 24 hours before the current period ends.
+- [ ] No hard-coded savings percentage appears unless it exactly matches the current App Store pricing.
+- [ ] An active subscriber sees **Gillie Plus is active** and **Manage subscription**, not a second purchase prompt.
 - [ ] Transaction updates unlock/relock without force-quitting.
 - [ ] Airplane-mode launch after a recently verified purchase does not visibly flash Plus back to Free.
 - [ ] Launch with no entitlement remains Free.
@@ -90,7 +94,7 @@ Run every blocking item on a physical iPhone using the newest TestFlight build p
 - [ ] After erasing, Gillie returns to onboarding and Apple can re-verify an existing subscription.
 - [ ] Launch and all free core functions work in Airplane Mode.
 - [ ] App privacy answers in App Store Connect match the binary: no advertising tracking and no Gillie-server data collection.
-- [ ] Public Privacy Policy and Support URLs open outside the app.
+- [ ] Public Privacy Policy and Support URLs open outside the app and show the current July 12, 2026 policy copy.
 
 ## 9. Device presentation and accessibility
 
