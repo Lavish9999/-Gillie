@@ -2,10 +2,11 @@
 (() => {
   "use strict";
 
-  window.GillieV1?.register("reef", ({ qs, qsa, afterRender, track }) => {
+  window.GillieV1?.register("reef", ({ qs, qsa, afterRender, track, getState }) => {
     const view = qs("#view-reef");
     if (!view) return;
 
+    const PREVIEW_OPEN_CLASS = "v1-reef-preview-open";
     const archivedNames = new Set([
       "No-Vaping Sign",
       "Party Hat",
@@ -19,6 +20,8 @@
       "Bubble Volcano",
     ]);
 
+    let previewScrollY = 0;
+
     function cardName(card) {
       const named = qs(".name, .t, b, strong", card)?.textContent?.trim();
       if (named) return named;
@@ -26,38 +29,22 @@
       return [...archivedNames].find((name) => text.includes(name)) || text;
     }
 
-    function namespacePreviewSvgIds(svg) {
-      const prefix = `reef-preview-${Date.now().toString(36)}`;
-      const nodes = Array.from(svg.querySelectorAll("[id]"));
-      const idMap = new Map(nodes.map((node) => [node.id, `${prefix}-${node.id}`]));
-
-      nodes.forEach((node) => {
-        const original = node.id;
-        node.id = idMap.get(original);
-      });
-
-      [svg, ...svg.querySelectorAll("*")].forEach((node) => {
-        Array.from(node.attributes || []).forEach((attribute) => {
-          let next = attribute.value;
-          idMap.forEach((replacement, original) => {
-            next = next.split(`#${original}`).join(`#${replacement}`);
-          });
-          if (next !== attribute.value) node.setAttribute(attribute.name, next);
-        });
-      });
-    }
-
     function createPreviewCharacter() {
-      const sourceSvg = qs("#axo-svg");
-      if (!sourceSvg) return null;
+      const current = getState?.();
+      if (!current || typeof axoSVG !== "function") return null;
 
-      const previewSvg = sourceSvg.cloneNode(true);
-      previewSvg.removeAttribute("id");
-      previewSvg.classList.remove("flip", "swim", "celebrate", "tapjoy");
-      previewSvg.classList.add("v1-preview-axo-svg");
+      const previewSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      previewSvg.setAttribute("viewBox", "0 0 200 160");
       previewSvg.setAttribute("preserveAspectRatio", "xMidYMid meet");
       previewSvg.setAttribute("aria-hidden", "true");
-      namespacePreviewSvgIds(previewSvg);
+      previewSvg.classList.add("v1-preview-axo-svg");
+
+      const sourceGrowth = qs("#axo-svg")?.dataset.growth;
+      if (sourceGrowth) previewSvg.dataset.growth = sourceGrowth;
+
+      const recentlySlipped = Date.now() - Number(current.justSlippedAt || 0) < 6 * 60 * 60 * 1000;
+      const namespace = `reefpreview-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+      previewSvg.innerHTML = axoSVG(current.skin, current.hat, recentlySlipped ? "sad" : "happy", namespace);
 
       const previewWrap = document.createElement("div");
       previewWrap.className = "v1-preview-axo-wrap";
@@ -76,13 +63,51 @@
       tank.setAttribute("aria-hidden", "true");
       tank.querySelectorAll(".bubble, .mote, .phase2-tank-heart, .phase2-food, .phase2-celebration").forEach((node) => node.remove());
 
-      const clonedSvg = tank.querySelector("svg[data-growth]");
-      const clonedWrap = clonedSvg?.parentElement;
+      const brokenSvg = tank.querySelector("svg[data-growth]");
+      const brokenWrap = brokenSvg?.parentElement;
       const previewWrap = createPreviewCharacter();
-      if (!clonedSvg || !clonedWrap || !previewWrap) return;
+      if (!brokenSvg || !brokenWrap || !previewWrap) return;
 
-      clonedWrap.replaceWith(previewWrap);
+      brokenWrap.replaceWith(previewWrap);
       tank.dataset.v1PreviewRepaired = "true";
+    }
+
+    function lockPreviewScroll() {
+      if (document.body.classList.contains(PREVIEW_OPEN_CLASS)) return;
+      previewScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+      document.documentElement.classList.add(PREVIEW_OPEN_CLASS);
+      document.body.classList.add(PREVIEW_OPEN_CLASS);
+      document.body.style.top = `-${previewScrollY}px`;
+    }
+
+    function unlockPreviewScroll() {
+      if (!document.body.classList.contains(PREVIEW_OPEN_CLASS)) return;
+      document.documentElement.classList.remove(PREVIEW_OPEN_CLASS);
+      document.body.classList.remove(PREVIEW_OPEN_CLASS);
+      document.body.style.top = "";
+      requestAnimationFrame(() => window.scrollTo(0, previewScrollY));
+    }
+
+    function bindPreviewLifecycle(overlay) {
+      if (!overlay || overlay.dataset.v1PreviewLifecycle === "true") return;
+      overlay.dataset.v1PreviewLifecycle = "true";
+
+      overlay.addEventListener("click", (event) => {
+        if (!event.target.closest(".sheet-close, .phase2-preview-sheet > .btn")) return;
+        requestAnimationFrame(unlockPreviewScroll);
+      });
+
+      overlay.addEventListener("touchmove", (event) => {
+        if (!event.target.closest(".phase2-preview-sheet")) event.preventDefault();
+      }, { passive: false });
+    }
+
+    function openPreviewRepair() {
+      const overlay = qs("#phase2-tank-preview");
+      if (!overlay || overlay.hidden) return;
+      bindPreviewLifecycle(overlay);
+      lockPreviewScroll();
+      repairTankPreview();
     }
 
     function decorate() {
@@ -123,9 +148,17 @@
     if (previewButton && previewButton.dataset.v1PreviewRepair !== "true") {
       previewButton.dataset.v1PreviewRepair = "true";
       previewButton.addEventListener("click", () => {
-        requestAnimationFrame(repairTankPreview);
-        setTimeout(repairTankPreview, 40);
+        requestAnimationFrame(openPreviewRepair);
+        setTimeout(openPreviewRepair, 40);
       });
     }
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape") return;
+      const overlay = qs("#phase2-tank-preview");
+      if (!overlay || overlay.hidden) return;
+      overlay.hidden = true;
+      unlockPreviewScroll();
+    });
   });
 })();
