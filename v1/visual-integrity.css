@@ -1,0 +1,170 @@
+/* Gillie V1 visual integrity — restrained type, purposeful surfaces, no fake status UI. */
+
+/* Human typography: tracking belongs only on small labels, never display copy. */
+.eyebrow,
+.v1-kicker,
+[class*="kicker"],
+[class*="eyebrow"]{
+  letter-spacing:.065em!important;
+}
+[data-visual-normal-tracking="true"]{
+  letter-spacing:0!important;
+}
+
+/* Decorative status pills are not information architecture. */
+#plan-preview .tag,
+#coach-card .tag,
+.locked-teaser .tag{
+  display:none!important;
+}
+[data-visual-compact-status="true"]{
+  width:auto!important;
+  min-width:0!important;
+  height:auto!important;
+  min-height:0!important;
+  padding:4px 8px!important;
+  border-radius:8px!important;
+  font-size:11px!important;
+  line-height:1.1!important;
+  letter-spacing:0!important;
+}
+
+/* Never let a decorative stripe become the visual identity of a card. */
+[data-visual-heavy-accent="true"]{
+  border-left-width:1px!important;
+  border-right-width:1px!important;
+  border-left-color:var(--line)!important;
+  border-right-color:var(--line)!important;
+}
+
+/* Empty surfaces collapse instead of pretending whitespace is premium. */
+[data-visual-empty-surface="true"]{
+  height:auto!important;
+  min-height:0!important;
+  padding:14px!important;
+}
+
+/* Generic Home cards use quiet surfaces; animation and color stay in Gillie's tank. */
+.plan-preview{
+  background:#fff!important;
+  border:1px solid rgba(17,51,47,.10)!important;
+  border-radius:20px!important;
+  box-shadow:0 6px 18px rgba(17,51,47,.07)!important;
+}
+.plan-preview .row{justify-content:flex-start!important}
+.plan-preview .mini i{background:#2f9c77!important}
+.coach-card:not(.locked),
+.checkin-card,
+.coach-room .coach-hero{
+  background:#153d38!important;
+  border:1px solid rgba(255,255,255,.08)!important;
+  box-shadow:0 8px 22px rgba(9,42,38,.14)!important;
+}
+.coach-card,
+.checkin-card,
+.plan-preview,
+.growth-card,
+.next-milestone,
+.goal-card{
+  border-radius:20px!important;
+}
+.coach-list div{
+  background:rgba(255,255,255,.08)!important;
+  border:1px solid rgba(255,255,255,.06)!important;
+}
+.coach-card.locked .coach-list div{
+  background:#eef5f2!important;
+  border-color:transparent!important;
+}
+
+/* Subscription messaging should read like product UI, not a generated hero banner. */
+.plus-banner{
+  background:#fff!important;
+  color:var(--ink)!important;
+  border:1px solid rgba(17,51,47,.10)!important;
+  border-radius:20px!important;
+  padding:16px!important;
+  box-shadow:0 6px 18px rgba(17,51,47,.07)!important;
+}
+.plus-banner .s{color:var(--ink-soft)!important;opacity:1!important}
+.plus-banner button{
+  width:100%!important;
+  background:#153d38!important;
+  color:#fff!important;
+  border-radius:14px!important;
+  padding:12px 15px!important;
+  box-shadow:none!important;
+}
+
+/* Reef progression remains rich, but the chrome is deliberate and flat. */
+.v1-reef-dashboard{
+  background:#123b36!important;
+  border-color:rgba(255,255,255,.06)!important;
+  border-radius:22px!important;
+  box-shadow:0 8px 24px rgba(14,57,52,.14)!important;
+}
+.v1-reef-dashboard::after{display:none!important}
+.v1-reef-level-orb{
+  background:rgba(255,255,255,.10)!important;
+  border-color:rgba(255,255,255,.14)!important;
+  box-shadow:none!important;
+}
+.v1-reef-metrics>div{
+  background:rgba(255,255,255,.075)!important;
+  border-color:rgba(255,255,255,.08)!important;
+}
+.v1-reef-dashboard-actions button{
+  box-shadow:none!important;
+}
+.v1-reef-daily-bonus{
+  background:#244d48!important;
+  box-shadow:none!important;
+}
+.v1-reef-daily-bonus.ready{background:#6b5118!important}
+.v1-reef-daily-bonus.claimed{background:#2d745f!important}
+
+/* The generic Plus vault is a compact utility card; Moonlit Reef carries the atmosphere. */
+#view-reef .v1-reef-vault,
+#view-reef .v1-reef-vault.active{
+  color:var(--ink)!important;
+  background:#fff!important;
+  border:1px solid rgba(17,51,47,.10)!important;
+  border-radius:20px!important;
+  box-shadow:0 6px 18px rgba(17,51,47,.07)!important;
+}
+#view-reef .v1-reef-vault .v1-kicker{color:#66817a!important}
+#view-reef .v1-reef-vault h2{color:var(--ink)!important}
+#view-reef .v1-reef-vault p{color:var(--ink-soft)!important}
+#view-reef .v1-reef-vault-chips span{
+  color:#3f5f58!important;
+  background:#edf4f1!important;
+  border-color:transparent!important;
+  border-radius:9px!important;
+}
+#view-reef .v1-reef-vault>button,
+#view-reef .v1-reef-vault.active>button{
+  color:#fff!important;
+  background:#153d38!important;
+  border-radius:14px!important;
+  box-shadow:none!important;
+}
+
+/* Keep functional pills small. Buttons may still be rounded because they are actions. */
+.stage-tag,
+.checkin-entry .pill,
+.theme-chip .plus-tag,
+.shop-card .plus-tag{
+  letter-spacing:0!important;
+}
+
+@media (max-width:370px){
+  .coach-card,
+  .checkin-card,
+  .plan-preview,
+  .growth-card,
+  .next-milestone,
+  .goal-card,
+  .plus-banner,
+  .v1-reef-dashboard,
+  #view-reef .v1-reef-vault{border-radius:18px!important}
+}
