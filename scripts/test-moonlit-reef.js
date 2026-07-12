@@ -1,0 +1,102 @@
+const fs = require("fs");
+const path = require("path");
+const vm = require("vm");
+
+const root = path.resolve(__dirname, "..");
+const source = fs.readFileSync(path.join(root, "v1/moonlit-reef.js"), "utf8");
+let installer = null;
+let renderCount = 0;
+let saveCount = 0;
+
+const classList = { add() {}, remove() {}, toggle() {} };
+const context = {
+  console,
+  Date,
+  Math,
+  setTimeout,
+  clearTimeout,
+  requestAnimationFrame(callback) { callback(); },
+  document: {
+    body: { classList, appendChild() {} },
+    createElement() { return { classList, dataset: {}, style: {}, appendChild() {}, addEventListener() {}, setAttribute() {}, remove() {} }; },
+  },
+  window: {
+    GillieV1: {
+      register(name, callback) {
+        if (name === "moonlit-reef") installer = callback;
+      },
+    },
+  },
+  save() { saveCount += 1; },
+  renderAxo() {},
+  renderAll() { renderCount += 1; },
+};
+context.window.window = context.window;
+vm.createContext(context);
+vm.runInContext(`
+  const THEMES = [{ id: "clear", name: "Clearwater", premium: false }];
+  const SKINS = [{ id: "pink", name: "Pink", premium: false }];
+  const CONFIG = { plus: { valueCards: ["Coach", "Rare themes"] } };
+`, context);
+vm.runInContext(source, context, { filename: "moonlit-reef.js" });
+
+if (typeof installer !== "function") throw new Error("Moonlit Reef did not register with the V1 coordinator.");
+
+function makeHarness(state) {
+  let clickHandler = null;
+  let plusClicks = 0;
+  const view = {
+    addEventListener(type, handler) {
+      if (type === "click") clickHandler = handler;
+    },
+  };
+  const plusButton = { click() { plusClicks += 1; } };
+  const qs = (selector) => {
+    if (selector === "#view-reef") return view;
+    if (selector === "#plus-open") return plusButton;
+    return null;
+  };
+  const hooks = [];
+  installer({
+    qs,
+    afterRender(callback) { hooks.push(callback); },
+    notify() {},
+    track() {},
+    getState() { return state; },
+  });
+  if (typeof clickHandler !== "function") throw new Error("Moonlit Reef did not install its Reef action handler.");
+  return {
+    triggerEquip() {
+      clickHandler({ target: { closest(selector) { return selector === "[data-moonlit-equip]" ? {} : null; } } });
+    },
+    get plusClicks() { return plusClicks; },
+    hooks,
+  };
+}
+
+const freeState = { onboarded: true, premium: false, theme: "clear", skin: "pink" };
+const freeHarness = makeHarness(freeState);
+freeHarness.triggerEquip();
+if (freeHarness.plusClicks !== 1) throw new Error("Free equip did not open Gillie Plus exactly once.");
+if (freeState.theme !== "clear" || freeState.skin !== "pink") throw new Error("Free preview path changed the equipped collection.");
+
+const premiumState = { onboarded: true, premium: true, theme: "clear", skin: "pink" };
+const premiumHarness = makeHarness(premiumState);
+premiumHarness.triggerEquip();
+if (premiumHarness.plusClicks !== 0) throw new Error("Active Plus incorrectly reopened the paywall.");
+if (premiumState.theme !== "moonlit" || premiumState.skin !== "moonpearl") throw new Error("Full collection equip did not apply the Moonlit theme and Moon Pearl skin.");
+for (const key of ["ambienceEquipped", "jellyEquipped", "crescentEquipped", "starCoralEquipped"]) {
+  if (!premiumState.moonlitReef?.[key]) throw new Error(`Full collection equip did not persist ${key}.`);
+}
+
+const catalogCheck = vm.runInContext(`({
+  themes: THEMES.filter((item) => item.id === "moonlit").length,
+  skins: SKINS.filter((item) => item.id === "moonpearl").length,
+  value: CONFIG.plus.valueCards.some((item) => /Moonlit Reef/.test(item)),
+})`, context);
+if (catalogCheck.themes !== 1 || catalogCheck.skins !== 1 || !catalogCheck.value) {
+  throw new Error("Moonlit catalog integration was not installed exactly once.");
+}
+if (renderCount < 1 || saveCount < 1) throw new Error("Moonlit equip did not use the app render and persistence paths.");
+
+console.log("Moonlit Reef runtime test passed: free preview gating, Plus equip, persistence, and catalog integration work.");
