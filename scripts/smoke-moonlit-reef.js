@@ -22,8 +22,8 @@ requireMarker(html, 'data-gillie-v1-moonlit-reef="true"', "Generated index.html"
 requireMarker(html, 'data-gillie-v1-moonlit-reef-styles="true"', "Generated index.html");
 requireMarker(js, 'register("moonlit-reef"', "Moonlit Reef module");
 requireMarker(js, 'COLLECTION_ENGINE = "moonlit-reef-v1"', "Moonlit Reef engine");
-requireMarker(js, 'id: "moonlit"', "Moonlit theme catalog entry");
-requireMarker(js, 'id: "moonpearl"', "Moon Pearl skin catalog entry");
+requireMarker(js, 'const THEME_ID = "moonlit"', "Moonlit theme catalog entry");
+requireMarker(js, 'const SKIN_ID = "moonpearl"', "Moon Pearl skin catalog entry");
 requireMarker(js, "equipFullCollection", "One-tap full collection equip");
 requireMarker(js, "if (!current.premium)", "Equip-time Plus boundary");
 requireMarker(js, "moonlit_collection_previewed", "Free preview analytics");
