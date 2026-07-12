@@ -5,6 +5,7 @@ const root = path.resolve(__dirname, "..");
 const projectPath = path.join(root, "ios", "App", "App.xcodeproj", "project.pbxproj");
 const privacyPath = path.join(root, "ios", "App", "App", "PrivacyInfo.xcprivacy");
 const purchasesPath = path.join(root, "ios", "App", "App", "GilliePurchasesPlugin.swift");
+const bridgePath = path.join(root, "ios", "App", "App", "GillieBridgeViewController.swift");
 
 const PRIVACY_FILE_REF = "8A1B30002C00000300AA0001";
 const PRIVACY_BUILD_FILE = "8A1B30012C00000300AA0001";
@@ -22,6 +23,7 @@ function replaceOnce(source, needle, replacement, label) {
 requireFile(projectPath, "Xcode project");
 requireFile(privacyPath, "app privacy manifest");
 requireFile(purchasesPath, "Gillie purchases plugin");
+requireFile(bridgePath, "Gillie bridge view controller");
 
 const privacy = fs.readFileSync(privacyPath, "utf8");
 for (const marker of [
@@ -48,7 +50,7 @@ if (!project.includes(`${PRIVACY_FILE_REF} /* PrivacyInfo.xcprivacy */ = {isa = 
   project = replaceOnce(
     project,
     "/* Begin PBXFileReference section */\n",
-    `/* Begin PBXFileReference section */\n\t\t${PRIVACY_FILE_REF} /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = \"<group>\"; };\n`,
+    `/* Begin PBXFileReference section */\n\t\t${PRIVACY_FILE_REF} /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };\n`,
     "Privacy manifest file-reference insertion",
   );
 }
@@ -103,4 +105,16 @@ if (!purchases.includes("defaults.removeObject(forKey: installIDKey)")) {
 }
 fs.writeFileSync(purchasesPath, purchases, "utf8");
 
-console.log("Prepared iOS release project: privacy manifest embedded, V1 scoped to iPhone, and local diagnostics fully erasable.");
+const bridge = fs.readFileSync(bridgePath, "utf8");
+for (const marker of [
+  "GilliePurchases?.clearDiagnostics",
+  "localStorage.clear()",
+  "progress, preferences, and local diagnostics",
+]) {
+  if (!bridge.includes(marker)) throw new Error(`Native startup recovery reset is missing release marker: ${marker}`);
+}
+if (bridge.includes("localStorage.removeItem('gillie_v1')")) {
+  throw new Error("Native startup recovery still performs a partial Gillie reset.");
+}
+
+console.log("Prepared iOS release project: privacy manifest embedded, V1 scoped to iPhone, and every local reset path is complete.");
