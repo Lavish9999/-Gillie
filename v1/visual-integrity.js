@@ -120,6 +120,7 @@
       const dock = qs("#gp-purchase-dock", overlay);
       let activeNote = qs("#v1-active-subscription", overlay);
       if (current?.premium) {
+        overlay.classList.add("v1-plus-active");
         if (!activeNote && dock?.parentNode) {
           activeNote = document.createElement("div");
           activeNote.id = "v1-active-subscription";
@@ -133,6 +134,7 @@
           purchase.dataset.v1ManageSubscription = "true";
         }
       } else {
+        overlay.classList.remove("v1-plus-active");
         activeNote?.remove();
         if (purchase?.dataset.v1ManageSubscription === "true") {
           delete purchase.dataset.v1ManageSubscription;
