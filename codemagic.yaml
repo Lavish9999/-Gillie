@@ -8,7 +8,7 @@ workflows:
       app_store_connect: codemagic
 
     environment:
-      node: latest
+      node: 22
       xcode: latest
       cocoapods: default
       vars:
@@ -20,10 +20,10 @@ workflows:
         bundle_identifier: "com.lavish9999.gillie"
 
     scripts:
-      - name: Install npm dependencies
+      - name: Install locked npm dependencies
         script: |
           set -euo pipefail
-          npm install
+          npm ci
 
       - name: Validate ship-quality source
         script: |
@@ -52,7 +52,9 @@ workflows:
           grep -q 'data-gillie-v1-reef-dashboard="true"' www/index.html
           grep -q 'data-gillie-v1-reef-dashboard-styles="true"' www/index.html
           grep -q 'late-module safe' www/v1/core.js
-          grep -q 'if (booted) queueMicrotask(() => installEntry(entry))' www/v1/core.js
+          grep -q 'strict tab isolation' www/v1/core.js
+          grep -q 'enforceViewIsolation' www/v1/core.js
+          grep -q '#view-home:not(\[data-v1-active="true"\])' www/v1/v1.css
           grep -q 'PREVIEW_ENGINE = "canonical-v3-swipe"' www/v1/reef.js
           grep -q 'document.addEventListener("click", handlePreviewCapture, true)' www/v1/reef.js
           grep -q 'document.addEventListener("touchend", handlePreviewTouchEnd' www/v1/reef.js
@@ -62,6 +64,21 @@ workflows:
           grep -q 'claimDailyBonus' www/v1/reef-dashboard.js
           grep -q 'Gillie V1 Reef Dashboard' www/v1/reef-dashboard.css
           grep -q '.v1-reef-vault' www/v1/reef-dashboard.css
+          grep -q '"reefProgress", "moonlitReef"' www/v1/backup.js
+          grep -q 'clearDiagnostics' www/index.html
+          grep -q 'localStorage.clear()' www/index.html
+          grep -q 'NSPrivacyAccessedAPICategoryUserDefaults' ios/App/App/PrivacyInfo.xcprivacy
+          grep -q 'CA92.1' ios/App/App/PrivacyInfo.xcprivacy
+          grep -q 'PrivacyInfo.xcprivacy in Resources' ios/App/App.xcodeproj/project.pbxproj
+          grep -q 'TARGETED_DEVICE_FAMILY = 1;' ios/App/App.xcodeproj/project.pbxproj
+          if grep -q 'TARGETED_DEVICE_FAMILY = "1,2";' ios/App/App.xcodeproj/project.pbxproj; then
+            echo "Gillie V1 still targets untested universal iPhone/iPad layout"
+            exit 1
+          fi
+          if grep -qE 'fonts\.googleapis\.com|fonts\.gstatic\.com' www/index.html; then
+            echo "Native bundle still makes a third-party font request"
+            exit 1
+          fi
           if grep -q 'data-gillie-phase5-hotfix="true"' www/index.html; then
             echo "Legacy paywall hotfix is still injected"
             exit 1
@@ -71,6 +88,8 @@ workflows:
         script: |
           set -euo pipefail
           npx cap sync ios
+          grep -q 'PrivacyInfo.xcprivacy in Resources' ios/App/App.xcodeproj/project.pbxproj
+          grep -q 'TARGETED_DEVICE_FAMILY = 1;' ios/App/App.xcodeproj/project.pbxproj
 
       - name: Remove App Store icon alpha channel
         script: |
@@ -120,7 +139,7 @@ workflows:
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${build_number}" App/Info.plist
           echo "Info.plist CFBundleVersion: $(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' App/Info.plist)"
           echo "Release build settings:"
-          xcodebuild -project App.xcodeproj -scheme App -configuration Release -showBuildSettings | grep -E "CURRENT_PROJECT_VERSION|MARKETING_VERSION"
+          xcodebuild -project App.xcodeproj -scheme App -configuration Release -showBuildSettings | grep -E "CURRENT_PROJECT_VERSION|MARKETING_VERSION|TARGETED_DEVICE_FAMILY"
 
       - name: Apply App Store Connect signing
         script: |
@@ -133,6 +152,48 @@ workflows:
           xcode-project build-ipa \
             --project "$XCODE_PROJECT" \
             --scheme "$XCODE_SCHEME"
+
+      - name: Verify final App Store IPA
+        script: |
+          set -euo pipefail
+          sequence="${PROJECT_BUILD_NUMBER:-${BUILD_NUMBER:-1}}"
+          expected_build=$((1000 + sequence))
+          ipa_path="$(find build/ios/ipa -name '*.ipa' -type f | head -n 1)"
+          if [ -z "$ipa_path" ] || [ ! -f "$ipa_path" ]; then
+            echo "Signed IPA was not produced"
+            exit 1
+          fi
+
+          verify_dir="$(mktemp -d)"
+          unzip -q "$ipa_path" -d "$verify_dir"
+          app_path="$(find "$verify_dir/Payload" -maxdepth 1 -name '*.app' -type d | head -n 1)"
+          if [ -z "$app_path" ]; then
+            echo "Could not locate app bundle inside IPA"
+            exit 1
+          fi
+
+          actual_build="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$app_path/Info.plist")"
+          bundle_id="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app_path/Info.plist")"
+          echo "IPA bundle: $bundle_id build $actual_build"
+          test "$bundle_id" = "$BUNDLE_ID"
+          test "$actual_build" = "$expected_build"
+          test -f "$app_path/PrivacyInfo.xcprivacy"
+          grep -q 'NSPrivacyAccessedAPICategoryUserDefaults' "$app_path/PrivacyInfo.xcprivacy"
+          grep -q 'CA92.1' "$app_path/PrivacyInfo.xcprivacy"
+
+          device_families="$(/usr/libexec/PlistBuddy -c 'Print :UIDeviceFamily' "$app_path/Info.plist")"
+          echo "$device_families"
+          echo "$device_families" | grep -q '1'
+          if echo "$device_families" | grep -q '2'; then
+            echo "Final IPA unexpectedly includes untested iPad support"
+            exit 1
+          fi
+
+          if grep -R -qE 'fonts\.googleapis\.com|fonts\.gstatic\.com' "$app_path/public"; then
+            echo "Final IPA still contains remote Google Fonts"
+            exit 1
+          fi
+          rm -rf "$verify_dir"
 
     artifacts:
       - build/ios/ipa/*.ipa
