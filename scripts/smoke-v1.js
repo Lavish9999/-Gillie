@@ -36,6 +36,12 @@ requireMarker(html, "gillie.plus.yearly", "StoreKit yearly product contract");
 
 requireMarker(core, "Gillie V1 canonical coordinator", "V1 core");
 requireMarker(core, "late-module safe", "V1 late-registration coordinator");
+requireMarker(core, "strict tab isolation", "V1 tab isolation ownership");
+requireMarker(core, 'const VIEW_NAMES = ["home", "progress", "reef", "you"]', "V1 canonical view registry");
+requireMarker(core, "enforceViewIsolation", "V1 one-view reconciliation");
+requireMarker(core, 'view.dataset.v1Active = active ? "true" : "false"', "V1 active-view markers");
+requireMarker(core, 'view.setAttribute?.("aria-hidden"', "V1 inactive accessibility boundary");
+requireMarker(core, 'element.setAttribute?.("inert", "")', "V1 inactive interaction boundary");
 requireMarker(core, "if (booted) queueMicrotask(() => installEntry(entry))", "V1 post-boot module installation");
 requireMarker(core, "gillieV1ModuleCount", "V1 runtime module count marker");
 requireMarker(core, "installedModules", "V1 installed module registry");
@@ -82,6 +88,11 @@ requireMarker(coach, "What do you need right now?", "Focused Coach flow");
 requireMarker(backup, 'format: "gillie-backup"', "Backup export contract");
 requireMarker(backup, "restore-pending-apple", "Entitlement-safe restore");
 requireMarker(styles, "Gillie V1 canonical screen styles", "V1 styles");
+requireMarker(styles, "Canonical tab isolation", "V1 tab isolation styles");
+requireMarker(styles, '#main > .view[data-v1-active="true"]:not([hidden])', "V1 active view layout");
+requireMarker(styles, '#main > .view[data-v1-active="false"]', "V1 inactive view layout");
+requireMarker(styles, "display:none!important", "V1 inactive display exclusion");
+requireMarker(styles, "height:100dvh!important", "V1 single scroll-shell height");
 requireMarker(styles, "#sos-overlay .phase2-sos-data", "SOS reflection deferral");
 requireMarker(styles, "#phase2-tank-preview .v1-preview-axo-wrap", "Reef preview scale contract");
 requireMarker(styles, ".v1-preview-axo-svg *", "Reef preview animation isolation");
@@ -100,4 +111,4 @@ if (html.includes("data-gillie-phase5-hotfix")) {
   throw new Error("Legacy paywall hotfix returned to the generated bundle.");
 }
 
-console.log("Gillie V1 smoke checks passed: canonical Reef rendering, swipe dismissal, progression, daily care, and premium collection value are present.");
+console.log("Gillie V1 smoke checks passed: strict tab isolation, canonical Reef rendering, swipe dismissal, progression, daily care, and premium collection value are present.");
