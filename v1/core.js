@@ -1,18 +1,20 @@
-/* Gillie V1 canonical coordinator — one boot path, late-module safe, no observers or polling loops. */
+/* Gillie V1 canonical coordinator — one boot path, late-module safe, strict tab isolation, no observers or polling loops. */
 (() => {
   "use strict";
 
   if (window.GillieV1) return;
 
+  const VIEW_NAMES = ["home", "progress", "reef", "you"];
   const installers = [];
   const registeredNames = new Set();
   const installedNames = new Set();
   const renderHooks = [];
   let booted = false;
   let renderWrapped = false;
+  let activeViewName = "home";
 
   const api = {
-    version: "gillie-v1-2026.07.12.3",
+    version: "gillie-v1-2026.07.12.4",
     register(name, installer) {
       if (typeof installer !== "function") return;
       const moduleName = String(name || `module-${installers.length + 1}`);
@@ -58,7 +60,13 @@
         });
       } catch (_) {}
     },
+    activateView(name, options = {}) {
+      return enforceViewIsolation(name, options);
+    },
     runRenderHooks,
+    get activeView() {
+      return activeViewName;
+    },
     get installedModules() {
       return Array.from(installedNames);
     },
@@ -68,6 +76,57 @@
   };
 
   window.GillieV1 = api;
+
+  function normalizeViewName(name) {
+    return VIEW_NAMES.includes(String(name || "")) ? String(name) : "home";
+  }
+
+  function selectedViewName() {
+    const selected = document.querySelector("#tabs button.on[data-view]")?.dataset?.view;
+    if (VIEW_NAMES.includes(selected)) return selected;
+
+    const visible = VIEW_NAMES.find((name) => {
+      const view = document.querySelector(`#view-${name}`);
+      return view && view.hidden === false && view.dataset?.v1Active !== "false";
+    });
+    return visible || activeViewName || "home";
+  }
+
+  function setInert(element, inactive) {
+    if (!element) return;
+    try { element.inert = inactive; } catch (_) {}
+    if (inactive) element.setAttribute?.("inert", "");
+    else element.removeAttribute?.("inert");
+  }
+
+  function enforceViewIsolation(requestedName = selectedViewName(), { preserveScroll = true } = {}) {
+    const name = normalizeViewName(requestedName);
+    activeViewName = name;
+
+    for (const viewName of VIEW_NAMES) {
+      const view = document.querySelector(`#view-${viewName}`);
+      const tab = document.querySelector(`#tabs button[data-view="${viewName}"]`);
+      const active = viewName === name;
+
+      if (view) {
+        view.hidden = !active;
+        view.dataset.v1Active = active ? "true" : "false";
+        view.setAttribute?.("aria-hidden", active ? "false" : "true");
+        setInert(view, !active);
+        if (active && !preserveScroll && typeof view.scrollTo === "function") view.scrollTo({ top: 0, behavior: "auto" });
+      }
+
+      if (tab) {
+        tab.classList?.toggle?.("on", active);
+        tab.setAttribute?.("aria-selected", active ? "true" : "false");
+        tab.setAttribute?.("tabindex", active ? "0" : "-1");
+      }
+    }
+
+    const root = document.documentElement;
+    if (root) root.dataset.gillieV1ActiveView = name;
+    return name;
+  }
 
   function updateRuntimeMarker() {
     const root = document.documentElement;
@@ -92,9 +151,13 @@
   }
 
   function runRenderHooks() {
+    enforceViewIsolation(selectedViewName());
     for (const callback of renderHooks) {
       try { callback(); } catch (error) { console.warn("Gillie V1 render hook failed", error); }
     }
+    // Rendering modules may change attributes while rebuilding a screen. The
+    // navigation contract always wins after every render cycle.
+    enforceViewIsolation(activeViewName);
   }
 
   function wrapRenderAll() {
@@ -108,6 +171,33 @@
     renderWrapped = true;
   }
 
+  function installTabIsolation() {
+    const tabs = document.querySelector("#tabs");
+    if (!tabs || tabs.dataset?.v1Isolation === "true") return;
+    if (tabs.dataset) tabs.dataset.v1Isolation = "true";
+
+    tabs.addEventListener("click", (event) => {
+      const button = event.target?.closest?.("button[data-view]");
+      const requested = button?.dataset?.view;
+      if (!VIEW_NAMES.includes(requested)) return;
+
+      // The legacy onclick runs during the same event. Reassert the canonical
+      // state immediately afterwards and once more after the render it starts.
+      queueMicrotask(() => enforceViewIsolation(requested));
+      requestAnimationFrame(() => {
+        enforceViewIsolation(requested);
+        runRenderHooks();
+      });
+      setTimeout(() => enforceViewIsolation(requested), 140);
+    }, true);
+
+    document.addEventListener?.("visibilitychange", () => {
+      if (!document.hidden) enforceViewIsolation(selectedViewName());
+    });
+
+    enforceViewIsolation(selectedViewName());
+  }
+
   function boot(attempt = 0) {
     if (booted) return;
     const ready = document.querySelector("#app") && api.getState();
@@ -119,19 +209,16 @@
     booted = true;
     document.documentElement.classList.add("gillie-v1-canonical");
     wrapRenderAll();
+    installTabIsolation();
 
     for (const entry of installers) installEntry(entry);
-
-    document.querySelector("#tabs")?.addEventListener("click", () => {
-      requestAnimationFrame(runRenderHooks);
-      setTimeout(runRenderHooks, 120);
-    }, true);
 
     updateRuntimeMarker();
     runRenderHooks();
     api.track("v1_canonical_booted", {
       registeredModules: installers.length,
       installedModules: installedNames.size,
+      activeView: activeViewName,
     });
   }
 
