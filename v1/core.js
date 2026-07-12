@@ -1,18 +1,30 @@
-/* Gillie V1 canonical coordinator — one boot path, no observers, no polling loops. */
+/* Gillie V1 canonical coordinator — one boot path, late-module safe, no observers or polling loops. */
 (() => {
   "use strict";
 
   if (window.GillieV1) return;
 
   const installers = [];
+  const registeredNames = new Set();
+  const installedNames = new Set();
   const renderHooks = [];
   let booted = false;
   let renderWrapped = false;
 
   const api = {
-    version: "gillie-v1-2026.07.11",
+    version: "gillie-v1-2026.07.12.3",
     register(name, installer) {
-      if (typeof installer === "function") installers.push({ name, installer });
+      if (typeof installer !== "function") return;
+      const moduleName = String(name || `module-${installers.length + 1}`);
+      if (registeredNames.has(moduleName)) return;
+
+      const entry = { name: moduleName, installer };
+      registeredNames.add(moduleName);
+      installers.push(entry);
+
+      // Deferred scripts execute in order, but core can boot before the later
+      // module files have registered. Install late registrations immediately.
+      if (booted) queueMicrotask(() => installEntry(entry));
     },
     afterRender(callback) {
       if (typeof callback === "function") renderHooks.push(callback);
@@ -47,9 +59,37 @@
       } catch (_) {}
     },
     runRenderHooks,
+    get installedModules() {
+      return Array.from(installedNames);
+    },
+    get isBooted() {
+      return booted;
+    },
   };
 
   window.GillieV1 = api;
+
+  function updateRuntimeMarker() {
+    const root = document.documentElement;
+    if (!root) return;
+    const names = Array.from(installedNames).sort();
+    root.dataset.gillieV1ModuleCount = String(names.length);
+    root.dataset.gillieV1Modules = names.join(",");
+  }
+
+  function installEntry(entry) {
+    if (!entry || installedNames.has(entry.name)) return;
+    installedNames.add(entry.name);
+    try {
+      entry.installer(api);
+      updateRuntimeMarker();
+      api.track("v1_module_installed", { module: entry.name, moduleCount: installedNames.size });
+    } catch (error) {
+      installedNames.delete(entry.name);
+      updateRuntimeMarker();
+      console.warn(`Gillie V1 module failed: ${entry.name}`, error);
+    }
+  }
 
   function runRenderHooks() {
     for (const callback of renderHooks) {
@@ -80,18 +120,19 @@
     document.documentElement.classList.add("gillie-v1-canonical");
     wrapRenderAll();
 
-    for (const entry of installers) {
-      try { entry.installer(api); }
-      catch (error) { console.warn(`Gillie V1 module failed: ${entry.name}`, error); }
-    }
+    for (const entry of installers) installEntry(entry);
 
     document.querySelector("#tabs")?.addEventListener("click", () => {
       requestAnimationFrame(runRenderHooks);
       setTimeout(runRenderHooks, 120);
     }, true);
 
+    updateRuntimeMarker();
     runRenderHooks();
-    api.track("v1_canonical_booted", { modules: installers.length });
+    api.track("v1_canonical_booted", {
+      registeredModules: installers.length,
+      installedModules: installedNames.size,
+    });
   }
 
   if (document.readyState === "loading") {
