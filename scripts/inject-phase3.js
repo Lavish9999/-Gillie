@@ -51,7 +51,6 @@ fs.writeFileSync(indexPath, html, "utf8");
 const phase3Path = path.join(out, "phase3-ship.js");
 let phase3 = fs.readFileSync(phase3Path, "utf8");
 
-/* Remove the local-function recursion fallback in the generated paywall opener. */
 const openPlusNeedle = `    try {
       if (typeof window.openPlus === "function") window.openPlus();
       else if (typeof openPlus === "function") openPlus();
@@ -68,7 +67,6 @@ const openPlusReplacement = `    try {
 if (!phase3.includes(openPlusNeedle)) throw new Error("Phase 3 paywall fallback marker changed.");
 phase3 = phase3.replace(openPlusNeedle, openPlusReplacement);
 
-/* Phase 5 owns the rebuilt paywall. */
 const paywallOwnerNeedle = `  function tunePaywall() {
     const overlay = $("#plus-overlay");
     const current = appState();
@@ -81,7 +79,6 @@ const paywallOwnerReplacement = `  function tunePaywall() {
 if (!phase3.includes(paywallOwnerNeedle)) throw new Error("Phase 3 paywall ownership marker changed.");
 phase3 = phase3.replace(paywallOwnerNeedle, paywallOwnerReplacement);
 
-/* Disconnect the observer during reconciliation and retry the starter grant. */
 const refreshNeedle = `  function refresh() {
     installStatusScrim();
     updateActiveView();
@@ -107,13 +104,11 @@ const refreshReplacement = `  function refresh() {
 if (!phase3.includes(refreshNeedle)) throw new Error("Phase 3 refresh marker changed.");
 phase3 = phase3.replace(refreshNeedle, refreshReplacement);
 
-/* Canonical V1 Progress owns the free/basic insight boundary. */
 const insightsNeedle = 'hideSection(view, "Your insights", "#insights-box", true);';
 const insightMatches = phase3.split(insightsNeedle).length - 1;
 if (insightMatches !== 2) throw new Error(`Expected two Phase 3 insight visibility markers, found ${insightMatches}.`);
 phase3 = phase3.split(insightsNeedle).join('hideSection(view, "Your insights", "#insights-box", !(current.premium && ready));');
 
-/* Removing badges inside an observed shop caused a previous self-sustaining loop. */
 const badgeRemovalNeedle = `    $$("#shop-grid .phase2-card-badge", view).forEach((badge) => badge.remove());
     buildReefStarterMessage();`;
 const badgeRemovalReplacement = `    buildReefStarterMessage();`;
@@ -172,10 +167,14 @@ for (const required of ["Gillie V1 visual foundation", "--g-icon-size", ".gp-ben
 for (const [source, marker] of [
   [v1Css, "Gillie V1 canonical screen styles"],
   [v1Core, "Gillie V1 canonical coordinator"],
+  [v1Core, "late-module safe"],
+  [v1Core, "gillieV1ModuleCount"],
   [v1Onboarding, "What nicotine are you quitting?"],
   [v1Sos, "I made it through this moment"],
   [v1Progress, "Always free"],
   [v1Reef, "Curated aquarium collection"],
+  [v1Reef, 'PREVIEW_ENGINE = "canonical-v2"'],
+  [v1Reef, 'document.addEventListener("click", handlePreviewCapture, true)'],
   [v1Coach, "What do you need right now?"],
   [v1Backup, 'format: "gillie-backup"'],
 ]) {
@@ -193,4 +192,4 @@ if (html.includes('data-gillie-phase5-hotfix="true"')) throw new Error("Legacy P
 if (html.includes('kicker: "Paywall is the tank"')) throw new Error("Internal paywall copy leaked into the generated app.");
 if (phase3.includes('phase2-card-badge", view).forEach((badge) => badge.remove())')) throw new Error("Generated Phase 3 bundle still removes observed Reef badges.");
 
-console.log("Injected legacy compatibility layers plus canonical Gillie V1 onboarding, SOS, Progress, Reef, Coach, backup, and screen styles.");
+console.log("Injected compatibility layers plus late-safe V1 coordinator and canonical Gillie modules.");
