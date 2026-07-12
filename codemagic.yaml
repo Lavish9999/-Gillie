@@ -29,66 +29,7 @@ workflows:
         script: |
           set -euo pipefail
           npm run validate:ship
-          grep -q "Gillie startup, motion, and compact Home fixes applied" www/phase2-polish.js
-          grep -q "phase2SpeechSafe" www/phase2-polish.css
-          grep -q "gillieShipPolishInstalled" www/phase3-ship.js
-          grep -q "grantStarterPearls();" www/phase3-ship.js
-          grep -q "current.premium && ready" www/phase3-ship.js
-          grep -q "gillieLaunchHardeningInstalled" www/phase4-launch.js
-          grep -q "store_prices_localized" www/phase4-launch.js
-          grep -q "gilliePaywallRebuildInstalled" www/phase5-paywall.js
-          grep -q "A quit plan that adapts to you" www/phase5-paywall.js
-          grep -q "gp-paywall-sheet" www/phase5-paywall.js
-          grep -q "gp-primary-cta" www/phase5-paywall.css
-          grep -q "Gillie V1 visual foundation" www/gillie-foundation.css
-          grep -q -- "--g-icon-size" www/gillie-foundation.css
-          grep -q "gp-status-banner.info" www/gillie-foundation.css
-          grep -q "ship-reef-plus-strip" www/phase4-launch.css
-          grep -q "ship-status-scrim" www/phase3-ship.css
-          grep -q 'data-gillie-phase3="true"' www/index.html
-          grep -q 'data-gillie-phase4="true"' www/index.html
-          grep -q 'data-gillie-phase5="true"' www/index.html
-          grep -q 'data-gillie-foundation="true"' www/index.html
-          grep -q 'data-gillie-v1-reef-dashboard="true"' www/index.html
-          grep -q 'data-gillie-v1-reef-dashboard-styles="true"' www/index.html
-          grep -q 'late-module safe' www/v1/core.js
-          grep -q 'strict tab isolation' www/v1/core.js
-          grep -q 'enforceViewIsolation' www/v1/core.js
-          grep -q '#view-home:not(\[data-v1-active="true"\])' www/v1/v1.css
-          grep -q 'PREVIEW_ENGINE = "canonical-v3-swipe"' www/v1/reef.js
-          grep -q 'document.addEventListener("click", handlePreviewCapture, true)' www/v1/reef.js
-          grep -q 'document.addEventListener("touchend", handlePreviewTouchEnd' www/v1/reef.js
-          grep -q 'dismissPreviewWithGesture' www/v1/reef.js
-          grep -q 'DASHBOARD_ENGINE = "reef-progression-v1"' www/v1/reef-dashboard.js
-          grep -q 'Daily Reef Care' www/v1/reef-dashboard.js
-          grep -q 'claimDailyBonus' www/v1/reef-dashboard.js
-          grep -q 'Gillie V1 Reef Dashboard' www/v1/reef-dashboard.css
-          grep -q '.v1-reef-vault' www/v1/reef-dashboard.css
-          grep -q '"reefProgress", "moonlitReef"' www/v1/backup.js
-          grep -q 'v1-renewal-disclosure' www/v1/visual-integrity.js
-          grep -q 'renews automatically unless cancelled at least 24 hours' www/v1/visual-integrity.js
-          grep -q 'v1ManageSubscription' www/v1/visual-integrity.js
-          grep -q '.v1-renewal-disclosure' www/v1/visual-integrity.css
-          grep -q 'clearDiagnostics' www/index.html
-          grep -q 'localStorage.clear()' www/index.html
-          grep -q 'GilliePurchases?.clearDiagnostics' ios/App/App/GillieBridgeViewController.swift
-          grep -q 'localStorage.clear()' ios/App/App/GillieBridgeViewController.swift
-          grep -q 'NSPrivacyAccessedAPICategoryUserDefaults' ios/App/App/PrivacyInfo.xcprivacy
-          grep -q 'CA92.1' ios/App/App/PrivacyInfo.xcprivacy
-          grep -q 'PrivacyInfo.xcprivacy in Resources' ios/App/App.xcodeproj/project.pbxproj
-          grep -q 'TARGETED_DEVICE_FAMILY = 1;' ios/App/App.xcodeproj/project.pbxproj
-          if grep -q 'TARGETED_DEVICE_FAMILY = "1,2";' ios/App/App.xcodeproj/project.pbxproj; then
-            echo "Gillie V1 still targets untested universal iPhone/iPad layout"
-            exit 1
-          fi
-          if grep -qE 'fonts\.googleapis\.com|fonts\.gstatic\.com' www/index.html; then
-            echo "Native bundle still makes a third-party font request"
-            exit 1
-          fi
-          if grep -q 'data-gillie-phase5-hotfix="true"' www/index.html; then
-            echo "Legacy paywall hotfix is still injected"
-            exit 1
-          fi
+          node scripts/validate-codemagic-source.js
 
       - name: Sync Capacitor iOS
         script: |
