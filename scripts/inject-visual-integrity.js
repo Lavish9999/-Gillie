@@ -63,6 +63,7 @@ for (const marker of [
   "ensurePaywallDisclosure",
   "v1-renewal-disclosure",
   "v1ManageSubscription",
+  'overlay.classList.add("v1-plus-active")',
 ]) {
   if (!js.includes(marker)) throw new Error(`Generated visual integrity JavaScript is missing marker: ${marker}`);
 }
@@ -74,9 +75,10 @@ for (const marker of [
   ".plan-preview",
   ".v1-renewal-disclosure",
   ".v1-active-subscription",
+  '#plus-overlay.v1-plus-active .gp-pricing-section',
   '#plus-purchase[data-v1-manage-subscription="true"]',
 ]) {
   if (!css.includes(marker)) throw new Error(`Generated visual integrity CSS is missing marker: ${marker}`);
 }
 
-console.log("Injected Gillie's visual integrity, visible subscription disclosure, and active-subscriber management state.");
+console.log("Injected Gillie's visual integrity, visible subscription disclosure, and simplified active-subscriber state.");
