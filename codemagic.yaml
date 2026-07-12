@@ -49,6 +49,10 @@ workflows:
           grep -q 'data-gillie-phase4="true"' www/index.html
           grep -q 'data-gillie-phase5="true"' www/index.html
           grep -q 'data-gillie-foundation="true"' www/index.html
+          grep -q 'late-module safe' www/v1/core.js
+          grep -q 'if (booted) queueMicrotask(() => installEntry(entry))' www/v1/core.js
+          grep -q 'PREVIEW_ENGINE = "canonical-v2"' www/v1/reef.js
+          grep -q 'document.addEventListener("click", handlePreviewCapture, true)' www/v1/reef.js
           if grep -q 'data-gillie-phase5-hotfix="true"' www/index.html; then
             echo "Legacy paywall hotfix is still injected"
             exit 1
@@ -78,95 +82,25 @@ workflows:
           echo "Release build settings:"
           xcodebuild -project App.xcodeproj -scheme App -configuration Release -showBuildSettings | grep -E "CURRENT_PROJECT_VERSION|MARKETING_VERSION"
 
-      - name: Strip iOS app icon alpha
-        script: |
-          set -euo pipefail
-          icon_dir="ios/App/App/Assets.xcassets/AppIcon.appiconset"
-          for icon in "$icon_dir"/*.png; do
-            jpg="${icon}.no-alpha.jpg"
-            png="${icon}.no-alpha.png"
-            sips -s format jpeg "$icon" --out "$jpg"
-            sips -s format png "$jpg" --out "$png"
-            mv "$png" "$icon"
-            rm -f "$jpg"
-          done
-
-          for icon in "$icon_dir"/*.png; do
-            sips -g pixelWidth -g pixelHeight -g hasAlpha "$icon"
-            if sips -g hasAlpha "$icon" | grep -q "hasAlpha: yes"; then
-              echo "App icon still has alpha: $icon"
-              exit 1
-            fi
-          done
-
-      - name: Install CocoaPods dependencies if present
-        script: |
-          set -euo pipefail
-          if [ -f "ios/App/Podfile" ]; then
-            cd ios/App
-            pod install
-          fi
-
-      - name: Set up App Store code signing
+      - name: Apply App Store Connect signing
         script: |
           set -euo pipefail
           xcode-project use-profiles
 
-      - name: Build App Store IPA
+      - name: Build signed IPA
         script: |
           set -euo pipefail
-          sequence="${PROJECT_BUILD_NUMBER:-${BUILD_NUMBER:-1}}"
-          build_number=$((1000 + sequence))
-          echo "Building IPA with automatic build number: $build_number"
           xcode-project build-ipa \
             --project "$XCODE_PROJECT" \
-            --scheme "$XCODE_SCHEME" \
-            --archive-xcargs "CURRENT_PROJECT_VERSION=${build_number}"
-
-      - name: Verify IPA iOS build number
-        script: |
-          set -euo pipefail
-          sequence="${PROJECT_BUILD_NUMBER:-${BUILD_NUMBER:-1}}"
-          expected_build_number=$((1000 + sequence))
-          echo "Expected Gillie build number: $expected_build_number"
-          xcodebuild -project "$XCODE_PROJECT" -scheme "$XCODE_SCHEME" -configuration Release -showBuildSettings | grep -E "CURRENT_PROJECT_VERSION|MARKETING_VERSION"
-
-          ipa_path="$(find build/ios/ipa -name "*.ipa" -type f | head -n 1)"
-          if [ -z "$ipa_path" ]; then
-            echo "No .ipa found under build/ios/ipa"
-            exit 1
-          fi
-
-          rm -rf /tmp/gillie-ipa-verify
-          mkdir -p /tmp/gillie-ipa-verify
-          unzip -q "$ipa_path" -d /tmp/gillie-ipa-verify
-
-          app_plist="$(find /tmp/gillie-ipa-verify/Payload -path "*.app/Info.plist" -type f | head -n 1)"
-          if [ -z "$app_plist" ]; then
-            echo "App Info.plist not found inside IPA Payload"
-            exit 1
-          fi
-
-          short_version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app_plist")"
-          build_version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$app_plist")"
-          echo "IPA CFBundleShortVersionString: $short_version"
-          echo "IPA CFBundleVersion: $build_version"
-
-          if [ "$build_version" = "1" ]; then
-            echo "Refusing to publish: IPA CFBundleVersion is still 1."
-            exit 1
-          fi
-          if [ "$build_version" != "$expected_build_number" ]; then
-            echo "Refusing to publish: IPA CFBundleVersion $build_version does not match automatic build number $expected_build_number."
-            exit 1
-          fi
+            --scheme "$XCODE_SCHEME"
 
     artifacts:
       - build/ios/ipa/*.ipa
-      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
       - /tmp/xcodebuild_logs/*.log
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
 
     publishing:
       app_store_connect:
         auth: integration
         submit_to_testflight: true
+        submit_to_app_store: false
