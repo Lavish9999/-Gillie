@@ -32,6 +32,10 @@ requireMarker(html, "gillie.plus.monthly", "StoreKit monthly product contract");
 requireMarker(html, "gillie.plus.yearly", "StoreKit yearly product contract");
 
 requireMarker(core, "Gillie V1 canonical coordinator", "V1 core");
+requireMarker(core, "late-module safe", "V1 late-registration coordinator");
+requireMarker(core, "if (booted) queueMicrotask(() => installEntry(entry))", "V1 post-boot module installation");
+requireMarker(core, "gillieV1ModuleCount", "V1 runtime module count marker");
+requireMarker(core, "installedModules", "V1 installed module registry");
 requireMarker(core, "v1_canonical_booted", "V1 core analytics");
 requireMarker(onboarding, "What nicotine are you quitting?", "Onboarding simplification");
 requireMarker(onboarding, "v1-onboarding-details", "Deferred onboarding estimate");
@@ -77,4 +81,4 @@ if (html.includes("data-gillie-phase5-hotfix")) {
   throw new Error("Legacy paywall hotfix returned to the generated bundle.");
 }
 
-console.log("Gillie V1 smoke checks passed: canonical capture-phase Reef preview, solid character paint, and nested-view scroll lock are present.");
+console.log("Gillie V1 smoke checks passed: late module installation, canonical Reef preview, solid character paint, and nested-view scroll lock are present.");
