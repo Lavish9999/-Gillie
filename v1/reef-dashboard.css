@@ -1,0 +1,361 @@
+/* Gillie V1 Reef Dashboard — progression and premium collection system. */
+#v1-reef-progression-shell{
+  display:grid;
+  gap:16px;
+  margin:0 0 20px;
+}
+#view-reef #plus-banner[hidden]{display:none!important}
+.v1-reef-dashboard,
+.v1-reef-care,
+.v1-reef-vault{
+  border:1px solid rgba(17,51,47,.08);
+  border-radius:26px;
+  box-shadow:0 14px 34px rgba(14,57,52,.10);
+  overflow:hidden;
+}
+.v1-reef-dashboard{
+  position:relative;
+  padding:19px;
+  color:#fff;
+  background:
+    radial-gradient(circle at 90% 7%,rgba(126,238,217,.27),transparent 30%),
+    radial-gradient(circle at 10% 100%,rgba(242,112,138,.15),transparent 34%),
+    linear-gradient(145deg,#143f3a 0%,#0d302d 65%,#082522 100%);
+}
+.v1-reef-dashboard::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:linear-gradient(115deg,rgba(255,255,255,.12),transparent 26% 74%,rgba(0,0,0,.08));
+}
+.v1-reef-dashboard>*{position:relative;z-index:1}
+.v1-reef-dashboard .v1-kicker,
+.v1-reef-vault .v1-kicker{color:rgba(255,255,255,.60)}
+.v1-reef-dashboard-top{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:14px;
+}
+.v1-reef-dashboard-top h2{
+  margin:7px 0 0;
+  color:#fff;
+  font:800 23px/1.04 var(--font-display);
+  letter-spacing:-.02em;
+}
+.v1-reef-level-orb{
+  width:62px;
+  height:62px;
+  flex:0 0 62px;
+  display:grid;
+  place-items:center;
+  align-content:center;
+  border-radius:22px;
+  background:linear-gradient(145deg,rgba(255,255,255,.21),rgba(255,255,255,.09));
+  border:1px solid rgba(255,255,255,.22);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 12px 22px rgba(0,0,0,.12);
+}
+.v1-reef-level-orb strong{font:900 25px/1 var(--font-display)}
+.v1-reef-level-orb span{margin-top:3px;font-size:8px;font-weight:900;letter-spacing:.13em;color:rgba(255,255,255,.58)}
+.v1-reef-xp-row{
+  display:flex;
+  align-items:end;
+  justify-content:space-between;
+  gap:12px;
+  margin-top:18px;
+}
+.v1-reef-xp-row b{font-size:13px;color:#fff}
+.v1-reef-xp-row span{font-size:10.5px;font-weight:700;color:rgba(255,255,255,.55);text-align:right}
+.v1-reef-xp-bar{
+  height:9px;
+  margin-top:8px;
+  border-radius:999px;
+  overflow:hidden;
+  background:rgba(255,255,255,.12);
+  box-shadow:inset 0 1px 2px rgba(0,0,0,.12);
+}
+.v1-reef-xp-bar i{
+  display:block;
+  height:100%;
+  border-radius:inherit;
+  background:linear-gradient(90deg,#78e7ce,#d9fff6);
+  box-shadow:0 0 16px rgba(126,238,217,.48);
+  transition:width .55s cubic-bezier(.2,.8,.3,1);
+}
+.v1-reef-metrics{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:8px;
+  margin-top:15px;
+}
+.v1-reef-metrics>div{
+  min-width:0;
+  min-height:94px;
+  padding:11px 10px;
+  border-radius:17px;
+  background:rgba(255,255,255,.085);
+  border:1px solid rgba(255,255,255,.09);
+}
+.v1-reef-metrics span,
+.v1-reef-metrics small{
+  display:block;
+  font-size:9.5px;
+  line-height:1.18;
+  font-weight:750;
+  color:rgba(255,255,255,.52);
+}
+.v1-reef-metrics b{
+  display:block;
+  margin:7px 0 5px;
+  color:#fff;
+  font:800 17px/1.05 var(--font-display);
+  overflow-wrap:anywhere;
+}
+.v1-reef-metrics>div:nth-child(3) b{font-size:13px;line-height:1.12}
+.v1-reef-metrics i{
+  display:block;
+  height:5px;
+  margin-top:9px;
+  overflow:hidden;
+  border-radius:999px;
+  background:linear-gradient(90deg,#7eeed9 var(--metric),rgba(255,255,255,.11) var(--metric));
+}
+.v1-reef-dashboard-actions{
+  display:grid;
+  grid-template-columns:1.15fr .85fr;
+  gap:8px;
+  margin-top:14px;
+}
+.v1-reef-dashboard-actions button{
+  min-height:45px;
+  padding:0 13px;
+  border-radius:15px;
+  color:#11332f;
+  background:#fff;
+  font-size:12px;
+  font-weight:850;
+  box-shadow:0 10px 20px rgba(0,0,0,.11);
+}
+.v1-reef-dashboard-actions button:last-child{
+  color:#fff;
+  background:rgba(255,255,255,.10);
+  border:1px solid rgba(255,255,255,.13);
+  box-shadow:none;
+}
+.v1-reef-dashboard-actions button:active,
+.v1-reef-task-button:active,
+.v1-reef-daily-bonus button:active,
+.v1-reef-vault>button:active{transform:scale(.975)}
+.v1-reef-care{
+  padding:18px 16px 16px;
+  background:rgba(255,255,255,.84);
+  backdrop-filter:blur(18px);
+}
+.v1-reef-section-heading{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:14px;
+}
+.v1-reef-section-heading h2{
+  margin:7px 0 0;
+  color:var(--ink);
+  font:800 21px/1.06 var(--font-display);
+}
+.v1-reef-section-heading>strong{
+  min-width:48px;
+  padding:8px 10px;
+  border-radius:14px;
+  color:#24715f;
+  background:#e5f4ef;
+  font:850 14px/1 var(--font-display);
+  text-align:center;
+}
+.v1-reef-care-intro{
+  margin:10px 0 14px;
+  color:var(--ink-faint);
+  font-size:12px;
+  line-height:1.42;
+  font-weight:650;
+}
+.v1-reef-task-list{display:grid;gap:8px}
+.v1-reef-task{
+  display:grid;
+  grid-template-columns:32px minmax(0,1fr) auto;
+  align-items:center;
+  gap:10px;
+  min-height:74px;
+  padding:10px 10px 10px 9px;
+  border-radius:17px;
+  border:1px solid rgba(17,51,47,.07);
+  background:#f6faf8;
+  transition:border-color .18s ease,background .18s ease,transform .12s ease;
+}
+.v1-reef-task.complete{background:#eff9f5;border-color:rgba(47,156,119,.20)}
+.v1-reef-task.claimed{background:#e8f5f0;border-color:rgba(47,156,119,.24)}
+.v1-reef-task.locked{background:linear-gradient(135deg,#f8f5eb,#f6f2e6);border-color:rgba(223,174,63,.25)}
+.v1-reef-task-check{
+  width:32px;
+  height:32px;
+  display:grid;
+  place-items:center;
+  border-radius:12px;
+  color:#8ba099;
+  background:#e7efec;
+  font-size:15px;
+  font-weight:900;
+}
+.v1-reef-task.complete .v1-reef-task-check,
+.v1-reef-task.claimed .v1-reef-task-check{color:#fff;background:#2f9c77}
+.v1-reef-task.locked .v1-reef-task-check{color:#956e12;background:rgba(223,174,63,.18)}
+.v1-reef-task-copy{min-width:0}
+.v1-reef-task-copy b{
+  display:block;
+  color:var(--ink);
+  font-size:12.5px;
+  line-height:1.18;
+  font-weight:850;
+}
+.v1-reef-task-copy span{
+  display:block;
+  margin-top:3px;
+  color:var(--ink-faint);
+  font-size:10.5px;
+  line-height:1.27;
+  font-weight:620;
+}
+.v1-reef-task-copy small{
+  display:block;
+  margin-top:5px;
+  color:#397b69;
+  font-size:9.5px;
+  font-weight:800;
+}
+.v1-reef-task-button{
+  min-width:54px;
+  min-height:36px;
+  padding:0 10px;
+  border-radius:12px;
+  color:#fff;
+  background:#123f39;
+  font-size:10px;
+  font-weight:850;
+  transition:transform .12s ease;
+}
+.v1-reef-task-button.claim{background:#2f9c77}
+.v1-reef-task-button.locked{color:#352600;background:#dfae3f}
+.v1-reef-task-done{
+  min-width:48px;
+  color:#2f9c77;
+  font-size:10px;
+  font-weight:900;
+  text-align:center;
+}
+.v1-reef-daily-bonus{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:center;
+  gap:12px;
+  margin-top:12px;
+  padding:14px;
+  border-radius:19px;
+  color:#fff;
+  background:linear-gradient(135deg,#244d48,#173c38);
+  box-shadow:0 12px 25px rgba(17,51,47,.13);
+}
+.v1-reef-daily-bonus.ready{
+  background:
+    radial-gradient(circle at 90% 10%,rgba(255,232,164,.30),transparent 32%),
+    linear-gradient(135deg,#7b5b12,#513a08);
+}
+.v1-reef-daily-bonus.claimed{background:linear-gradient(135deg,#2f8069,#246853)}
+.v1-reef-daily-bonus span,
+.v1-reef-daily-bonus b,
+.v1-reef-daily-bonus small{display:block}
+.v1-reef-daily-bonus span{font-size:9.5px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.55)}
+.v1-reef-daily-bonus b{margin-top:4px;font-size:13px;line-height:1.15}
+.v1-reef-daily-bonus small{margin-top:4px;font-size:10px;font-weight:750;color:rgba(255,255,255,.66)}
+.v1-reef-daily-bonus button{
+  min-height:38px;
+  padding:0 12px;
+  border-radius:13px;
+  color:#17332f;
+  background:#fff;
+  font-size:10px;
+  font-weight:900;
+}
+.v1-reef-daily-bonus button:disabled{opacity:.5}
+.v1-reef-bonus-done{
+  width:38px;
+  height:38px;
+  display:grid!important;
+  place-items:center;
+  border-radius:50%;
+  color:#246853!important;
+  background:#fff;
+  font-size:17px!important;
+}
+.v1-reef-vault{
+  position:relative;
+  padding:19px;
+  color:#fff;
+  background:
+    radial-gradient(circle at 83% 16%,rgba(242,112,138,.28),transparent 28%),
+    radial-gradient(circle at 12% 92%,rgba(126,238,217,.18),transparent 34%),
+    linear-gradient(145deg,#1a2849,#101a35 62%,#0b1328);
+}
+.v1-reef-vault.active{
+  background:
+    radial-gradient(circle at 83% 16%,rgba(126,238,217,.28),transparent 28%),
+    linear-gradient(145deg,#143f39,#0b2d29 68%,#071f1d);
+}
+.v1-reef-vault h2{
+  max-width:300px;
+  margin:7px 0 8px;
+  color:#fff;
+  font:800 23px/1.04 var(--font-display);
+}
+.v1-reef-vault p{
+  max-width:360px;
+  color:rgba(255,255,255,.68);
+  font-size:12px;
+  line-height:1.42;
+  font-weight:650;
+}
+.v1-reef-vault-chips{
+  display:flex;
+  flex-wrap:wrap;
+  gap:7px;
+  margin-top:14px;
+}
+.v1-reef-vault-chips span{
+  padding:7px 9px;
+  border-radius:999px;
+  color:rgba(255,255,255,.82);
+  background:rgba(255,255,255,.09);
+  border:1px solid rgba(255,255,255,.10);
+  font-size:9.5px;
+  font-weight:800;
+}
+.v1-reef-vault>button{
+  width:100%;
+  min-height:47px;
+  margin-top:14px;
+  border-radius:16px;
+  color:#1b1730;
+  background:linear-gradient(135deg,#f0c968,#dfae3f);
+  font-size:12px;
+  font-weight:900;
+  box-shadow:0 12px 24px rgba(0,0,0,.16);
+}
+.v1-reef-vault.active>button{color:#11332f;background:#fff}
+@media (max-width:370px){
+  .v1-reef-dashboard,.v1-reef-care,.v1-reef-vault{border-radius:22px}
+  .v1-reef-metrics{grid-template-columns:1fr 1fr}
+  .v1-reef-metrics>div:nth-child(3){grid-column:1/-1;min-height:72px}
+  .v1-reef-task{grid-template-columns:30px minmax(0,1fr);padding:10px}
+  .v1-reef-task-button,.v1-reef-task-done{grid-column:2;justify-self:start;margin-top:2px}
+  .v1-reef-daily-bonus{grid-template-columns:1fr}
+  .v1-reef-daily-bonus button{width:100%}
+}
