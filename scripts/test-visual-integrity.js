@@ -179,6 +179,7 @@ vm.runInContext(source, context, { filename: "visual-integrity.js" });
   if (!yearlyBadge.removed) throw new Error("Hard-coded subscription savings claim was not removed.");
   if (caption.textContent !== "Apple billing · Manage or cancel in Settings") throw new Error("Paywall billing caption was not clarified.");
   if (!purchasePanel.children.get("#v1-active-subscription")) throw new Error("Active subscriber status was not added.");
+  if (!overlay.classList.contains("v1-plus-active")) throw new Error("Active subscriber paywall did not enter its simplified state.");
   if (purchaseButton.textContent !== "Manage subscription" || purchaseButton.dataset.v1ManageSubscription !== "true") throw new Error("Active subscriber CTA was not converted to management.");
   if (versionLabel.textContent !== "1.0 (1234)") throw new Error("User-facing app version did not resolve from the native build.");
 
