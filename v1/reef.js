@@ -7,7 +7,10 @@
     if (!view) return;
 
     const PREVIEW_OPEN_CLASS = "v1-reef-preview-open";
-    const PREVIEW_ENGINE = "canonical-v2";
+    const PREVIEW_ENGINE = "canonical-v3-swipe";
+    const PREVIEW_DISMISS_MIN = 96;
+    const PREVIEW_DISMISS_RATIO = 0.16;
+    const PREVIEW_DISMISS_VELOCITY = 0.65;
     const archivedNames = new Set([
       "No-Vaping Sign",
       "Party Hat",
@@ -26,6 +29,13 @@
     let previewViewScrollTop = 0;
     let previewAppWasInert = false;
     let previewTouchY = 0;
+    let previewTouchStartY = 0;
+    let previewTouchStartedAt = 0;
+    let previewDragDistance = 0;
+    let previewDragging = false;
+    let previewDragEligible = false;
+    let previewDragSheet = null;
+    let previewCloseTimer = null;
     let previewOverlay = null;
 
     function cardName(card) {
@@ -152,10 +162,71 @@
       previewAppWasInert = false;
     }
 
+    function clearPreviewDragStyles(sheet = previewDragSheet) {
+      if (!sheet) return;
+      sheet.style.removeProperty("transform");
+      sheet.style.removeProperty("transition");
+      sheet.style.removeProperty("animation");
+      sheet.style.removeProperty("will-change");
+    }
+
+    function resetPreviewGesture() {
+      previewTouchY = 0;
+      previewTouchStartY = 0;
+      previewTouchStartedAt = 0;
+      previewDragDistance = 0;
+      previewDragging = false;
+      previewDragEligible = false;
+      previewDragSheet = null;
+    }
+
+    function setPreviewDragPosition(sheet, distance) {
+      sheet.style.setProperty("will-change", "transform", "important");
+      sheet.style.setProperty("animation", "none", "important");
+      sheet.style.setProperty("transition", "none", "important");
+      sheet.style.setProperty("transform", `translate3d(0, ${Math.max(0, distance)}px, 0)`, "important");
+    }
+
+    function shouldDismissPreview(distance, elapsedMs, sheetHeight) {
+      const threshold = Math.max(PREVIEW_DISMISS_MIN, Math.min(180, sheetHeight * PREVIEW_DISMISS_RATIO));
+      const velocity = distance / Math.max(1, elapsedMs);
+      return distance >= threshold || velocity >= PREVIEW_DISMISS_VELOCITY;
+    }
+
+    function snapPreviewSheetBack(sheet) {
+      sheet.style.setProperty("will-change", "transform", "important");
+      sheet.style.setProperty("animation", "none", "important");
+      sheet.style.setProperty("transition", "transform .24s cubic-bezier(.2,.85,.3,1)", "important");
+      sheet.style.setProperty("transform", "translate3d(0, 0, 0)", "important");
+      setTimeout(() => {
+        if (previewOverlay && sheet.isConnected) clearPreviewDragStyles(sheet);
+      }, 260);
+    }
+
     function closeCanonicalPreview() {
+      if (previewCloseTimer) {
+        clearTimeout(previewCloseTimer);
+        previewCloseTimer = null;
+      }
+      clearPreviewDragStyles();
       previewOverlay?.remove();
       previewOverlay = null;
+      resetPreviewGesture();
       unlockPreviewScroll();
+    }
+
+    function dismissPreviewWithGesture(sheet) {
+      sheet.style.setProperty("will-change", "transform", "important");
+      sheet.style.setProperty("animation", "none", "important");
+      sheet.style.setProperty("transition", "transform .24s cubic-bezier(.4,0,1,1)", "important");
+      sheet.style.setProperty("transform", "translate3d(0, 110dvh, 0)", "important");
+      if (previewOverlay) {
+        previewOverlay.style.setProperty("transition", "background-color .24s ease, backdrop-filter .24s ease", "important");
+        previewOverlay.style.setProperty("background-color", "rgba(17,51,47,0)", "important");
+        previewOverlay.style.setProperty("backdrop-filter", "blur(0px)", "important");
+      }
+      track("reef_tank_preview_swipe_dismissed", { distance: Math.round(previewDragDistance) });
+      previewCloseTimer = setTimeout(closeCanonicalPreview, 250);
     }
 
     function openCanonicalPreview() {
@@ -173,7 +244,7 @@
       overlay.setAttribute("role", "dialog");
       overlay.setAttribute("aria-modal", "true");
       overlay.setAttribute("aria-label", "Tank preview");
-      overlay.innerHTML = `<div class="sheet phase2-preview-sheet"><div class="grab"></div><button class="sheet-close" type="button" aria-label="Close">×</button><div class="eyebrow">Live preview</div><h2>Your reef, full size.</h2><div class="phase2-preview-frame"></div><p>Everything shown here is already equipped in your tank.</p><button class="btn" type="button">Looks good</button></div>`;
+      overlay.innerHTML = `<div class="sheet phase2-preview-sheet"><div class="grab" role="button" aria-label="Swipe down to close"></div><button class="sheet-close" type="button" aria-label="Close">×</button><div class="eyebrow">Live preview</div><h2>Your reef, full size.</h2><div class="phase2-preview-frame"></div><p>Everything shown here is already equipped in your tank.</p><button class="btn" type="button">Looks good</button></div>`;
       qs(".phase2-preview-frame", overlay)?.appendChild(tank);
 
       overlay.addEventListener("click", (event) => {
@@ -196,13 +267,23 @@
 
     function handlePreviewTouchStart(event) {
       if (!previewOverlay) return;
-      previewTouchY = event.touches?.[0]?.clientY || 0;
+      const sheet = event.target.closest?.("#phase2-tank-preview .phase2-preview-sheet");
+      const touch = event.touches?.[0];
+      if (!sheet || !touch) return;
+
+      previewTouchY = touch.clientY;
+      previewTouchStartY = touch.clientY;
+      previewTouchStartedAt = Date.now();
+      previewDragDistance = 0;
+      previewDragging = false;
+      previewDragSheet = sheet;
+      previewDragEligible = Boolean(event.target.closest?.(".grab")) || sheet.scrollTop <= 0;
     }
 
     function handlePreviewTouchMove(event) {
       if (!previewOverlay) return;
 
-      const sheet = event.target.closest?.("#phase2-tank-preview .phase2-preview-sheet");
+      const sheet = event.target.closest?.("#phase2-tank-preview .phase2-preview-sheet") || previewDragSheet;
       if (!sheet) {
         event.preventDefault();
         return;
@@ -210,11 +291,50 @@
 
       const nextY = event.touches?.[0]?.clientY || previewTouchY;
       const deltaY = nextY - previewTouchY;
+      const totalY = nextY - previewTouchStartY;
       previewTouchY = nextY;
+
       const atTop = sheet.scrollTop <= 0;
       const atBottom = Math.ceil(sheet.scrollTop + sheet.clientHeight) >= sheet.scrollHeight;
       const cannotScroll = sheet.scrollHeight <= sheet.clientHeight + 1;
+
+      if ((previewDragEligible || cannotScroll) && atTop && (totalY > 0 || previewDragging)) {
+        if (totalY > 5) previewDragging = true;
+        if (previewDragging) {
+          event.preventDefault();
+          event.stopPropagation();
+          previewDragDistance = Math.max(0, totalY);
+          setPreviewDragPosition(sheet, previewDragDistance);
+          return;
+        }
+      }
+
       if (cannotScroll || (atTop && deltaY > 0) || (atBottom && deltaY < 0)) event.preventDefault();
+    }
+
+    function handlePreviewTouchEnd(event) {
+      if (!previewOverlay || !previewDragSheet) {
+        resetPreviewGesture();
+        return;
+      }
+
+      const sheet = previewDragSheet;
+      if (!previewDragging) {
+        resetPreviewGesture();
+        return;
+      }
+
+      event.preventDefault();
+      const elapsed = Date.now() - previewTouchStartedAt;
+      const dismiss = shouldDismissPreview(previewDragDistance, elapsed, sheet.clientHeight || window.innerHeight);
+      if (dismiss) dismissPreviewWithGesture(sheet);
+      else snapPreviewSheetBack(sheet);
+      resetPreviewGesture();
+    }
+
+    function handlePreviewTouchCancel() {
+      if (previewDragSheet && previewDragging) snapPreviewSheetBack(previewDragSheet);
+      resetPreviewGesture();
     }
 
     function decorate() {
@@ -255,6 +375,8 @@
     document.addEventListener("click", handlePreviewCapture, true);
     document.addEventListener("touchstart", handlePreviewTouchStart, { capture: true, passive: true });
     document.addEventListener("touchmove", handlePreviewTouchMove, { capture: true, passive: false });
+    document.addEventListener("touchend", handlePreviewTouchEnd, { capture: true, passive: false });
+    document.addEventListener("touchcancel", handlePreviewTouchCancel, { capture: true, passive: true });
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape" && previewOverlay) closeCanonicalPreview();
     });
