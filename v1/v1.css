@@ -88,7 +88,39 @@
 #view-reef .v1-reef-archived-owned{opacity:.72}
 #view-reef .phase2-card-badge{box-shadow:none!important;border:1px solid var(--g-line)!important}
 
-/* Reef live preview: rebuild Gillie from the intact source SVG, then namespace its paint IDs. */
+/* Reef live preview: render Gillie fresh and contain all scrolling inside the sheet. */
+html.v1-reef-preview-open{
+  overflow:hidden!important;
+  overscroll-behavior:none!important;
+}
+body.v1-reef-preview-open{
+  position:fixed!important;
+  left:0!important;
+  right:0!important;
+  width:100%!important;
+  overflow:hidden!important;
+  overscroll-behavior:none!important;
+  touch-action:none!important;
+}
+body.v1-reef-preview-open #app{
+  height:100dvh!important;
+  overflow:hidden!important;
+}
+#phase2-tank-preview{
+  position:fixed!important;
+  inset:0!important;
+  height:100dvh!important;
+  overflow:hidden!important;
+  overscroll-behavior:contain!important;
+  touch-action:none;
+}
+#phase2-tank-preview .phase2-preview-sheet{
+  max-height:calc(100dvh - env(safe-area-inset-top))!important;
+  overflow-y:auto!important;
+  overscroll-behavior:contain!important;
+  -webkit-overflow-scrolling:touch;
+  touch-action:pan-y;
+}
 #phase2-tank-preview .phase2-preview-frame{
   position:relative;
   aspect-ratio:1/1.04;
