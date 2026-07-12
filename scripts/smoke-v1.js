@@ -44,7 +44,7 @@ requireMarker(sos, "I made it through this moment", "SOS completion action");
 requireMarker(progress, "Always free", "Free Progress patterns");
 requireMarker(progress, "Advanced predictions", "Premium Progress boundary");
 requireMarker(reef, "Curated aquarium collection", "Reef curation");
-requireMarker(reef, 'PREVIEW_ENGINE = "canonical-v2"', "Canonical Reef preview engine");
+requireMarker(reef, 'PREVIEW_ENGINE = "canonical-v3-swipe"', "Canonical Reef swipe preview engine");
 requireMarker(reef, "handlePreviewCapture", "Reef capture-phase override");
 requireMarker(reef, "stopImmediatePropagation", "Legacy preview suppression");
 requireMarker(reef, 'document.addEventListener("click", handlePreviewCapture, true)', "Capture listener registration");
@@ -58,6 +58,11 @@ requireMarker(reef, "replaceWith(previewWrap)", "Reef preview character replacem
 requireMarker(reef, 'qs("#main .view:not([hidden])")', "Reef active scroll-container lock");
 requireMarker(reef, 'app.setAttribute("inert", "")', "Reef background interaction lock");
 requireMarker(reef, "handlePreviewTouchMove", "Reef iOS touch scroll containment");
+requireMarker(reef, "handlePreviewTouchEnd", "Reef swipe gesture completion");
+requireMarker(reef, "shouldDismissPreview", "Reef swipe threshold calculation");
+requireMarker(reef, "PREVIEW_DISMISS_VELOCITY", "Reef swipe velocity threshold");
+requireMarker(reef, "dismissPreviewWithGesture", "Reef swipe-down close animation");
+requireMarker(reef, 'document.addEventListener("touchend", handlePreviewTouchEnd', "Reef touch-end registration");
 requireMarker(reef, "unlockPreviewScroll", "Reef preview scroll restore");
 requireMarker(coach, "What do you need right now?", "Focused Coach flow");
 requireMarker(backup, 'format: "gillie-backup"', "Backup export contract");
@@ -81,4 +86,4 @@ if (html.includes("data-gillie-phase5-hotfix")) {
   throw new Error("Legacy paywall hotfix returned to the generated bundle.");
 }
 
-console.log("Gillie V1 smoke checks passed: late module installation, canonical Reef preview, solid character paint, and nested-view scroll lock are present.");
+console.log("Gillie V1 smoke checks passed: late module installation, canonical Reef rendering, background lock, and swipe-down dismissal are present.");
