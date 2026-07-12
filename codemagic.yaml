@@ -63,6 +63,37 @@ workflows:
           set -euo pipefail
           npx cap sync ios
 
+      - name: Remove App Store icon alpha channel
+        script: |
+          set -euo pipefail
+          icon="ios/App/App/Assets.xcassets/AppIcon.appiconset/Icon-1024.png"
+          if [ ! -f "$icon" ]; then
+            echo "Missing App Store marketing icon: $icon"
+            exit 1
+          fi
+
+          before_alpha="$(sips -g hasAlpha "$icon" | awk '/hasAlpha:/ {print $2}')"
+          echo "Marketing icon alpha before conversion: ${before_alpha:-unknown}"
+
+          if [ "$before_alpha" = "yes" ]; then
+            tmp_jpg="${icon%.png}.opaque.jpg"
+            sips -s format jpeg -s formatOptions best "$icon" --out "$tmp_jpg" >/dev/null
+            sips -s format png "$tmp_jpg" --out "$icon" >/dev/null
+            rm -f "$tmp_jpg"
+          fi
+
+          after_alpha="$(sips -g hasAlpha "$icon" | awk '/hasAlpha:/ {print $2}')"
+          echo "Marketing icon alpha after conversion: ${after_alpha:-unknown}"
+          if [ "$after_alpha" = "yes" ]; then
+            echo "App Store icon still contains an alpha channel"
+            exit 1
+          fi
+
+          dimensions="$(sips -g pixelWidth -g pixelHeight "$icon")"
+          echo "$dimensions"
+          echo "$dimensions" | grep -q 'pixelWidth: 1024'
+          echo "$dimensions" | grep -q 'pixelHeight: 1024'
+
       - name: Set automatic iOS build number
         script: |
           set -euo pipefail
