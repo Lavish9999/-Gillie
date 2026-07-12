@@ -40,6 +40,11 @@ requireMarker(sos, "I made it through this moment", "SOS completion action");
 requireMarker(progress, "Always free", "Free Progress patterns");
 requireMarker(progress, "Advanced predictions", "Premium Progress boundary");
 requireMarker(reef, "Curated aquarium collection", "Reef curation");
+requireMarker(reef, 'PREVIEW_ENGINE = "canonical-v2"', "Canonical Reef preview engine");
+requireMarker(reef, "handlePreviewCapture", "Reef capture-phase override");
+requireMarker(reef, "stopImmediatePropagation", "Legacy preview suppression");
+requireMarker(reef, 'document.addEventListener("click", handlePreviewCapture, true)', "Capture listener registration");
+requireMarker(reef, "createPreviewTank", "Synchronous Reef preview tank creation");
 requireMarker(reef, "v1-preview-axo-wrap", "Reef preview character repair");
 requireMarker(reef, "axoSVG(current.skin", "Reef preview fresh Gillie renderer");
 requireMarker(reef, "flattenPreviewPaint", "Reef preview solid SVG paint fallback");
@@ -72,4 +77,4 @@ if (html.includes("data-gillie-phase5-hotfix")) {
   throw new Error("Legacy paywall hotfix returned to the generated bundle.");
 }
 
-console.log("Gillie V1 smoke checks passed: onboarding, SOS, Progress, Reef, Coach, backup, architecture, StoreKit, solid Reef character paint, and nested-view scroll lock contracts are present.");
+console.log("Gillie V1 smoke checks passed: canonical capture-phase Reef preview, solid character paint, and nested-view scroll lock are present.");
