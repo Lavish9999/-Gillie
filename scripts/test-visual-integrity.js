@@ -33,10 +33,10 @@ function element({ text = "", fontSize = 12, letterSpacing = 0, height = 30, bor
 
 const main = element({ classes: ["main"] });
 const plan = element({ classes: ["plan-preview"] });
-const planEyebrow = element({ text: "Today's plan" });
-const liveTag = element({ text: "LIVE", classes: ["tag"] });
+const planEyebrow = element({ text: "Today preview" });
+const freeTag = element({ text: "FREE", classes: ["tag"] });
 plan.children.set(".eyebrow", planEyebrow);
-plan.children.set(".tag", liveTag);
+plan.children.set(".tag", freeTag);
 
 const coach = element({ classes: ["coach-card"] });
 const coachEyebrow = element({ text: "Gillie Coach" });
@@ -50,6 +50,7 @@ const lockedTag = element({ text: "PLUS", classes: ["tag"] });
 locked.children.set(".t", lockedTitle);
 locked.children.set(".tag", lockedTag);
 
+const liveTag = element({ text: "LIVE", classes: ["status-pill"] });
 const largeTrackedHeading = element({ text: "A real heading", fontSize: 24, letterSpacing: 4 });
 const stripedCard = element({ text: "Useful card", borderLeft: 8, classes: ["result-card"] });
 const emptyCard = element({ text: "", height: 280, classes: ["empty-card"] });
@@ -67,8 +68,8 @@ function qs(selector, rootNode) {
 
 function qsa(selector) {
   if (selector === ".locked-teaser") return [locked];
-  if (selector === ".tag,.badge,[class*='status'],[class*='pill']") return [liveTag, plusTag, lockedTag, oversizedStatus].filter((item) => !item.removed);
-  if (selector === "#main *") return [planEyebrow, coachEyebrow, lockedTitle, largeTrackedHeading, stripedCard, emptyCard, oversizedStatus];
+  if (selector === ".tag,.badge,[class*='status'],[class*='pill']") return [freeTag, plusTag, lockedTag, liveTag, oversizedStatus].filter((item) => !item.removed);
+  if (selector === "#main *") return [planEyebrow, coachEyebrow, lockedTitle, liveTag, largeTrackedHeading, stripedCard, emptyCard, oversizedStatus];
   if (selector === "[class*='card'],[class*='banner'],[class*='hero']") return [plan, coach, locked, stripedCard, emptyCard];
   return [];
 }
@@ -95,6 +96,7 @@ vm.runInContext(source, context, { filename: "visual-integrity.js" });
 if (typeof installer !== "function") throw new Error("Visual integrity did not register with the V1 coordinator.");
 installer({ qs, qsa, afterRender() {}, track() {} });
 
+if (!freeTag.removed || planEyebrow.textContent !== "Today preview · Free") throw new Error("Free badge was not integrated into normal copy.");
 if (!liveTag.removed) throw new Error("Fake LIVE badge was not removed.");
 if (!plusTag.removed || coachEyebrow.textContent !== "Gillie Coach · Plus") throw new Error("Coach Plus badge was not integrated into normal copy.");
 if (!lockedTag.removed || lockedTitle.textContent !== "Premium insights · Plus") throw new Error("Locked teaser Plus badge was not integrated into normal copy.");
