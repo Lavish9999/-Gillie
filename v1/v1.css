@@ -88,7 +88,7 @@
 #view-reef .v1-reef-archived-owned{opacity:.72}
 #view-reef .phase2-card-badge{box-shadow:none!important;border:1px solid var(--g-line)!important}
 
-/* Reef live preview: the clone loses its original IDs, so restore a controlled aquarium layout. */
+/* Reef live preview: rebuild Gillie from the intact source SVG, then namespace its paint IDs. */
 #phase2-tank-preview .phase2-preview-frame{
   position:relative;
   aspect-ratio:1/1.04;
@@ -122,6 +122,10 @@
   overflow:visible!important;
   transform:none!important;
   animation:none!important;
+}
+#phase2-tank-preview .v1-preview-axo-svg *{
+  animation:none!important;
+  transition:none!important;
 }
 #phase2-tank-preview .v1-preview-axo-svg .axo-core,
 #phase2-tank-preview .v1-preview-axo-svg .axo-tail,
