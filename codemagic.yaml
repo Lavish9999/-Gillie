@@ -51,8 +51,10 @@ workflows:
           grep -q 'data-gillie-foundation="true"' www/index.html
           grep -q 'late-module safe' www/v1/core.js
           grep -q 'if (booted) queueMicrotask(() => installEntry(entry))' www/v1/core.js
-          grep -q 'PREVIEW_ENGINE = "canonical-v2"' www/v1/reef.js
+          grep -q 'PREVIEW_ENGINE = "canonical-v3-swipe"' www/v1/reef.js
           grep -q 'document.addEventListener("click", handlePreviewCapture, true)' www/v1/reef.js
+          grep -q 'document.addEventListener("touchend", handlePreviewTouchEnd' www/v1/reef.js
+          grep -q 'dismissPreviewWithGesture' www/v1/reef.js
           if grep -q 'data-gillie-phase5-hotfix="true"' www/index.html; then
             echo "Legacy paywall hotfix is still injected"
             exit 1
