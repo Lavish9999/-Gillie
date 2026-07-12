@@ -41,12 +41,16 @@ requireMarker(progress, "Always free", "Free Progress patterns");
 requireMarker(progress, "Advanced predictions", "Premium Progress boundary");
 requireMarker(reef, "Curated aquarium collection", "Reef curation");
 requireMarker(reef, "v1-preview-axo-wrap", "Reef preview character repair");
+requireMarker(reef, "namespacePreviewSvgIds", "Reef preview SVG paint namespace");
+requireMarker(reef, 'qs("#axo-svg")', "Reef preview intact source character");
+requireMarker(reef, "replaceWith(previewWrap)", "Reef preview character replacement");
 requireMarker(coach, "What do you need right now?", "Focused Coach flow");
 requireMarker(backup, 'format: "gillie-backup"', "Backup export contract");
 requireMarker(backup, "restore-pending-apple", "Entitlement-safe restore");
 requireMarker(styles, "Gillie V1 canonical screen styles", "V1 styles");
 requireMarker(styles, "#sos-overlay .phase2-sos-data", "SOS reflection deferral");
 requireMarker(styles, "#phase2-tank-preview .v1-preview-axo-wrap", "Reef preview scale contract");
+requireMarker(styles, ".v1-preview-axo-svg *", "Reef preview animation isolation");
 
 const canonicalJs = [core, onboarding, sos, progress, reef, coach, backup].join("\n");
 if (canonicalJs.includes("new MutationObserver")) {
@@ -59,4 +63,4 @@ if (html.includes("data-gillie-phase5-hotfix")) {
   throw new Error("Legacy paywall hotfix returned to the generated bundle.");
 }
 
-console.log("Gillie V1 smoke checks passed: onboarding, SOS, Progress, Reef, Coach, backup, architecture, StoreKit, and Reef preview contracts are present.");
+console.log("Gillie V1 smoke checks passed: onboarding, SOS, Progress, Reef, Coach, backup, architecture, StoreKit, and rebuilt Reef preview contracts are present.");
