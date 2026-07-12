@@ -1,4 +1,4 @@
-/* Gillie V1 Reef — fewer, better items with a consistent aquarium collection. */
+/* Gillie V1 Reef — curated collection and one canonical live-preview path. */
 (() => {
   "use strict";
 
@@ -7,6 +7,7 @@
     if (!view) return;
 
     const PREVIEW_OPEN_CLASS = "v1-reef-preview-open";
+    const PREVIEW_ENGINE = "canonical-v2";
     const archivedNames = new Set([
       "No-Vaping Sign",
       "Party Hat",
@@ -25,6 +26,7 @@
     let previewViewScrollTop = 0;
     let previewAppWasInert = false;
     let previewTouchY = 0;
+    let previewOverlay = null;
 
     function cardName(card) {
       const named = qs(".name, .t, b, strong", card)?.textContent?.trim();
@@ -84,23 +86,23 @@
       return previewWrap;
     }
 
-    function repairTankPreview() {
-      const overlay = qs("#phase2-tank-preview");
-      const frame = overlay && qs(".phase2-preview-frame", overlay);
-      const tank = frame && qs(".phase2-tank-clone", frame);
-      if (!tank || tank.dataset.v1PreviewRepaired === "true") return;
+    function createPreviewTank() {
+      const source = qs("#tank");
+      if (!source) return null;
 
-      tank.classList.add("v1-tank-preview");
+      const tank = source.cloneNode(true);
+      tank.removeAttribute("id");
+      tank.classList.add("phase2-tank-clone", "v1-tank-preview");
       tank.setAttribute("aria-hidden", "true");
+      tank.dataset.v1PreviewRepaired = "true";
       tank.querySelectorAll(".bubble, .mote, .phase2-tank-heart, .phase2-food, .phase2-celebration").forEach((node) => node.remove());
 
-      const brokenSvg = tank.querySelector("svg[data-growth]");
-      const brokenWrap = brokenSvg?.parentElement;
+      const brokenWrap = tank.querySelector("#axo-wrap");
       const previewWrap = createPreviewCharacter();
-      if (!brokenSvg || !brokenWrap || !previewWrap) return;
-
+      if (!brokenWrap || !previewWrap) return null;
       brokenWrap.replaceWith(previewWrap);
-      tank.dataset.v1PreviewRepaired = "true";
+
+      return tank;
     }
 
     function lockPreviewScroll() {
@@ -127,8 +129,6 @@
     }
 
     function unlockPreviewScroll() {
-      if (!document.body.classList.contains(PREVIEW_OPEN_CLASS)) return;
-
       const app = qs("#app");
       if (app && !previewAppWasInert) app.removeAttribute("inert");
 
@@ -149,13 +149,58 @@
       previewAppWasInert = false;
     }
 
+    function closeCanonicalPreview() {
+      previewOverlay?.remove();
+      previewOverlay = null;
+      unlockPreviewScroll();
+    }
+
+    function openCanonicalPreview() {
+      closeCanonicalPreview();
+
+      const tank = createPreviewTank();
+      if (!tank) {
+        unlockPreviewScroll();
+        return;
+      }
+
+      lockPreviewScroll();
+
+      const overlay = document.createElement("div");
+      overlay.id = "phase2-tank-preview";
+      overlay.className = "overlay";
+      overlay.dataset.previewEngine = PREVIEW_ENGINE;
+      overlay.setAttribute("role", "dialog");
+      overlay.setAttribute("aria-modal", "true");
+      overlay.setAttribute("aria-label", "Tank preview");
+      overlay.innerHTML = `<div class="sheet phase2-preview-sheet"><div class="grab"></div><button class="sheet-close" type="button" aria-label="Close">×</button><div class="eyebrow">Live preview</div><h2>Your reef, full size.</h2><div class="phase2-preview-frame"></div><p>Everything shown here is already equipped in your tank.</p><button class="btn" type="button">Looks good</button></div>`;
+      qs(".phase2-preview-frame", overlay)?.appendChild(tank);
+
+      overlay.addEventListener("click", (event) => {
+        if (event.target === overlay || event.target.closest(".sheet-close, .phase2-preview-sheet > .btn")) closeCanonicalPreview();
+      });
+
+      previewOverlay = overlay;
+      document.body.appendChild(overlay);
+      track("reef_tank_preview_opened", { engine: PREVIEW_ENGINE });
+    }
+
+    function handlePreviewCapture(event) {
+      const button = event.target.closest?.("#phase2-preview-tank");
+      if (!button) return;
+
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      openCanonicalPreview();
+    }
+
     function handlePreviewTouchStart(event) {
-      if (!document.body.classList.contains(PREVIEW_OPEN_CLASS)) return;
+      if (!previewOverlay) return;
       previewTouchY = event.touches?.[0]?.clientY || 0;
     }
 
     function handlePreviewTouchMove(event) {
-      if (!document.body.classList.contains(PREVIEW_OPEN_CLASS)) return;
+      if (!previewOverlay) return;
 
       const sheet = event.target.closest?.("#phase2-tank-preview .phase2-preview-sheet");
       if (!sheet) {
@@ -170,24 +215,6 @@
       const atBottom = Math.ceil(sheet.scrollTop + sheet.clientHeight) >= sheet.scrollHeight;
       const cannotScroll = sheet.scrollHeight <= sheet.clientHeight + 1;
       if (cannotScroll || (atTop && deltaY > 0) || (atBottom && deltaY < 0)) event.preventDefault();
-    }
-
-    function bindPreviewLifecycle(overlay) {
-      if (!overlay || overlay.dataset.v1PreviewLifecycle === "true") return;
-      overlay.dataset.v1PreviewLifecycle = "true";
-
-      overlay.addEventListener("click", (event) => {
-        if (!event.target.closest(".sheet-close, .phase2-preview-sheet > .btn")) return;
-        requestAnimationFrame(unlockPreviewScroll);
-      }, true);
-    }
-
-    function openPreviewRepair() {
-      const overlay = qs("#phase2-tank-preview");
-      if (!overlay || overlay.hidden) return;
-      bindPreviewLifecycle(overlay);
-      lockPreviewScroll();
-      repairTankPreview();
     }
 
     function decorate() {
@@ -218,37 +245,19 @@
 
     afterRender(decorate);
     decorate();
+
     qs('#tabs [data-view="reef"]')?.addEventListener("click", () => {
       setTimeout(decorate, 40);
       setTimeout(decorate, 180);
       track("reef_opened_curated");
     });
 
+    document.addEventListener("click", handlePreviewCapture, true);
     document.addEventListener("touchstart", handlePreviewTouchStart, { capture: true, passive: true });
     document.addEventListener("touchmove", handlePreviewTouchMove, { capture: true, passive: false });
-
-    const previewButton = qs("#phase2-preview-tank");
-    if (previewButton && previewButton.dataset.v1PreviewRepair !== "true") {
-      previewButton.dataset.v1PreviewRepair = "true";
-      previewButton.addEventListener("click", () => {
-        lockPreviewScroll();
-        requestAnimationFrame(openPreviewRepair);
-        setTimeout(() => {
-          const overlay = qs("#phase2-tank-preview");
-          if (!overlay || overlay.hidden) unlockPreviewScroll();
-          else openPreviewRepair();
-        }, 60);
-      }, true);
-    }
-
     document.addEventListener("keydown", (event) => {
-      if (event.key !== "Escape") return;
-      const overlay = qs("#phase2-tank-preview");
-      if (!overlay || overlay.hidden) return;
-      overlay.hidden = true;
-      unlockPreviewScroll();
+      if (event.key === "Escape" && previewOverlay) closeCanonicalPreview();
     });
-
-    window.addEventListener("pagehide", unlockPreviewScroll);
+    window.addEventListener("pagehide", closeCanonicalPreview);
   });
 })();
