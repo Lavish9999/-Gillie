@@ -127,6 +127,7 @@ for (const marker of [
   '[data-visual-empty-surface="true"]',
   ".v1-renewal-disclosure",
   ".v1-active-subscription",
+  '#plus-overlay.v1-plus-active .gp-pricing-section',
   '#plus-purchase[data-v1-manage-subscription="true"]',
 ]) {
   if (!integrityCss.includes(marker)) fail(`visual integrity CSS is missing ${marker}`);
@@ -140,6 +141,7 @@ for (const marker of [
   "ensurePaywallDisclosure",
   "renews automatically unless cancelled at least 24 hours",
   "v1ManageSubscription",
+  'overlay.classList.add("v1-plus-active")',
   "openAppleSubscriptionManagement",
 ]) {
   if (!integrityJs.includes(marker)) fail(`visual integrity JavaScript is missing ${marker}`);
@@ -147,4 +149,4 @@ for (const marker of [
 
 if (/Save\s+37%/i.test(integrityJs)) fail("visual integrity must not reintroduce a hard-coded subscription savings claim");
 
-console.log("Visual integrity audit passed: template UI is controlled, renewal terms are visible, and active subscribers manage through Apple.");
+console.log("Visual integrity audit passed: template UI is controlled, renewal terms are visible, and active subscribers get a simplified management state.");
