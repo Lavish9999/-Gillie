@@ -65,8 +65,14 @@ workflows:
           grep -q 'Gillie V1 Reef Dashboard' www/v1/reef-dashboard.css
           grep -q '.v1-reef-vault' www/v1/reef-dashboard.css
           grep -q '"reefProgress", "moonlitReef"' www/v1/backup.js
+          grep -q 'v1-renewal-disclosure' www/v1/visual-integrity.js
+          grep -q 'renews automatically unless cancelled at least 24 hours' www/v1/visual-integrity.js
+          grep -q 'v1ManageSubscription' www/v1/visual-integrity.js
+          grep -q '.v1-renewal-disclosure' www/v1/visual-integrity.css
           grep -q 'clearDiagnostics' www/index.html
           grep -q 'localStorage.clear()' www/index.html
+          grep -q 'GilliePurchases?.clearDiagnostics' ios/App/App/GillieBridgeViewController.swift
+          grep -q 'localStorage.clear()' ios/App/App/GillieBridgeViewController.swift
           grep -q 'NSPrivacyAccessedAPICategoryUserDefaults' ios/App/App/PrivacyInfo.xcprivacy
           grep -q 'CA92.1' ios/App/App/PrivacyInfo.xcprivacy
           grep -q 'PrivacyInfo.xcprivacy in Resources' ios/App/App.xcodeproj/project.pbxproj
@@ -90,6 +96,7 @@ workflows:
           npx cap sync ios
           grep -q 'PrivacyInfo.xcprivacy in Resources' ios/App/App.xcodeproj/project.pbxproj
           grep -q 'TARGETED_DEVICE_FAMILY = 1;' ios/App/App.xcodeproj/project.pbxproj
+          grep -q 'GilliePurchases?.clearDiagnostics' ios/App/App/GillieBridgeViewController.swift
 
       - name: Remove App Store icon alpha channel
         script: |
@@ -189,6 +196,10 @@ workflows:
             exit 1
           fi
 
+          test -f "$app_path/public/v1/visual-integrity.js"
+          grep -q 'v1-renewal-disclosure' "$app_path/public/v1/visual-integrity.js"
+          grep -q 'renews automatically unless cancelled at least 24 hours' "$app_path/public/v1/visual-integrity.js"
+          grep -q 'v1ManageSubscription' "$app_path/public/v1/visual-integrity.js"
           if grep -R -qE 'fonts\.googleapis\.com|fonts\.gstatic\.com' "$app_path/public"; then
             echo "Final IPA still contains remote Google Fonts"
             exit 1
