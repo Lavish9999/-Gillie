@@ -49,12 +49,19 @@ workflows:
           grep -q 'data-gillie-phase4="true"' www/index.html
           grep -q 'data-gillie-phase5="true"' www/index.html
           grep -q 'data-gillie-foundation="true"' www/index.html
+          grep -q 'data-gillie-v1-reef-dashboard="true"' www/index.html
+          grep -q 'data-gillie-v1-reef-dashboard-styles="true"' www/index.html
           grep -q 'late-module safe' www/v1/core.js
           grep -q 'if (booted) queueMicrotask(() => installEntry(entry))' www/v1/core.js
           grep -q 'PREVIEW_ENGINE = "canonical-v3-swipe"' www/v1/reef.js
           grep -q 'document.addEventListener("click", handlePreviewCapture, true)' www/v1/reef.js
           grep -q 'document.addEventListener("touchend", handlePreviewTouchEnd' www/v1/reef.js
           grep -q 'dismissPreviewWithGesture' www/v1/reef.js
+          grep -q 'DASHBOARD_ENGINE = "reef-progression-v1"' www/v1/reef-dashboard.js
+          grep -q 'Daily Reef Care' www/v1/reef-dashboard.js
+          grep -q 'claimDailyBonus' www/v1/reef-dashboard.js
+          grep -q 'Gillie V1 Reef Dashboard' www/v1/reef-dashboard.css
+          grep -q '.v1-reef-vault' www/v1/reef-dashboard.css
           if grep -q 'data-gillie-phase5-hotfix="true"' www/index.html; then
             echo "Legacy paywall hotfix is still injected"
             exit 1
