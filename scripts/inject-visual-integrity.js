@@ -4,7 +4,7 @@ const path = require("path");
 const root = path.resolve(__dirname, "..");
 const out = path.join(root, "www");
 const indexPath = path.join(out, "index.html");
-const assets = ["v1/visual-integrity.css", "v1/visual-integrity.js"];
+const assets = ["v1/visual-integrity.css", "v1/home-gillie.css", "v1/visual-integrity.js"];
 
 if (!fs.existsSync(indexPath)) {
   throw new Error("Visual integrity injection requires www/index.html. Run the canonical injectors first.");
@@ -31,6 +31,7 @@ html = html
   .replace(/<span class="tag free">\s*FREE\s*<\/span>/g, "");
 
 const styleTag = '<link rel="stylesheet" href="./v1/visual-integrity.css" data-gillie-v1-visual-integrity-styles="true">';
+const homeGillieStyleTag = '<link rel="stylesheet" href="./v1/home-gillie.css" data-gillie-v1-home-gillie-styles="true">';
 const scriptTag = '<script src="./v1/visual-integrity.js" defer data-gillie-v1-visual-integrity="true"></script>';
 
 if (!html.includes(styleTag)) {
@@ -39,6 +40,11 @@ if (!html.includes(styleTag)) {
   const anchor = html.includes(moonlitStyle) ? moonlitStyle : fallbackStyle;
   if (!html.includes(anchor)) throw new Error("Could not locate the final V1 stylesheet injection point.");
   html = html.replace(anchor, `${anchor}\n${styleTag}`);
+}
+
+if (!html.includes(homeGillieStyleTag)) {
+  if (!html.includes(styleTag)) throw new Error("Could not locate visual integrity stylesheet for Home Gillie injection.");
+  html = html.replace(styleTag, `${styleTag}\n${homeGillieStyleTag}`);
 }
 
 if (!html.includes(scriptTag)) {
@@ -52,6 +58,7 @@ if (!html.includes(scriptTag)) {
 fs.writeFileSync(indexPath, html, "utf8");
 
 const css = fs.readFileSync(path.join(out, "v1/visual-integrity.css"), "utf8");
+const homeGillieCss = fs.readFileSync(path.join(out, "v1/home-gillie.css"), "utf8");
 const js = fs.readFileSync(path.join(out, "v1/visual-integrity.js"), "utf8");
 for (const marker of [
   'register("visual-integrity"',
@@ -80,5 +87,16 @@ for (const marker of [
 ]) {
   if (!css.includes(marker)) throw new Error(`Generated visual integrity CSS is missing marker: ${marker}`);
 }
+for (const marker of [
+  "Gillie V1 Home character",
+  "#view-home #axo-svg g.gill[transform]",
+  "animation:none!important",
+  "Do not add a CSS transform declaration",
+]) {
+  if (!homeGillieCss.includes(marker)) throw new Error(`Generated Home Gillie CSS is missing marker: ${marker}`);
+}
+const homeGillieRule = homeGillieCss.match(/#view-home #axo-svg g\.gill\[transform\]\s*\{([\s\S]*?)\}/)?.[1] || "";
+if (!homeGillieRule) throw new Error("Generated Home Gillie gill rule is missing.");
+if (/\btransform\s*:/.test(homeGillieRule)) throw new Error("Home Gillie gill rule must not override authored SVG transforms.");
 
-console.log("Injected Gillie's visual integrity, visible subscription disclosure, and simplified active-subscriber state.");
+console.log("Injected Gillie's visual integrity, attached Home gills, visible subscription disclosure, and simplified active-subscriber state.");
