@@ -7,7 +7,7 @@
     if (!view) return;
 
     const COLLECTION_ENGINE = "moonlit-reef-v1";
-    const PREVIEW_ART_ENGINE = "attached-gills-v2";
+    const PREVIEW_ART_ENGINE = "standalone-svg-v4";
     const THEME_ID = "moonlit";
     const SKIN_ID = "moonpearl";
     const TOTAL_PIECES = 6;
@@ -46,8 +46,72 @@
       <circle cx="75" cy="34" r="2.5" fill="#FFF4BD"/>
       <circle cx="81" cy="51" r="2" fill="#FFF4BD"/>
     </svg>`;
+
     const STAR_CORAL_SVG = `<svg viewBox="0 0 92 88" aria-hidden="true"><path d="M46 85V41M46 58L28 39M46 51l18-21M46 68l24-12M46 63L21 58" stroke="#AFA2EE" stroke-width="8" stroke-linecap="round"/><circle cx="46" cy="37" r="10" fill="#DDD5FF"/><circle cx="27" cy="37" r="8" fill="#C9BDF8"/><circle cx="66" cy="28" r="8" fill="#C9BDF8"/><circle cx="72" cy="55" r="8" fill="#DDD5FF"/><circle cx="20" cy="58" r="7" fill="#DDD5FF"/><circle cx="46" cy="37" r="3" fill="#FFF6C9"/><circle cx="27" cy="37" r="2.5" fill="#FFF6C9"/><circle cx="66" cy="28" r="2.5" fill="#FFF6C9"/></svg>`;
+
     const MOON_JELLY_SVG = `<svg viewBox="0 0 86 112" aria-hidden="true"><path d="M10 49C10 25 24 8 43 8s33 17 33 41c0 8-5 12-13 12H23c-8 0-13-4-13-12z" fill="#D8E2FF" opacity=".92"/><ellipse cx="31" cy="31" rx="9" ry="14" fill="#F6F8FF" opacity=".72"/><circle cx="34" cy="47" r="3" fill="#263657"/><circle cx="53" cy="47" r="3" fill="#263657"/><path d="M37 54q6 6 12 0" fill="none" stroke="#5E6A94" stroke-width="3" stroke-linecap="round"/><path d="M24 61c-8 17 6 25-1 43M39 61c7 18-6 28 2 46M55 61c-8 17 7 25-1 42M68 59c6 15-4 24 2 37" fill="none" stroke="#AFA7E8" stroke-width="5" stroke-linecap="round"/></svg>`;
+
+    /*
+     * Dedicated preview art. This does not call axoSVG() and intentionally has
+     * no .gill/.axo-* classes or transformed gill groups. The six gills are
+     * authored directly in final coordinates, so app-wide SVG animation rules
+     * cannot detach or scatter them in WebKit.
+     */
+    const STANDALONE_MOON_PEARL_SVG = `<svg class="moonlit-preview-character-svg" viewBox="0 0 220 170" preserveAspectRatio="xMidYMid meet" aria-hidden="true" data-preview-character="standalone-v4">
+      <defs>
+        <radialGradient id="moonPearlBodyV4" cx="36%" cy="28%" r="86%">
+          <stop offset="0%" stop-color="#F7F9FF"/>
+          <stop offset="48%" stop-color="#C6D2FF"/>
+          <stop offset="100%" stop-color="#8799D3"/>
+        </radialGradient>
+        <linearGradient id="moonPearlGillV4" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#D6C7FF"/>
+          <stop offset="100%" stop-color="#7B68B8"/>
+        </linearGradient>
+        <linearGradient id="moonPearlFinV4" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#BBA9F0"/>
+          <stop offset="100%" stop-color="#7261AA"/>
+        </linearGradient>
+      </defs>
+
+      <path data-moonlit-gill="left-upper" d="M48 49 C37 40 25 34 15 35 C9 36 7 42 10 47 C17 56 31 58 47 55 Z" fill="url(#moonPearlGillV4)"/>
+      <path d="M42 48 C33 43 24 41 16 43" fill="none" stroke="#F3EEFF" stroke-width="2.2" stroke-linecap="round" opacity=".55"/>
+      <path data-moonlit-gill="left-middle" d="M38 68 C25 62 13 62 6 68 C2 72 4 78 9 81 C19 86 31 81 41 75 Z" fill="url(#moonPearlGillV4)"/>
+      <path d="M34 68 C24 66 16 68 10 72" fill="none" stroke="#F3EEFF" stroke-width="2.2" stroke-linecap="round" opacity=".55"/>
+      <path data-moonlit-gill="left-lower" d="M45 88 C33 91 23 99 20 108 C18 114 23 118 29 117 C40 114 47 104 52 94 Z" fill="url(#moonPearlGillV4)"/>
+      <path d="M43 92 C34 97 29 103 27 110" fill="none" stroke="#F3EEFF" stroke-width="2.2" stroke-linecap="round" opacity=".55"/>
+
+      <path data-moonlit-gill="right-upper" d="M108 48 C120 39 133 33 143 35 C149 36 151 42 148 47 C141 56 126 58 110 55 Z" fill="url(#moonPearlGillV4)"/>
+      <path d="M114 48 C123 43 133 41 141 43" fill="none" stroke="#F3EEFF" stroke-width="2.2" stroke-linecap="round" opacity=".55"/>
+      <path data-moonlit-gill="right-middle" d="M117 68 C130 62 142 62 149 68 C153 72 151 78 146 81 C136 86 124 81 114 75 Z" fill="url(#moonPearlGillV4)"/>
+      <path d="M121 68 C131 66 139 68 145 72" fill="none" stroke="#F3EEFF" stroke-width="2.2" stroke-linecap="round" opacity=".55"/>
+      <path data-moonlit-gill="right-lower" d="M111 88 C123 91 133 99 136 108 C138 114 133 118 127 117 C116 114 109 104 104 94 Z" fill="url(#moonPearlGillV4)"/>
+      <path d="M113 92 C122 97 127 103 129 110" fill="none" stroke="#F3EEFF" stroke-width="2.2" stroke-linecap="round" opacity=".55"/>
+
+      <path d="M139 95 C165 69 192 70 210 78 C205 91 195 102 181 108 C197 111 202 121 195 132 C174 137 153 129 137 114 Z" fill="url(#moonPearlFinV4)" opacity=".95"/>
+      <path d="M141 99 C165 93 183 85 202 80 C197 98 184 112 164 119 C153 121 145 117 137 112 Z" fill="url(#moonPearlBodyV4)"/>
+      <path d="M151 105 C169 101 184 95 194 88" fill="none" stroke="#F2F5FF" stroke-width="4" stroke-linecap="round" opacity=".55"/>
+
+      <ellipse cx="119" cy="108" rx="50" ry="32" fill="url(#moonPearlBodyV4)"/>
+      <ellipse cx="117" cy="118" rx="31" ry="15" fill="#EEF2FF" opacity=".9"/>
+      <ellipse cx="137" cy="132" rx="10" ry="7" fill="url(#moonPearlBodyV4)"/>
+      <ellipse cx="102" cy="135" rx="11" ry="7" fill="url(#moonPearlBodyV4)"/>
+      <circle cx="96" cy="137" r="1.7" fill="#8799D3"/>
+      <circle cx="102" cy="139" r="1.7" fill="#8799D3"/>
+
+      <ellipse cx="78" cy="75" rx="45" ry="43" fill="url(#moonPearlBodyV4)"/>
+      <ellipse cx="62" cy="56" rx="17" ry="9" fill="#FFFFFF" opacity=".30"/>
+      <circle cx="55" cy="84" r="7" fill="#C0A7F1" opacity=".28"/>
+      <circle cx="101" cy="84" r="7" fill="#C0A7F1" opacity=".28"/>
+      <ellipse cx="59" cy="69" rx="7" ry="8.5" fill="#173330"/>
+      <circle cx="61.5" cy="65.5" r="2.3" fill="#fff"/>
+      <circle cx="57" cy="72" r="1.2" fill="#fff" opacity=".72"/>
+      <ellipse cx="96" cy="69" rx="7" ry="8.5" fill="#173330"/>
+      <circle cx="98.5" cy="65.5" r="2.3" fill="#fff"/>
+      <circle cx="94" cy="72" r="1.2" fill="#fff" opacity=".72"/>
+      <path d="M66 93 Q78 101 91 93" fill="none" stroke="#7E4C59" stroke-width="3.5" stroke-linecap="round" opacity=".8"/>
+      <ellipse cx="78" cy="144" rx="30" ry="6" fill="#1A2342" opacity=".18"/>
+    </svg>`;
 
     function currentState() {
       return getState?.();
@@ -258,13 +322,6 @@
       document.body.classList.remove("sheet-open", "moonlit-preview-open");
     }
 
-    function previewGillieMarkup() {
-      try {
-        if (typeof axoSVG === "function") return axoSVG(SKIN_ID, null, "happy", "moonlit-preview-gillie");
-      } catch (_) {}
-      return "";
-    }
-
     function ensurePreview() {
       let overlay = qs("#moonlit-reef-preview");
       if (overlay) return overlay;
@@ -284,7 +341,7 @@
             <div class="moonlit-preview-crescent">${CRESCENT_ARCH_SVG}</div>
             <div class="moonlit-preview-coral">${STAR_CORAL_SVG}</div>
             ${moonJellyMarkup("moonlit-preview-jelly")}
-            <div class="moonlit-preview-gillie"><svg class="moonlit-preview-gillie-svg" viewBox="0 0 200 160" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg></div>
+            <div class="moonlit-preview-gillie">${STANDALONE_MOON_PEARL_SVG}</div>
             <div class="moonlit-preview-sand"></div>
           </div>
           <div class="moonlit-preview-items">
@@ -312,15 +369,13 @@
       const collection = ensureCollectionState(current);
       const status = collectionStatus(current);
       const overlay = ensurePreview();
-      const svg = qs(".moonlit-preview-gillie-svg", overlay);
-      if (svg) svg.innerHTML = previewGillieMarkup();
       const cta = qs("[data-moonlit-preview-cta]", overlay);
       if (cta) cta.textContent = !current.premium ? "Unlock Gillie Plus to equip" : status.complete ? "Moonlit Reef is equipped" : "Equip full collection";
       collection.previewedAt = Date.now();
       persist();
       overlay.hidden = false;
       lockPreviewBackground();
-      track("moonlit_collection_previewed", { premium: Boolean(current.premium), engine: COLLECTION_ENGINE, art: PREVIEW_ART_ENGINE });
+      track("moonlit_collection_previewed", { premium: Boolean(current.premium), engine: COLLECTION_ENGINE, art: PREVIEW_ART_ENGINE, gills: 6 });
     }
 
     function closePreview() {
