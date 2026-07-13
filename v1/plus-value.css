@@ -1,0 +1,77 @@
+/* Gillie V1 Plus Value — premium paywall, weekly report, Reef bonuses, and welcome bundle. */
+
+/* Paywall positioning */
+#plus-overlay .gp-title{max-width:340px}
+#plus-overlay .pv-benefit-icon svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+#plus-overlay .pv-paywall-showcase{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0 0}
+#plus-overlay .pv-showcase-report,#plus-overlay .pv-showcase-moonlit{position:relative;min-height:92px;overflow:hidden;border-radius:18px;border:1px solid rgba(17,51,47,.09);box-shadow:0 8px 20px rgba(17,51,47,.06)}
+#plus-overlay .pv-showcase-report{display:flex;align-items:flex-end;gap:7px;padding:34px 15px 14px;background:linear-gradient(145deg,#f7fbfa,#e7f1ee)}
+#plus-overlay .pv-showcase-report>span{position:absolute;left:14px;top:12px;font-size:9px;font-weight:900;letter-spacing:.1em;color:var(--ink-faint)}
+#plus-overlay .pv-showcase-report>i{display:block;flex:1;height:var(--h);min-height:12px;border-radius:999px 999px 5px 5px;background:linear-gradient(180deg,#65b59c,#174d45);box-shadow:0 4px 10px rgba(23,77,69,.15)}
+#plus-overlay .pv-showcase-moonlit{padding:14px;background:radial-gradient(circle at 80% 18%,rgba(229,234,255,.8),transparent 18%),linear-gradient(145deg,#26315d,#101b3e 72%);color:#fff}
+#plus-overlay .pv-showcase-moonlit>i{position:absolute;right:13px;top:13px;width:28px;height:28px;border-radius:50%;background:#eef1ff;box-shadow:0 0 18px rgba(225,232,255,.55)}
+#plus-overlay .pv-showcase-moonlit>i::after{content:"";position:absolute;left:-7px;top:-3px;width:28px;height:28px;border-radius:50%;background:#35416f}
+#plus-overlay .pv-showcase-moonlit>b,#plus-overlay .pv-showcase-moonlit>span{position:absolute;left:14px;display:block}
+#plus-overlay .pv-showcase-moonlit>b{bottom:30px;font-size:13px}
+#plus-overlay .pv-showcase-moonlit>span{bottom:13px;font-size:9.5px;color:rgba(255,255,255,.62);font-weight:700}
+
+/* Weekly Pattern Report */
+#view-progress .v1-weekly-report{margin:18px 0;padding:20px;border-radius:25px;background:#fff;box-shadow:0 14px 34px rgba(17,51,47,.09);border:1px solid rgba(17,51,47,.07)}
+#view-progress .v1-weekly-report h2{margin:4px 0 8px;font:800 25px/1.08 var(--font-display);letter-spacing:-.02em}
+#view-progress .v1-weekly-report>p{color:var(--ink-soft);font-size:14px;line-height:1.45;font-weight:600}
+#view-progress .v1-weekly-report.locked{background:linear-gradient(145deg,#fff,#eef5f3)}
+#view-progress .v1-weekly-report.locked button{width:100%;min-height:48px;margin-top:15px;border-radius:16px;background:var(--ink);color:#fff;font-weight:850;font-size:14px}
+#view-progress .pv-report-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px}
+#view-progress .pv-report-head>span{margin-top:2px;padding:6px 8px;border-radius:999px;background:#edf6f3;color:#4d746b;font-size:8px;font-weight:900;letter-spacing:.08em;white-space:nowrap}
+#view-progress .pv-report-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:14px}
+#view-progress .pv-report-grid>div{min-height:80px;padding:12px;border-radius:17px;background:#f2f7f5;border:1px solid rgba(17,51,47,.06)}
+#view-progress .pv-report-grid small,#view-progress .pv-report-grid b{display:block}
+#view-progress .pv-report-grid small{color:var(--ink-faint);font-size:9.5px;font-weight:800;line-height:1.2}
+#view-progress .pv-report-grid b{margin-top:8px;color:var(--ink);font-size:16px;line-height:1.12}
+#view-progress .pv-report-money{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px;padding:13px 14px;border-radius:17px;background:linear-gradient(135deg,#123b35,#245f54);color:#fff}
+#view-progress .pv-report-money span{font-size:11px;font-weight:750;color:rgba(255,255,255,.72)}
+#view-progress .pv-report-money b{font-size:19px}
+#view-progress .pv-report-note{margin-top:10px;padding:13px 14px;border-radius:17px;background:#f7faf9;border:1px solid rgba(17,51,47,.06)}
+#view-progress .pv-report-note.focus{background:#edf8f4;border-color:rgba(47,156,119,.18)}
+#view-progress .pv-report-note small{display:block;color:#66857e;font-size:8.5px;font-weight:900;letter-spacing:.1em}
+#view-progress .pv-report-note p{margin-top:5px;color:var(--ink);font-size:12.5px;line-height:1.38;font-weight:700}
+#view-progress .pv-report-building{margin-top:10px!important;padding:10px 12px;border-radius:13px;background:#fff9e9;color:#7c6534!important;font-size:11.5px!important}
+
+/* Plus Reef rewards */
+#view-reef .pv-perfect-care{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:9px;padding:15px 16px;border-radius:20px;background:linear-gradient(145deg,#f6f2e8,#fff);border:1px solid rgba(223,174,63,.25)}
+#view-reef .pv-perfect-care.ready{background:linear-gradient(145deg,#fff6d9,#f8edc8);box-shadow:0 10px 22px rgba(180,132,36,.12)}
+#view-reef .pv-perfect-care.claimed{opacity:.72}
+#view-reef .pv-perfect-care div>span,#view-reef .pv-perfect-care div>b,#view-reef .pv-perfect-care div>small{display:block}
+#view-reef .pv-perfect-care div>span{font-size:9px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#9c7930}
+#view-reef .pv-perfect-care div>b{margin-top:3px;font-size:13px;color:var(--ink)}
+#view-reef .pv-perfect-care div>small{margin-top:3px;font-size:10px;color:var(--ink-soft);font-weight:700}
+#view-reef .pv-perfect-care button{min-width:104px;min-height:42px;padding:8px 12px;border-radius:14px;background:#c9972f;color:#fff;font-weight:900;font-size:11px}
+#view-reef .pv-perfect-care button:disabled{background:#cbd8d4;color:#688079}
+#view-reef .pv-perfect-done{width:38px;height:38px;display:grid;place-items:center;border-radius:50%;background:#2f9c77;color:#fff;font-weight:900}
+
+/* One-time Plus welcome */
+#pv-plus-welcome{position:fixed;inset:0;z-index:320;display:grid;align-items:end;background:rgba(8,28,26,.44);backdrop-filter:blur(13px);-webkit-backdrop-filter:blur(13px)}
+#pv-plus-welcome[hidden]{display:none!important}
+#pv-plus-welcome .pv-welcome-sheet{position:relative;max-height:92dvh;overflow-y:auto;padding:29px 22px calc(24px + env(safe-area-inset-bottom));border-radius:32px 32px 0 0;background:linear-gradient(180deg,#f8fcfb,#e9f4f1);box-shadow:0 -25px 65px rgba(7,35,31,.24)}
+#pv-plus-welcome .pv-welcome-close{position:absolute;right:17px;top:17px;width:43px;height:43px;border-radius:50%;background:#fff;color:#45665f;font-size:25px;font-weight:500;box-shadow:0 8px 22px rgba(17,51,47,.1)}
+#pv-plus-welcome .pv-welcome-orb{width:58px;height:58px;display:grid;place-items:center;border-radius:20px;background:radial-gradient(circle at 34% 28%,#fff7cb,#e1b94e 50%,#ac7620);color:#fff;font-size:28px;box-shadow:0 14px 30px rgba(191,143,45,.28)}
+#pv-plus-welcome .pv-welcome-kicker{display:block;margin-top:20px;color:#66857e;font-size:10px;font-weight:900;letter-spacing:.12em}
+#pv-plus-welcome h2{max-width:330px;margin-top:7px;font:850 30px/1.04 var(--font-display);letter-spacing:-.025em;color:var(--ink)}
+#pv-plus-welcome h2+p{margin-top:10px;color:var(--ink-soft);font-size:14px;line-height:1.45;font-weight:600}
+#pv-plus-welcome .pv-welcome-benefits{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:19px}
+#pv-plus-welcome .pv-welcome-benefits>div{display:grid;grid-template-columns:39px minmax(0,1fr);gap:9px;align-items:center;min-height:84px;padding:11px;border-radius:18px;background:#fff;border:1px solid rgba(17,51,47,.07);box-shadow:0 8px 18px rgba(17,51,47,.05)}
+#pv-plus-welcome .pv-welcome-benefits i{width:39px;height:39px;display:grid;place-items:center;border-radius:13px;background:#e7f4f0;color:#245f54;font-style:normal;font-size:14px;font-weight:900}
+#pv-plus-welcome .pv-welcome-benefits b,#pv-plus-welcome .pv-welcome-benefits small{display:block}
+#pv-plus-welcome .pv-welcome-benefits b{font-size:11.5px;line-height:1.15;color:var(--ink)}
+#pv-plus-welcome .pv-welcome-benefits small{margin-top:4px;font-size:9.5px;line-height:1.25;color:var(--ink-faint);font-weight:650}
+#pv-plus-welcome .pv-welcome-primary{width:100%;min-height:54px;margin-top:18px;border-radius:18px;background:var(--ink);color:#fff;font-size:14px;font-weight:900}
+#pv-plus-welcome .pv-welcome-later{width:100%;padding:13px;color:var(--ink-soft);font-size:12px;font-weight:800}
+body.pv-welcome-open #sos-fab{display:none!important}
+
+@media (max-width:370px){
+  #plus-overlay .pv-paywall-showcase,#view-progress .pv-report-grid,#pv-plus-welcome .pv-welcome-benefits{grid-template-columns:1fr}
+  #pv-plus-welcome .pv-welcome-benefits>div{min-height:72px}
+}
+@media (prefers-reduced-motion:reduce){
+  #pv-plus-welcome *{scroll-behavior:auto!important}
+}
