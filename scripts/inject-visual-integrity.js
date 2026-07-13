@@ -96,17 +96,20 @@ for (const marker of [
 }
 for (const marker of [
   "Gillie V1 Home character",
-  "#view-home #axo-svg .axo-gill-static",
+  "#view-home #axo-svg [data-home-gill]",
+  ".axo-gill-vein",
   "animation:none!important",
-  "Do not add a CSS transform declaration",
+  "direct-coordinate six-frond anatomy",
 ]) {
   if (!homeGillieCss.includes(marker)) throw new Error(`Generated Home Gillie CSS is missing marker: ${marker}`);
 }
 for (const marker of [
-  'ENGINE = "home-gillie-static-gills-v2"',
-  "isolateGillClasses",
-  'class="axo-gill-static',
-  "count !== 6",
+  'ENGINE = "home-gillie-direct-gills-v3"',
+  "directGillMarkup",
+  "replaceHomeGills",
+  'data-home-gill="left-upper"',
+  'data-home-gill="right-lower"',
+  "matches.length !== 6",
   "window.axoSVG = hardenedAxoSVG",
   'document.documentElement.dataset.homeGillieEngine = ENGINE',
   'typeof renderAxo === "function"',
@@ -116,8 +119,11 @@ for (const marker of [
 if (!html.includes('data-gillie-v1-home-gillie="true"')) throw new Error("Generated index is missing the Home Gillie runtime tag.");
 if (!html.includes('data-gillie-v1-home-gillie-styles="true"')) throw new Error("Generated index is missing the Home Gillie stylesheet tag.");
 
-const homeGillieRule = homeGillieCss.match(/#view-home #axo-svg \.axo-gill-static\s*\{([\s\S]*?)\}/)?.[1] || "";
-if (!homeGillieRule) throw new Error("Generated Home Gillie static-gill rule is missing.");
-if (/\btransform\s*:/.test(homeGillieRule)) throw new Error("Home Gillie static-gill rule must not override authored SVG transforms.");
+const directGillTags = homeGillieJs.match(/<path class="axo-gill-frond" data-home-gill="[^"]+"[^>]*>/g) || [];
+if (directGillTags.length !== 6) throw new Error(`Generated Home Gillie source has ${directGillTags.length} direct fronds instead of 6.`);
+if (directGillTags.some((tag) => /\btransform=/.test(tag))) throw new Error("Generated Home Gillie direct fronds must not use transform attributes.");
+const homeGillieRule = homeGillieCss.match(/#view-home #axo-svg \[data-home-gill\]\s*\{([\s\S]*?)\}/)?.[1] || "";
+if (!homeGillieRule) throw new Error("Generated Home Gillie direct-gill rule is missing.");
+if (/\btransform\s*:/.test(homeGillieRule)) throw new Error("Home Gillie direct-gill rule must not add transform positioning.");
 
-console.log("Injected Gillie's visual integrity, runtime-isolated Home gills, visible subscription disclosure, and simplified active-subscriber state.");
+console.log("Injected Gillie's visual integrity, six direct-coordinate Home fronds, visible subscription disclosure, and simplified active-subscriber state.");
