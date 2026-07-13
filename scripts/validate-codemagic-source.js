@@ -32,6 +32,26 @@ function forbidPattern(relativePath, pattern, label) {
   }
 }
 
+const packageJson = JSON.parse(read("package.json"));
+const preparePipeline = String(packageJson.scripts?.["prepare:cap"] || "");
+const pipelineOrder = [
+  "node scripts/prepare-capacitor-web.js",
+  "node scripts/inject-phase3.js",
+  "node scripts/apply-release-safety.js",
+  "node scripts/inject-reef-layout-fixes.js",
+  "node scripts/inject-moonlit-reef.js",
+  "node scripts/inject-visual-integrity.js",
+  "node scripts/prepare-ios-release.js",
+];
+let previousPipelineIndex = -1;
+for (const command of pipelineOrder) {
+  const index = preparePipeline.indexOf(command);
+  if (index < 0 || index <= previousPipelineIndex) {
+    throw new Error(`Codemagic contract failed: prepare:cap build order is invalid near ${command}.`);
+  }
+  previousPipelineIndex = index;
+}
+
 const required = [
   ["www/phase2-polish.js", "Gillie startup, motion, and compact Home fixes applied", "Phase 2 startup polish"],
   ["www/phase2-polish.css", "phase2SpeechSafe", "Phase 2 speech safety"],
@@ -171,4 +191,4 @@ forbidMarker(
   "Legacy paywall hotfix must remain removed",
 );
 
-console.log(`Codemagic source contracts passed: ${required.length} named requirements verified with safer wellness copy and direct-coordinate Home, Reef-preview, and Moonlit anatomy.`);
+console.log(`Codemagic source contracts passed: ${required.length} named requirements verified with generated-before-safety ordering, safer wellness copy, and direct-coordinate Home, Reef-preview, and Moonlit anatomy.`);
