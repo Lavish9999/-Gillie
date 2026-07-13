@@ -41,8 +41,11 @@ const js = fs.readFileSync(path.join(out, "v1/moonlit-reef.js"), "utf8");
 for (const marker of [
   'register("moonlit-reef"',
   'COLLECTION_ENGINE = "moonlit-reef-v1"',
+  'PREVIEW_ART_ENGINE = "attached-gills-v2"',
   'name: "Moonlit Reef"',
   'name: "Moon Pearl"',
+  'class="moonlit-preview-gillie-svg"',
+  "A grounded lunar arch for the reef floor",
   "equipFullCollection",
   "moonlit_collection_equipped",
   "Preview is free",
@@ -55,8 +58,10 @@ for (const marker of [
   "#moonlit-reef-preview",
   ".moonlit-preview-items",
   ".moonlit-jelly-live",
+  ".moonlit-preview-gillie-svg *",
+  "detaches the gills",
 ]) {
   if (!css.includes(marker)) throw new Error(`Generated Moonlit Reef CSS is missing marker: ${marker}`);
 }
 
-console.log("Injected the Moonlit Reef premium collection, free preview, and live tank treatment.");
+console.log("Injected the Moonlit Reef premium collection with attached Gillie gills, grounded arch art, free preview, and live tank treatment.");
