@@ -38,63 +38,31 @@ context.window.window = context.window;
 vm.createContext(context);
 vm.runInContext(source, context, { filename: "home-gillie.js" });
 
-if (context.window.axoSVG === original || context.axoSVG === original) {
-  throw new Error("Home Gillie did not replace the live axoSVG renderer.");
-}
-if (context.window.axoSVG !== context.axoSVG) {
-  throw new Error("Home Gillie did not update both global axoSVG references.");
-}
-if (repaintCount !== 1) {
-  throw new Error(`Home Gillie must repaint the already-visible tank exactly once; repainted ${repaintCount} times.`);
-}
-if (documentElement.dataset.homeGillieEngine !== "home-gillie-direct-gills-v3") {
-  throw new Error("Home Gillie direct-coordinate engine marker is missing.");
-}
+if (context.window.axoSVG === original || context.axoSVG === original) throw new Error("Home Gillie did not replace the live axoSVG renderer.");
+if (context.window.axoSVG !== context.axoSVG) throw new Error("Home Gillie did not update both global axoSVG references.");
+if (repaintCount !== 1) throw new Error(`Home Gillie must repaint the already-visible tank exactly once; repainted ${repaintCount} times.`);
+if (documentElement.dataset.homeGillieEngine !== "home-gillie-direct-gills-v3") throw new Error("Home Gillie direct-coordinate engine marker is missing.");
 
 const output = context.axoSVG("pink", null, "happy", "main");
 const gillTags = output.match(/<path class="axo-gill-frond" data-home-gill="[^"]+"[^>]*>/g) || [];
-if (gillTags.length !== 6) {
-  throw new Error(`Home Gillie must output exactly six direct-coordinate fronds; found ${gillTags.length}.`);
-}
-if (gillTags.some((tag) => /\btransform=/.test(tag))) {
-  throw new Error("Home Gillie direct-coordinate fronds must not use transform attributes.");
-}
+if (gillTags.length !== 6) throw new Error(`Home Gillie must output exactly six direct-coordinate fronds; found ${gillTags.length}.`);
+if (gillTags.some((tag) => /\btransform=/.test(tag))) throw new Error("Home Gillie direct-coordinate fronds must not use transform attributes.");
 for (const id of ["left-upper", "left-middle", "left-lower", "right-upper", "right-middle", "right-lower"]) {
   if (!output.includes(`data-home-gill="${id}"`)) throw new Error(`Home Gillie is missing the ${id} frond.`);
 }
-if (/class="gill(?:\s|")/.test(output)) {
-  throw new Error("Home Gillie still outputs the legacy globally animated .gill groups.");
-}
-if ((output.match(/class="axo-gill-vein"/g) || []).length !== 6) {
-  throw new Error("Home Gillie must output one visible vein for each of the six fronds.");
-}
-if (!output.includes('fill="url(#main-gill)"')) {
-  throw new Error("Home Gillie direct fronds no longer inherit the active skin gradient.");
-}
-if (!output.includes('class="axo-core"') || !output.includes('class="axo-tail"')) {
-  throw new Error("Home Gillie replacement removed unrelated body or tail animation classes.");
-}
-if (paintedMarkup !== output) {
-  throw new Error("The immediate Home repaint did not use the direct-coordinate renderer.");
-}
+if (/class="gill(?:\s|")/.test(output)) throw new Error("Home Gillie still outputs the legacy globally animated .gill groups.");
+if ((output.match(/class="axo-gill-vein"/g) || []).length !== 6) throw new Error("Home Gillie must output one visible vein for each of the six fronds.");
+if (!output.includes('fill="url(#main-gill)"')) throw new Error("Home Gillie direct fronds no longer inherit the active skin gradient.");
+if (!output.includes('class="axo-core"') || !output.includes('class="axo-tail"')) throw new Error("Home Gillie replacement removed unrelated body or tail animation classes.");
+if (paintedMarkup !== output) throw new Error("The immediate Home repaint did not use the direct-coordinate renderer.");
 
 const sosOutput = context.axoSVG("pink", null, "happy", "sos");
-if ((sosOutput.match(/class="gill(?:\s|")/g) || []).length !== 6) {
-  throw new Error("Home Gillie replacement unexpectedly changed the SOS character renderer.");
-}
-if (sosOutput.includes("data-home-gill=")) {
-  throw new Error("Home-only direct gills leaked into a non-Home SVG namespace.");
-}
+if ((sosOutput.match(/class="gill(?:\s|")/g) || []).length !== 6) throw new Error("Home Gillie replacement unexpectedly changed the SOS character renderer.");
+if (sosOutput.includes("data-home-gill=")) throw new Error("Home-only direct gills leaked into a non-Home SVG namespace.");
 
 const gillRule = css.match(/#view-home #axo-svg \[data-home-gill\]\s*\{([\s\S]*?)\}/)?.[1] || "";
-if (!gillRule || !/animation\s*:\s*none\s*!important/.test(gillRule)) {
-  throw new Error("Home Gillie direct-gill CSS rule is missing.");
-}
-if (/\btransform\s*:/.test(gillRule)) {
-  throw new Error("Home Gillie CSS must not add transform positioning to direct-coordinate fronds.");
-}
-if (!css.includes(".axo-gill-vein")) {
-  throw new Error("Home Gillie frond vein styling is missing.");
-}
+if (!gillRule || !/animation\s*:\s*none\s*!important/.test(gillRule)) throw new Error("Home Gillie direct-gill CSS rule is missing.");
+if (/\btransform\s*:/.test(gillRule)) throw new Error("Home Gillie CSS must not add transform positioning to direct-coordinate fronds.");
+if (!css.includes(".axo-gill-vein")) throw new Error("Home Gillie frond vein styling is missing.");
 
 console.log("Home Gillie runtime test passed: the live tank repaints with six direct-coordinate fronds, no legacy gill groups, preserved skin color, and untouched SOS/body/tail behavior.");
