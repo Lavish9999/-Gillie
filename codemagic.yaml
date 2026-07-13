@@ -38,6 +38,8 @@ workflows:
           grep -q 'PrivacyInfo.xcprivacy in Resources' ios/App/App.xcodeproj/project.pbxproj
           grep -q 'TARGETED_DEVICE_FAMILY = 1;' ios/App/App.xcodeproj/project.pbxproj
           grep -q 'GilliePurchases?.clearDiagnostics' ios/App/App/GillieBridgeViewController.swift
+          grep -q 'claimPlusWelcomeBundle' ios/App/App/GilliePurchasesPlugin.swift
+          grep -q 'kSecClassGenericPassword' ios/App/App/GilliePurchasesPlugin.swift
 
       - name: Remove App Store icon alpha channel
         script: |
@@ -151,6 +153,22 @@ workflows:
           grep -Fq '#view-home #axo-svg [data-home-gill]' "$app_path/public/v1/home-gillie.css"
           grep -Fq '#phase2-tank-preview .v1-preview-axo-svg [data-home-gill]' "$app_path/public/v1/home-gillie.css"
           grep -Fq '#phase2-tank-preview .v1-preview-axo-svg .axo-gill-vein' "$app_path/public/v1/home-gillie.css"
+
+          test -f "$app_path/public/v1/plus-value.js"
+          test -f "$app_path/public/v1/plus-value.css"
+          grep -q 'plus-value-v1' "$app_path/public/v1/plus-value.js"
+          grep -q 'WEEKLY_REPORT_DAYS = 7' "$app_path/public/v1/plus-value.js"
+          grep -q 'DAILY_TARGET = 3' "$app_path/public/v1/plus-value.js"
+          grep -q 'PERFECT_TARGET = 5' "$app_path/public/v1/plus-value.js"
+          grep -q 'WELCOME_PEARLS = 250' "$app_path/public/v1/plus-value.js"
+          grep -q 'claimPlusWelcomeBundle' "$app_path/public/v1/plus-value.js"
+          grep -q 'A quit plan that remembers what works.' "$app_path/public/v1/plus-value.js"
+          grep -q 'Your Weekly Pattern Report' "$app_path/public/v1/plus-value.js"
+          grep -q 'First tank mate included' "$app_path/public/v1/plus-value.js"
+          grep -Fq '#view-progress .v1-weekly-report' "$app_path/public/v1/plus-value.css"
+          grep -Fq '#view-reef .pv-perfect-care' "$app_path/public/v1/plus-value.css"
+          grep -Fq '#pv-plus-welcome' "$app_path/public/v1/plus-value.css"
+
           test -f "$app_path/public/v1/visual-integrity.js"
           grep -q 'v1-renewal-disclosure' "$app_path/public/v1/visual-integrity.js"
           grep -q 'renews automatically unless cancelled at least 24 hours' "$app_path/public/v1/visual-integrity.js"
