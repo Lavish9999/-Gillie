@@ -68,6 +68,10 @@ const required = [
   ["www/v1/reef-dashboard.js", "claimDailyBonus", "Daily Reef completion reward"],
   ["www/v1/reef-dashboard.css", "Gillie V1 Reef Dashboard", "Reef dashboard styles"],
   ["www/v1/reef-dashboard.css", ".v1-reef-vault", "Reef vault styles"],
+  ["www/v1/moonlit-reef.js", "PREVIEW_ART_ENGINE = \"standalone-svg-v4\"", "Standalone Moonlit preview engine"],
+  ["www/v1/moonlit-reef.js", "const STANDALONE_MOON_PEARL_SVG", "Self-contained Moon Pearl artwork"],
+  ["www/v1/moonlit-reef.js", "data-preview-character=\"standalone-v4\"", "Standalone Moon Pearl identity"],
+  ["www/v1/moonlit-reef.css", ".moonlit-preview-character-svg", "Standalone Moon Pearl sizing"],
   ["www/v1/backup.js", "\"reefProgress\", \"moonlitReef\"", "Reef state backup coverage"],
   ["www/v1/visual-integrity.js", "v1-renewal-disclosure", "Renewal disclosure"],
   ["www/v1/visual-integrity.js", "renews automatically unless cancelled at least 24 hours", "Subscription renewal terms"],
@@ -85,6 +89,18 @@ const required = [
 
 for (const [file, marker, label] of required) requireMarker(file, marker, label);
 
+const moonlitSource = read("www/v1/moonlit-reef.js");
+const moonlitGills = moonlitSource.match(/<path data-moonlit-gill="[^"]+"[^>]*>/g) || [];
+if (moonlitGills.length !== 6) {
+  throw new Error(`Codemagic contract failed: standalone Moon Pearl must contain 6 gills; found ${moonlitGills.length}.`);
+}
+if (moonlitGills.some((tag) => /\btransform=/.test(tag))) {
+  throw new Error("Codemagic contract failed: standalone Moon Pearl gills cannot depend on transform attributes.");
+}
+forbidMarker("www/v1/moonlit-reef.js", "axoSVG(", "Moonlit preview must not reuse the globally animated Gillie renderer");
+forbidMarker("www/v1/moonlit-reef.js", 'class=\"gill', "Standalone Moon Pearl must not expose global gill classes");
+forbidMarker("www/index.html", "moonlit-preview-art.js", "Obsolete Moonlit sanitizer asset must remain removed");
+forbidMarker("www/index.html", "data-gillie-v1-moonlit-preview-art", "Obsolete Moonlit sanitizer tag must remain removed");
 forbidMarker(
   "ios/App/App.xcodeproj/project.pbxproj",
   'TARGETED_DEVICE_FAMILY = "1,2";',
