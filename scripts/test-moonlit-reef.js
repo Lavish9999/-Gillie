@@ -4,9 +4,23 @@ const vm = require("vm");
 
 const root = path.resolve(__dirname, "..");
 const source = fs.readFileSync(path.join(root, "v1/moonlit-reef.js"), "utf8");
+const styles = fs.readFileSync(path.join(root, "v1/moonlit-reef.css"), "utf8");
 let installer = null;
 let renderCount = 0;
 let saveCount = 0;
+
+if (!source.includes('PREVIEW_ART_ENGINE = "attached-gills-v2"')) {
+  throw new Error("Moonlit preview is missing the attached-gill art engine.");
+}
+if (!source.includes('class="moonlit-preview-gillie-svg"')) {
+  throw new Error("Moonlit preview is missing its dedicated Gillie SVG scope.");
+}
+if (!styles.includes(".moonlit-preview-gillie-svg *{animation:none!important")) {
+  throw new Error("Moonlit preview does not isolate internal Gillie animations, so gills can detach again.");
+}
+if (!source.includes("A grounded lunar arch for the reef floor")) {
+  throw new Error("Moonlit preview restored the old ungrounded Crescent Arch treatment.");
+}
 
 const classList = { add() {}, remove() {}, toggle() {} };
 const context = {
@@ -99,4 +113,4 @@ if (catalogCheck.themes !== 1 || catalogCheck.skins !== 1 || !catalogCheck.value
 }
 if (renderCount < 1 || saveCount < 1) throw new Error("Moonlit equip did not use the app render and persistence paths.");
 
-console.log("Moonlit Reef runtime test passed: free preview gating, Plus equip, persistence, and catalog integration work.");
+console.log("Moonlit Reef runtime test passed: attached gills, grounded arch art, free preview gating, Plus equip, persistence, and catalog integration work.");
