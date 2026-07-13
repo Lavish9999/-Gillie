@@ -71,10 +71,7 @@
 .moonlit-preview-stars i{position:absolute;left:var(--x);top:var(--y);width:3px;height:3px;border-radius:50%;background:#f4f5ff;box-shadow:0 0 10px rgba(239,241,255,.85);animation:moonlitParticle 5.6s ease-in-out infinite}
 .moonlit-preview-stars i:nth-child(3n){animation-delay:-1.8s}.moonlit-preview-stars i:nth-child(3n+1){animation-delay:-3.6s}
 .moonlit-preview-gillie{position:absolute;left:49%;top:50%;z-index:5;width:57%;transform:translate(-50%,-50%);filter:drop-shadow(0 17px 16px rgba(4,8,25,.24));animation:moonlitPreviewGillie 5.8s ease-in-out infinite}
-.moonlit-preview-gillie-svg{display:block;width:100%;height:auto;overflow:visible}
-/* The global Gillie animations set CSS transforms on SVG groups. In a standalone preview that overrides each gill's SVG translate/rotate transform and detaches the gills. Keep the whole character floating, but freeze its internal groups so their authored transforms remain intact. */
-.moonlit-preview-gillie-svg *{animation:none!important;transition:none!important}
-.moonlit-preview-gillie-svg .gill{filter:none!important}
+.moonlit-preview-character-svg{display:block;width:100%;height:auto;overflow:visible}
 .moonlit-preview-crescent{position:absolute;left:4%;bottom:9%;z-index:3;width:27%;animation:moonlitDecorSway 7s ease-in-out infinite}
 .moonlit-preview-crescent svg,.moonlit-preview-coral svg,.moonlit-preview-jelly svg{display:block;width:100%;overflow:visible}
 .moonlit-preview-coral{position:absolute;right:7%;bottom:11%;z-index:4;width:18%;animation:moonlitDecorSway 8s -3s ease-in-out infinite reverse}
