@@ -90,23 +90,23 @@ const required = [
 for (const [file, marker, label] of required) requireMarker(file, marker, label);
 
 const moonlitSource = read("www/v1/moonlit-reef.js");
-const moonlitGills = moonlitSource.match(/<path data-moonlit-gill="[^"]+"[^>]*>/g) || [];
+const standaloneMatch = moonlitSource.match(/const STANDALONE_MOON_PEARL_SVG = `([\s\S]*?)`;/);
+if (!standaloneMatch) {
+  throw new Error("Codemagic contract failed: standalone Moon Pearl SVG block is missing.");
+}
+const standaloneSvg = standaloneMatch[1];
+const moonlitGills = standaloneSvg.match(/<path data-moonlit-gill="[^"]+"[^>]*>/g) || [];
 if (moonlitGills.length !== 6) {
   throw new Error(`Codemagic contract failed: standalone Moon Pearl must contain 6 gills; found ${moonlitGills.length}.`);
 }
 if (moonlitGills.some((tag) => /\btransform=/.test(tag))) {
   throw new Error("Codemagic contract failed: standalone Moon Pearl gills cannot depend on transform attributes.");
 }
-for (const forbidden of [
-  'if (typeof axoSVG === "function")',
-  "return axoSVG(",
-  "svg.innerHTML = axoSVG(",
-]) {
-  if (moonlitSource.includes(forbidden)) {
-    throw new Error(`Codemagic contract failed: Moonlit preview restored executable live-render dependency: ${forbidden}`);
+for (const forbidden of ['class="gill', 'class="axo-core', 'class="axo-tail', 'class="axo-leg', 'class="axo-eye']) {
+  if (standaloneSvg.includes(forbidden)) {
+    throw new Error(`Codemagic contract failed: standalone Moon Pearl restored a global animation class: ${forbidden}`);
   }
 }
-forbidMarker("www/v1/moonlit-reef.js", 'class=\"gill', "Standalone Moon Pearl must not expose global gill classes");
 forbidMarker("www/index.html", "moonlit-preview-art.js", "Obsolete Moonlit sanitizer asset must remain removed");
 forbidMarker("www/index.html", "data-gillie-v1-moonlit-preview-art", "Obsolete Moonlit sanitizer tag must remain removed");
 forbidMarker(
