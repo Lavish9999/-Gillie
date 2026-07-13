@@ -137,6 +137,12 @@ workflows:
             exit 1
           fi
 
+          test -f "$app_path/public/v1/home-gillie.js"
+          test -f "$app_path/public/v1/home-gillie.css"
+          grep -q 'home-gillie-static-gills-v2' "$app_path/public/v1/home-gillie.js"
+          grep -q 'class="axo-gill-static' "$app_path/public/v1/home-gillie.js"
+          grep -q 'window.axoSVG = hardenedAxoSVG' "$app_path/public/v1/home-gillie.js"
+          grep -q '#view-home #axo-svg .axo-gill-static' "$app_path/public/v1/home-gillie.css"
           test -f "$app_path/public/v1/visual-integrity.js"
           grep -q 'v1-renewal-disclosure' "$app_path/public/v1/visual-integrity.js"
           grep -q 'renews automatically unless cancelled at least 24 hours' "$app_path/public/v1/visual-integrity.js"
