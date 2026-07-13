@@ -73,8 +73,6 @@
 
   document.documentElement.dataset.homeGillieEngine = ENGINE;
 
-  // The legacy renderer may have painted once before deferred V1 assets loaded.
-  // Repaint immediately with direct-coordinate gills; future Home renders use the wrapper.
   try {
     if (typeof renderAxo === "function") renderAxo();
   } catch (error) {
