@@ -60,7 +60,7 @@ const required = [
   ["www/phase4-launch.js", "gillieLaunchHardeningInstalled", "Phase 4 launch guard"],
   ["www/phase4-launch.js", "store_prices_localized", "Localized StoreKit prices"],
   ["www/phase5-paywall.js", "gilliePaywallRebuildInstalled", "Phase 5 paywall guard"],
-  ["www/phase5-paywall.js", "A quit plan that adapts to you", "Current paywall promise"],
+  ["www/phase5-paywall.js", "A quit plan that adapts to you", "Base paywall promise"],
   ["www/phase5-paywall.js", "Spot the times cravings may be more likely", "Probability-based paywall subtitle"],
   ["www/phase5-paywall.js", "See when cravings may be more likely", "Probability-based paywall benefit"],
   ["www/phase5-paywall.js", "gp-paywall-sheet", "Paywall sheet structure"],
@@ -78,6 +78,8 @@ const required = [
   ["www/index.html", "data-gillie-v1-reef-dashboard-styles=\"true\"", "Reef dashboard style injection"],
   ["www/index.html", "data-gillie-v1-home-gillie=\"true\"", "Gillie anatomy runtime injection"],
   ["www/index.html", "data-gillie-v1-home-gillie-styles=\"true\"", "Gillie anatomy stylesheet injection"],
+  ["www/index.html", "data-gillie-v1-plus-value=\"true\"", "Gillie Plus value runtime injection"],
+  ["www/index.html", "data-gillie-v1-plus-value-styles=\"true\"", "Gillie Plus value stylesheet injection"],
   ["www/v1/core.js", "late-module safe", "Late-safe V1 coordinator"],
   ["www/v1/core.js", "strict tab isolation", "Strict tab-isolation owner"],
   ["www/v1/core.js", "enforceViewIsolation", "Canonical tab enforcement"],
@@ -97,20 +99,33 @@ const required = [
   ["www/v1/home-gillie.css", "#view-home #axo-svg [data-home-gill]", "Home direct-gill selector"],
   ["www/v1/home-gillie.css", "#phase2-tank-preview .v1-preview-axo-svg [data-home-gill]", "Reef preview direct-gill selector"],
   ["www/v1/home-gillie.css", "#phase2-tank-preview .v1-preview-axo-svg .axo-gill-vein", "Reef preview vein selector"],
+  ["www/v1/plus-value.js", "ENGINE = \"plus-value-v1\"", "Plus value engine"],
+  ["www/v1/plus-value.js", "WEEKLY_REPORT_DAYS = 7", "Seven-day private report"],
+  ["www/v1/plus-value.js", "DAILY_TARGET = 3", "Equal three-action Reef chest"],
+  ["www/v1/plus-value.js", "PERFECT_TARGET = 5", "Optional perfect-care reward"],
+  ["www/v1/plus-value.js", "WELCOME_PEARLS = 250", "Plus welcome pearl grant"],
+  ["www/v1/plus-value.js", "claimPlusWelcomeBundle", "Native welcome claim call"],
+  ["www/v1/plus-value.js", "A quit plan that remembers what works.", "Complete Plus paywall positioning"],
+  ["www/v1/plus-value.js", "Your Weekly Pattern Report", "Weekly Pattern Report UI"],
+  ["www/v1/plus-value.js", "First tank mate included", "Included first buddy"],
+  ["www/v1/plus-value.css", "#plus-overlay .pv-paywall-showcase", "Plus paywall previews"],
+  ["www/v1/plus-value.css", "#view-progress .v1-weekly-report", "Weekly report styling"],
+  ["www/v1/plus-value.css", "#view-reef .pv-perfect-care", "Perfect care styling"],
+  ["www/v1/plus-value.css", "#pv-plus-welcome", "Plus welcome styling"],
   ["www/v1/reef.js", "PREVIEW_ENGINE = \"canonical-v3-swipe\"", "Canonical Reef preview engine"],
   ["www/v1/reef.js", "document.addEventListener(\"click\", handlePreviewCapture, true)", "Reef capture listener"],
   ["www/v1/reef.js", "document.addEventListener(\"touchend\", handlePreviewTouchEnd", "Reef swipe completion listener"],
   ["www/v1/reef.js", "dismissPreviewWithGesture", "Reef swipe dismissal"],
   ["www/v1/reef-dashboard.js", "DASHBOARD_ENGINE = \"reef-progression-v1\"", "Reef progression engine"],
   ["www/v1/reef-dashboard.js", "Daily Reef Care", "Reef daily care loop"],
-  ["www/v1/reef-dashboard.js", "claimDailyBonus", "Reef completion reward"],
+  ["www/v1/reef-dashboard.js", "claimDailyBonus", "Base Reef completion reward"],
   ["www/v1/reef-dashboard.css", "Gillie V1 Reef Dashboard", "Reef dashboard styles"],
   ["www/v1/reef-dashboard.css", ".v1-reef-vault", "Reef vault styles"],
   ["www/v1/moonlit-reef.js", "PREVIEW_ART_ENGINE = \"standalone-svg-v4\"", "Standalone Moonlit preview engine"],
   ["www/v1/moonlit-reef.js", "const STANDALONE_MOON_PEARL_SVG", "Self-contained Moon Pearl artwork"],
   ["www/v1/moonlit-reef.js", "data-preview-character=\"standalone-v4\"", "Standalone Moon Pearl identity"],
   ["www/v1/moonlit-reef.css", ".moonlit-preview-character-svg", "Standalone Moon Pearl sizing"],
-  ["www/v1/backup.js", "\"reefProgress\", \"moonlitReef\"", "Reef state backup coverage"],
+  ["www/v1/backup.js", "\"plusValue\", \"plusWelcome\"", "Plus reward backup coverage"],
   ["www/v1/visual-integrity.js", "normalizeHealthClaimCopy", "Paywall wellness-claim normalizer"],
   ["www/v1/visual-integrity.js", "Spot the times cravings may be more likely", "Runtime probability-based paywall copy"],
   ["www/v1/visual-integrity.js", "v1-renewal-disclosure", "Renewal disclosure"],
@@ -119,6 +134,9 @@ const required = [
   ["www/v1/visual-integrity.css", ".v1-renewal-disclosure", "Renewal disclosure styling"],
   ["www/index.html", "clearDiagnostics", "Local diagnostics reset"],
   ["www/index.html", "localStorage.clear()", "Local app reset"],
+  ["ios/App/App/GilliePurchasesPlugin.swift", "import Security", "Keychain support for one-time welcome claim"],
+  ["ios/App/App/GilliePurchasesPlugin.swift", "claimPlusWelcomeBundle", "Native Plus welcome method"],
+  ["ios/App/App/GilliePurchasesPlugin.swift", "kSecClassGenericPassword", "Durable welcome claim marker"],
   ["ios/App/App/GillieBridgeViewController.swift", "GilliePurchases?.clearDiagnostics", "Native diagnostics reset"],
   ["ios/App/App/GillieBridgeViewController.swift", "localStorage.clear()", "Native local-storage reset"],
   ["ios/App/App/PrivacyInfo.xcprivacy", "NSPrivacyAccessedAPICategoryUserDefaults", "Privacy manifest UserDefaults declaration"],
@@ -170,6 +188,11 @@ for (const forbidden of ['class="gill', 'class="axo-core', 'class="axo-tail', 'c
   }
 }
 
+const plusValueSource = read("www/v1/plus-value.js");
+if (!/const DAILY_TARGET = 3;/.test(plusValueSource)) throw new Error("Codemagic contract failed: Plus Reef chest is not fixed at three actions.");
+if (!/const PERFECT_TARGET = 5;/.test(plusValueSource)) throw new Error("Codemagic contract failed: perfect care does not require all five actions.");
+if (!plusValueSource.includes("welcome.buddyCredits -= 1")) throw new Error("Codemagic contract failed: included buddy credit is not consumed atomically.");
+
 forbidMarker("www/v1/progress.js", "Advanced predictions", "Overly predictive Progress label must remain removed");
 forbidMarker("www/phase5-paywall.js", "Know the hard moment before it arrives", "Overly certain paywall subtitle must remain removed");
 forbidMarker("www/phase5-paywall.js", "Know when cravings are most likely to hit", "Overly certain paywall benefit must remain removed");
@@ -191,4 +214,4 @@ forbidMarker(
   "Legacy paywall hotfix must remain removed",
 );
 
-console.log(`Codemagic source contracts passed: ${required.length} named requirements verified with generated-before-safety ordering, safer wellness copy, and direct-coordinate Home, Reef-preview, and Moonlit anatomy.`);
+console.log(`Codemagic source contracts passed: ${required.length} named requirements verified with the full Plus value system, generated-before-safety ordering, safer wellness copy, and direct-coordinate Home, Reef-preview, and Moonlit anatomy.`);
