@@ -73,12 +73,18 @@ for (const marker of [
   "normalizeDisplayTracking",
   "removeDecorativeAccentStripes",
   "collapseEmptyOversizedSurfaces",
+  "normalizeHealthClaimCopy",
+  "Spot the times cravings may be more likely",
+  "See when cravings may be more likely",
   "ensurePaywallDisclosure",
   "v1-renewal-disclosure",
   "v1ManageSubscription",
   'overlay.classList.add("v1-plus-active")',
 ]) {
   if (!js.includes(marker)) throw new Error(`Generated visual integrity JavaScript is missing marker: ${marker}`);
+}
+for (const forbidden of ["Know the hard moment before it arrives", "Know when cravings are most likely to hit"]) {
+  if (js.includes(forbidden)) throw new Error(`Generated visual integrity JavaScript restored overly certain copy: ${forbidden}`);
 }
 for (const marker of [
   '[data-visual-normal-tracking="true"]',
@@ -127,4 +133,4 @@ const sharedGillRule = homeGillieCss.match(/#view-home #axo-svg \[data-home-gill
 if (!sharedGillRule) throw new Error("Generated shared direct-gill rule is missing.");
 if (/\btransform\s*:/.test(sharedGillRule)) throw new Error("Shared direct-gill rule must not add transform positioning.");
 
-console.log("Injected Gillie's visual integrity and six direct-coordinate fronds for Home and the full-size Reef preview.");
+console.log("Injected Gillie's visual integrity, safer wellness copy, and six direct-coordinate fronds for Home and the full-size Reef preview.");
