@@ -41,6 +41,8 @@ const required = [
   ["www/phase4-launch.js", "store_prices_localized", "Localized StoreKit prices"],
   ["www/phase5-paywall.js", "gilliePaywallRebuildInstalled", "Phase 5 paywall guard"],
   ["www/phase5-paywall.js", "A quit plan that adapts to you", "Current paywall promise"],
+  ["www/phase5-paywall.js", "Spot the times cravings may be more likely", "Probability-based paywall subtitle"],
+  ["www/phase5-paywall.js", "See when cravings may be more likely", "Probability-based paywall benefit"],
   ["www/phase5-paywall.js", "gp-paywall-sheet", "Paywall sheet structure"],
   ["www/phase5-paywall.css", "gp-primary-cta", "Paywall primary CTA styling"],
   ["www/gillie-foundation.css", "Gillie V1 visual foundation", "Visual foundation"],
@@ -61,6 +63,7 @@ const required = [
   ["www/v1/core.js", "enforceViewIsolation", "Canonical tab enforcement"],
   ["www/v1/v1.css", "#main > .view[data-v1-active=\"true\"]:not([hidden])", "Single active tab display rule"],
   ["www/v1/v1.css", "#main > .view[data-v1-active=\"false\"]", "Inactive tab flex exclusion"],
+  ["www/v1/progress.js", "Advanced patterns and planning", "Safer premium Progress boundary"],
   ["www/v1/home-gillie.js", "home-gillie-direct-gills-v3", "Gillie direct-coordinate engine"],
   ["www/v1/home-gillie.js", "directGillMarkup", "Gillie direct frond source"],
   ["www/v1/home-gillie.js", "replaceHomeGills", "Gillie legacy replacement"],
@@ -88,6 +91,8 @@ const required = [
   ["www/v1/moonlit-reef.js", "data-preview-character=\"standalone-v4\"", "Standalone Moon Pearl identity"],
   ["www/v1/moonlit-reef.css", ".moonlit-preview-character-svg", "Standalone Moon Pearl sizing"],
   ["www/v1/backup.js", "\"reefProgress\", \"moonlitReef\"", "Reef state backup coverage"],
+  ["www/v1/visual-integrity.js", "normalizeHealthClaimCopy", "Paywall wellness-claim normalizer"],
+  ["www/v1/visual-integrity.js", "Spot the times cravings may be more likely", "Runtime probability-based paywall copy"],
   ["www/v1/visual-integrity.js", "v1-renewal-disclosure", "Renewal disclosure"],
   ["www/v1/visual-integrity.js", "renews automatically unless cancelled at least 24 hours", "Subscription renewal terms"],
   ["www/v1/visual-integrity.js", "v1ManageSubscription", "Active subscription management"],
@@ -144,6 +149,10 @@ for (const forbidden of ['class="gill', 'class="axo-core', 'class="axo-tail', 'c
     throw new Error(`Codemagic contract failed: standalone Moon Pearl restored a global animation class: ${forbidden}`);
   }
 }
+
+forbidMarker("www/v1/progress.js", "Advanced predictions", "Overly predictive Progress label must remain removed");
+forbidMarker("www/phase5-paywall.js", "Know the hard moment before it arrives", "Overly certain paywall subtitle must remain removed");
+forbidMarker("www/phase5-paywall.js", "Know when cravings are most likely to hit", "Overly certain paywall benefit must remain removed");
 forbidMarker("www/index.html", "moonlit-preview-art.js", "Obsolete Moonlit sanitizer asset must remain removed");
 forbidMarker("www/index.html", "data-gillie-v1-moonlit-preview-art", "Obsolete Moonlit sanitizer tag must remain removed");
 forbidMarker(
@@ -162,4 +171,4 @@ forbidMarker(
   "Legacy paywall hotfix must remain removed",
 );
 
-console.log(`Codemagic source contracts passed: ${required.length} named requirements verified with direct-coordinate Home, Reef-preview, and Moonlit anatomy.`);
+console.log(`Codemagic source contracts passed: ${required.length} named requirements verified with safer wellness copy and direct-coordinate Home, Reef-preview, and Moonlit anatomy.`);
