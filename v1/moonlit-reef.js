@@ -7,6 +7,7 @@
     if (!view) return;
 
     const COLLECTION_ENGINE = "moonlit-reef-v1";
+    const PREVIEW_ART_ENGINE = "attached-gills-v2";
     const THEME_ID = "moonlit";
     const SKIN_ID = "moonpearl";
     const TOTAL_PIECES = 6;
@@ -34,7 +35,17 @@
       premium: true,
     };
 
-    const CRESCENT_ARCH_SVG = `<svg viewBox="0 0 92 104" aria-hidden="true"><path d="M66 9c-20 5-34 24-31 45 2 17 14 30 30 35-8 6-18 9-29 8C14 95-2 75 1 51 4 27 25 10 49 10c6 0 12 1 17 3z" fill="#DCE5FF" opacity=".92"/><path d="M21 96h58" stroke="#817AA8" stroke-width="7" stroke-linecap="round"/><circle cx="70" cy="26" r="3" fill="#FFF5C8"/><circle cx="78" cy="42" r="2" fill="#FFF5C8"/></svg>`;
+    const CRESCENT_ARCH_SVG = `<svg viewBox="0 0 120 112" aria-hidden="true">
+      <ellipse cx="60" cy="101" rx="47" ry="8" fill="#303653" opacity=".24"/>
+      <path d="M15 96V57C15 29 35 8 60 8s45 21 45 49v39H88V58c0-18-12-32-28-32S32 40 32 58v38z" fill="#DCE5FF" opacity=".96"/>
+      <path d="M62 18c-10 4-17 14-17 25 0 14 11 25 25 25 5 0 10-2 14-5-5 10-14 16-25 16-17 0-31-14-31-31 0-16 13-29 29-31 2 0 4 0 5 1z" fill="#9F91DD" opacity=".82"/>
+      <rect x="9" y="92" width="102" height="13" rx="6.5" fill="#756D9F"/>
+      <ellipse cx="28" cy="98" rx="14" ry="7" fill="#8A82B2"/>
+      <ellipse cx="92" cy="98" rx="14" ry="7" fill="#8A82B2"/>
+      <circle cx="45" cy="39" r="3" fill="#FFF4BD"/>
+      <circle cx="75" cy="34" r="2.5" fill="#FFF4BD"/>
+      <circle cx="81" cy="51" r="2" fill="#FFF4BD"/>
+    </svg>`;
     const STAR_CORAL_SVG = `<svg viewBox="0 0 92 88" aria-hidden="true"><path d="M46 85V41M46 58L28 39M46 51l18-21M46 68l24-12M46 63L21 58" stroke="#AFA2EE" stroke-width="8" stroke-linecap="round"/><circle cx="46" cy="37" r="10" fill="#DDD5FF"/><circle cx="27" cy="37" r="8" fill="#C9BDF8"/><circle cx="66" cy="28" r="8" fill="#C9BDF8"/><circle cx="72" cy="55" r="8" fill="#DDD5FF"/><circle cx="20" cy="58" r="7" fill="#DDD5FF"/><circle cx="46" cy="37" r="3" fill="#FFF6C9"/><circle cx="27" cy="37" r="2.5" fill="#FFF6C9"/><circle cx="66" cy="28" r="2.5" fill="#FFF6C9"/></svg>`;
     const MOON_JELLY_SVG = `<svg viewBox="0 0 86 112" aria-hidden="true"><path d="M10 49C10 25 24 8 43 8s33 17 33 41c0 8-5 12-13 12H23c-8 0-13-4-13-12z" fill="#D8E2FF" opacity=".92"/><ellipse cx="31" cy="31" rx="9" ry="14" fill="#F6F8FF" opacity=".72"/><circle cx="34" cy="47" r="3" fill="#263657"/><circle cx="53" cy="47" r="3" fill="#263657"/><path d="M37 54q6 6 12 0" fill="none" stroke="#5E6A94" stroke-width="3" stroke-linecap="round"/><path d="M24 61c-8 17 6 25-1 43M39 61c7 18-6 28 2 46M55 61c-8 17 7 25-1 42M68 59c6 15-4 24 2 37" fill="none" stroke="#AFA7E8" stroke-width="5" stroke-linecap="round"/></svg>`;
 
@@ -249,7 +260,7 @@
 
     function previewGillieMarkup() {
       try {
-        if (typeof axoSVG === "function") return axoSVG(SKIN_ID, null, "happy", `moonlit-preview-${Date.now()}`);
+        if (typeof axoSVG === "function") return axoSVG(SKIN_ID, null, "happy", "moonlit-preview-gillie");
       } catch (_) {}
       return "";
     }
@@ -267,13 +278,13 @@
         <div class="moonlit-preview-scroll">
           <button type="button" class="moonlit-preview-close" data-moonlit-close aria-label="Close Moonlit Reef preview">×</button>
           <div class="moonlit-preview-copy"><span>Gillie Plus seasonal collection</span><h2>Moonlit Reef</h2><p>A quiet, animated reef built for late-night wins and the moments you chose yourself.</p></div>
-          <div class="moonlit-preview-tank">
+          <div class="moonlit-preview-tank" data-preview-art="${PREVIEW_ART_ENGINE}">
             <div class="moonlit-preview-moon"></div><div class="moonlit-preview-rays"></div>
             <div class="moonlit-preview-stars">${Array.from({ length: 16 }, (_, index) => `<i style="--i:${index};--x:${6 + ((index * 13) % 86)}%;--y:${13 + ((index * 19) % 59)}%"></i>`).join("")}</div>
             <div class="moonlit-preview-crescent">${CRESCENT_ARCH_SVG}</div>
             <div class="moonlit-preview-coral">${STAR_CORAL_SVG}</div>
             ${moonJellyMarkup("moonlit-preview-jelly")}
-            <div class="moonlit-preview-gillie"><svg viewBox="0 0 200 160"></svg></div>
+            <div class="moonlit-preview-gillie"><svg class="moonlit-preview-gillie-svg" viewBox="0 0 200 160" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg></div>
             <div class="moonlit-preview-sand"></div>
           </div>
           <div class="moonlit-preview-items">
@@ -281,7 +292,7 @@
             <div><i>◐</i><span><b>Moonlit Reef theme</b><small>Deep indigo water and silver sand</small></span></div>
             <div><i>✦</i><span><b>Moon Pearl Gillie</b><small>An exclusive lavender-blue shimmer</small></span></div>
             <div><i>◌</i><span><b>Moon-jelly tank mate</b><small>A softly glowing companion</small></span></div>
-            <div><i>☽</i><span><b>Crescent Arch</b><small>A silver moon resting on the reef floor</small></span></div>
+            <div><i>☽</i><span><b>Crescent Arch</b><small>A grounded lunar arch for the reef floor</small></span></div>
             <div><i>✧</i><span><b>Star Coral</b><small>Matching luminous coral</small></span></div>
           </div>
           <button type="button" class="moonlit-preview-cta" data-moonlit-preview-cta></button>
@@ -301,7 +312,7 @@
       const collection = ensureCollectionState(current);
       const status = collectionStatus(current);
       const overlay = ensurePreview();
-      const svg = qs(".moonlit-preview-gillie svg", overlay);
+      const svg = qs(".moonlit-preview-gillie-svg", overlay);
       if (svg) svg.innerHTML = previewGillieMarkup();
       const cta = qs("[data-moonlit-preview-cta]", overlay);
       if (cta) cta.textContent = !current.premium ? "Unlock Gillie Plus to equip" : status.complete ? "Moonlit Reef is equipped" : "Equip full collection";
@@ -309,7 +320,7 @@
       persist();
       overlay.hidden = false;
       lockPreviewBackground();
-      track("moonlit_collection_previewed", { premium: Boolean(current.premium), engine: COLLECTION_ENGINE });
+      track("moonlit_collection_previewed", { premium: Boolean(current.premium), engine: COLLECTION_ENGINE, art: PREVIEW_ART_ENGINE });
     }
 
     function closePreview() {
@@ -345,6 +356,6 @@
         try { if (typeof renderAll === "function") renderAll(); } catch (_) {}
       });
     }
-    track("moonlit_collection_installed", { engine: COLLECTION_ENGINE, pieces: TOTAL_PIECES });
+    track("moonlit_collection_installed", { engine: COLLECTION_ENGINE, pieces: TOTAL_PIECES, art: PREVIEW_ART_ENGINE });
   });
 })();
