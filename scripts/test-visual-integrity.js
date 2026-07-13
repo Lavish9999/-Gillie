@@ -94,6 +94,8 @@ const oversizedStatus = element({ text: "Ready", fontSize: 20, height: 58, class
 const overlay = element({ id: "plus-overlay" });
 const footer = element({ classes: ["gp-footer"] });
 const caption = element({ text: "Secure Apple billing · Cancel anytime", classes: ["gp-cta-caption"] });
+const subtitle = element({ text: "Know the hard moment before it arrives — and what to do next." });
+const riskBenefit = element({ text: "Know when cravings are most likely to hit." });
 const yearlyBadge = element({ text: "Save 37%", classes: ["badge"] });
 const purchasePanel = element({ classes: ["gp-purchase-panel"] });
 const purchaseDock = element({ id: "gp-purchase-dock" });
@@ -102,6 +104,8 @@ const versionLabel = element({ id: "phase1-version", text: "phase1-2026.07.10" }
 purchasePanel.appendChild(purchaseDock);
 overlay.children.set(".gp-footer", footer);
 overlay.children.set(".gp-cta-caption", caption);
+overlay.children.set("#plus-subtitle", subtitle);
+overlay.children.set("#plus-proof > div:first-child em", riskBenefit);
 overlay.children.set("#gp-purchase-dock", purchaseDock);
 overlay.children.set("#plus-purchase", purchaseButton);
 
@@ -174,6 +178,9 @@ vm.runInContext(source, context, { filename: "visual-integrity.js" });
   if (emptyCard.dataset.visualEmptySurface !== "true") throw new Error("Oversized empty surface was not collapsed.");
   if (oversizedStatus.dataset.visualCompactStatus !== "true") throw new Error("Oversized status pill was not compacted.");
 
+  if (subtitle.textContent !== "Spot the times cravings may be more likely — and what to do next.") throw new Error("Paywall subtitle still makes an overly certain prediction claim.");
+  if (riskBenefit.textContent !== "See when cravings may be more likely.") throw new Error("Paywall risk benefit still makes an overly certain prediction claim.");
+
   const disclosure = footer.children.get("#v1-renewal-disclosure");
   if (!disclosure || !/renews automatically/i.test(disclosure.textContent)) throw new Error("Visible auto-renewal disclosure was not installed.");
   if (!yearlyBadge.removed) throw new Error("Hard-coded subscription savings claim was not removed.");
@@ -197,7 +204,7 @@ vm.runInContext(source, context, { filename: "visual-integrity.js" });
   if (documentElement.dataset.visualIntegrity !== "visual-integrity-v1.1") throw new Error("Visual integrity runtime marker was not installed.");
   if (documentElement.dataset.v1PaywallIntegrity !== "true") throw new Error("Paywall integrity capture marker was not installed.");
 
-  console.log("Visual integrity runtime test passed: template UI is controlled, renewal terms are visible, and active subscribers manage through Apple.");
+  console.log("Visual integrity runtime test passed: template UI is controlled, wellness copy is probability-based, renewal terms are visible, and active subscribers manage through Apple.");
 })().catch((error) => {
   console.error(error);
   process.exitCode = 1;
