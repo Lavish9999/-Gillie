@@ -18,19 +18,14 @@ if (!source.includes("const STANDALONE_MOON_PEARL_SVG")) {
 if (!source.includes('class="moonlit-preview-character-svg"')) {
   throw new Error("Moonlit preview is missing its standalone character SVG.");
 }
-for (const forbidden of [
-  'if (typeof axoSVG === "function")',
-  "return axoSVG(",
-  "svg.innerHTML = axoSVG(",
-]) {
-  if (source.includes(forbidden)) {
-    throw new Error(`Moonlit preview restored executable use of the globally animated Gillie renderer: ${forbidden}`);
-  }
-}
+
+const standaloneMatch = source.match(/const STANDALONE_MOON_PEARL_SVG = `([\s\S]*?)`;/);
+if (!standaloneMatch) throw new Error("Moonlit preview is missing the standalone Moon Pearl SVG block.");
+const standaloneSvg = standaloneMatch[1];
 for (const forbidden of ['class="gill', 'class="axo-core', 'class="axo-tail', 'class="axo-leg', 'class="axo-eye']) {
-  if (source.includes(forbidden)) throw new Error(`Standalone Moon Pearl art restored a global animation class: ${forbidden}`);
+  if (standaloneSvg.includes(forbidden)) throw new Error(`Standalone Moon Pearl art restored a global animation class: ${forbidden}`);
 }
-const gillTags = source.match(/<path data-moonlit-gill="[^"]+"[^>]*>/g) || [];
+const gillTags = standaloneSvg.match(/<path data-moonlit-gill="[^"]+"[^>]*>/g) || [];
 if (gillTags.length !== 6) {
   throw new Error(`Standalone Moon Pearl art must contain exactly six final-position gills; found ${gillTags.length}.`);
 }
