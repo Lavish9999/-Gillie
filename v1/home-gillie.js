@@ -1,4 +1,4 @@
-/* Gillie V1 Home character — direct-coordinate six-frond anatomy for the live tank. */
+/* Gillie V1 Home character — direct-coordinate six-frond anatomy for live tank surfaces. */
 (() => {
   "use strict";
 
@@ -30,20 +30,24 @@
     `;
   }
 
+  function usesDirectGills(ns) {
+    return ns === "main" || ns.startsWith("reefpreview-");
+  }
+
   function replaceHomeGills(markup, ns) {
     const source = String(markup || "");
-    if (ns !== "main") return source;
+    if (!usesDirectGills(ns)) return source;
 
     const matches = source.match(LEGACY_GILL_GROUP) || [];
     if (matches.length !== 6) {
-      console.warn(`Home Gillie direct-gill renderer expected 6 legacy groups and found ${matches.length}.`);
+      console.warn(`Gillie direct-gill renderer expected 6 legacy groups for ${ns} and found ${matches.length}.`);
       return source;
     }
 
     const withoutLegacy = source.replace(LEGACY_GILL_GROUP, "");
     const anchor = '<g class="axo-core">';
     if (!withoutLegacy.includes(anchor)) {
-      console.warn("Home Gillie direct-gill renderer could not find the axo-core anchor.");
+      console.warn(`Gillie direct-gill renderer could not find the axo-core anchor for ${ns}.`);
       return source;
     }
 
