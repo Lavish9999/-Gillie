@@ -1,5 +1,6 @@
 import Capacitor
 import Foundation
+import Security
 import StoreKit
 import UIKit
 
@@ -12,6 +13,7 @@ public class GilliePurchasesPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "getProducts", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "purchase", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "restorePurchases", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "claimPlusWelcomeBundle", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "manageSubscriptions", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "haptic", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "requestReview", returnType: CAPPluginReturnPromise),
@@ -26,6 +28,9 @@ public class GilliePurchasesPlugin: CAPPlugin, CAPBridgedPlugin {
     private let eventLogKey = "gillie.diagnostics.events"
     private let metricLogKey = "gillie.diagnostics.metricPayloads"
     private let installIDKey = "gillie.diagnostics.installID"
+    private let welcomeClaimService = "com.gillie.plus.welcome"
+    private let welcomeClaimAccount = "bundle.v1"
+    private let welcomeClaimFallbackKey = "gillie.plus.welcome.claimed.v1"
     private var transactionListener: Task<Void, Never>?
 
     public override func load() {
@@ -136,6 +141,45 @@ public class GilliePurchasesPlugin: CAPPlugin, CAPBridgedPlugin {
                 recordEvent(name: "restore_failed_native", properties: ["error": error.localizedDescription])
                 call.reject("Restore failed: \(error.localizedDescription)")
             }
+        }
+    }
+
+    @objc func claimPlusWelcomeBundle(_ call: CAPPluginCall) {
+        Task {
+            let entitlement = await currentEntitlementStatus()
+            guard entitlement["active"] as? Bool == true else {
+                recordEvent(name: "plus_welcome_claim_rejected", properties: ["reason": "inactive_entitlement"])
+                call.resolve(["active": false, "fresh": false, "source": "storekit2"])
+                return
+            }
+
+            let now = Date().timeIntervalSince1970 * 1000
+            if hasClaimedPlusWelcomeBundle() {
+                recordEvent(name: "plus_welcome_claim_existing", properties: [:])
+                call.resolve([
+                    "active": true,
+                    "fresh": false,
+                    "claimedAt": now,
+                    "source": "keychain"
+                ])
+                return
+            }
+
+            guard markPlusWelcomeBundleClaimed() else {
+                recordEvent(name: "plus_welcome_claim_failed", properties: ["reason": "claim_marker_write_failed"])
+                call.reject("Gillie could not secure the Plus welcome bundle claim.")
+                return
+            }
+
+            recordEvent(name: "plus_welcome_claim_fresh", properties: ["bonusPearls": 250, "buddyCredits": 1])
+            call.resolve([
+                "active": true,
+                "fresh": true,
+                "claimedAt": now,
+                "bonusPearls": 250,
+                "buddyCredits": 1,
+                "source": "keychain"
+            ])
         }
     }
 
@@ -276,6 +320,43 @@ public class GilliePurchasesPlugin: CAPPlugin, CAPBridgedPlugin {
             cache[key] = value
         }
         defaults.set(cache, forKey: entitlementCacheKey)
+    }
+
+    private func hasClaimedPlusWelcomeBundle() -> Bool {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: welcomeClaimService,
+            kSecAttrAccount as String: welcomeClaimAccount,
+            kSecMatchLimit as String: kSecMatchLimitOne,
+            kSecReturnData as String: false
+        ]
+        let status = SecItemCopyMatching(query as CFDictionary, nil)
+        if status == errSecSuccess { return true }
+        return defaults.bool(forKey: welcomeClaimFallbackKey)
+    }
+
+    private func markPlusWelcomeBundleClaimed() -> Bool {
+        let data = Data("claimed".utf8)
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: welcomeClaimService,
+            kSecAttrAccount as String: welcomeClaimAccount
+        ]
+        let attributes: [String: Any] = [
+            kSecValueData as String: data,
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+        ]
+        let addStatus = SecItemAdd(query.merging(attributes) { _, new in new } as CFDictionary, nil)
+        if addStatus == errSecSuccess || addStatus == errSecDuplicateItem {
+            defaults.set(true, forKey: welcomeClaimFallbackKey)
+            return true
+        }
+        let updateStatus = SecItemUpdate(query as CFDictionary, attributes as CFDictionary)
+        if updateStatus == errSecSuccess {
+            defaults.set(true, forKey: welcomeClaimFallbackKey)
+            return true
+        }
+        return false
     }
 
     private func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {
