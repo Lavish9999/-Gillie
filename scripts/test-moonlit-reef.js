@@ -9,14 +9,33 @@ let installer = null;
 let renderCount = 0;
 let saveCount = 0;
 
-if (!source.includes('PREVIEW_ART_ENGINE = "attached-gills-v2"')) {
-  throw new Error("Moonlit preview is missing the attached-gill art engine.");
+if (!source.includes('PREVIEW_ART_ENGINE = "standalone-svg-v4"')) {
+  throw new Error("Moonlit preview is missing the standalone SVG art engine.");
 }
-if (!source.includes('class="moonlit-preview-gillie-svg"')) {
-  throw new Error("Moonlit preview is missing its dedicated Gillie SVG scope.");
+if (!source.includes("const STANDALONE_MOON_PEARL_SVG")) {
+  throw new Error("Moonlit preview is missing its self-contained Moon Pearl artwork.");
 }
-if (!styles.includes(".moonlit-preview-gillie-svg *{animation:none!important")) {
-  throw new Error("Moonlit preview does not isolate internal Gillie animations, so gills can detach again.");
+if (!source.includes('class="moonlit-preview-character-svg"')) {
+  throw new Error("Moonlit preview is missing its standalone character SVG.");
+}
+if (source.includes("axoSVG(")) {
+  throw new Error("Moonlit preview must not reuse the globally animated axoSVG renderer.");
+}
+for (const forbidden of ['class="gill', 'class="axo-core', 'class="axo-tail', 'class="axo-leg', 'class="axo-eye']) {
+  if (source.includes(forbidden)) throw new Error(`Standalone Moon Pearl art restored a global animation class: ${forbidden}`);
+}
+const gillTags = source.match(/<path data-moonlit-gill="[^"]+"[^>]*>/g) || [];
+if (gillTags.length !== 6) {
+  throw new Error(`Standalone Moon Pearl art must contain exactly six final-position gills; found ${gillTags.length}.`);
+}
+if (gillTags.some((tag) => /\btransform=/.test(tag))) {
+  throw new Error("Standalone Moon Pearl gills must be authored in final coordinates without transform attributes.");
+}
+if (!styles.includes(".moonlit-preview-character-svg{display:block")) {
+  throw new Error("Moonlit preview is missing standalone character sizing styles.");
+}
+if (styles.includes("moonlit-preview-gillie-svg")) {
+  throw new Error("Moonlit preview restored the obsolete live-render SVG wrapper.");
 }
 if (!source.includes("A grounded lunar arch for the reef floor")) {
   throw new Error("Moonlit preview restored the old ungrounded Crescent Arch treatment.");
@@ -113,4 +132,4 @@ if (catalogCheck.themes !== 1 || catalogCheck.skins !== 1 || !catalogCheck.value
 }
 if (renderCount < 1 || saveCount < 1) throw new Error("Moonlit equip did not use the app render and persistence paths.");
 
-console.log("Moonlit Reef runtime test passed: attached gills, grounded arch art, free preview gating, Plus equip, persistence, and catalog integration work.");
+console.log("Moonlit Reef runtime test passed: standalone six-gill preview art, grounded arch, free preview gating, Plus equip, persistence, and catalog integration work.");
