@@ -20,7 +20,6 @@ for (const asset of assets) {
 
 let html = fs.readFileSync(indexPath, "utf8");
 
-// Remove decorative access/status badges from the generated app source itself.
 html = html
   .replace('<div class="row"><div class="t">Today\'s risk read</div><span class="tag">LIVE</span></div>', '<div class="row"><div class="t">Today\'s risk read</div></div>')
   .replace('<div class="eyebrow">Today preview</div>\n    <div class="row"><div class="t">Your free next step</div><span class="tag free">FREE</span></div>', '<div class="eyebrow">Today preview · Free</div>\n    <div class="row"><div class="t">Your free next step</div></div>')
@@ -95,18 +94,20 @@ for (const marker of [
   if (!css.includes(marker)) throw new Error(`Generated visual integrity CSS is missing marker: ${marker}`);
 }
 for (const marker of [
-  "Gillie V1 Home character",
+  "Gillie V1 character anatomy",
   "#view-home #axo-svg [data-home-gill]",
-  ".axo-gill-vein",
+  "#phase2-tank-preview .v1-preview-axo-svg [data-home-gill]",
+  "#phase2-tank-preview .v1-preview-axo-svg .axo-gill-vein",
   "animation:none!important",
-  "direct-coordinate six-frond anatomy",
+  "direct-coordinate six-frond gills",
 ]) {
-  if (!homeGillieCss.includes(marker)) throw new Error(`Generated Home Gillie CSS is missing marker: ${marker}`);
+  if (!homeGillieCss.includes(marker)) throw new Error(`Generated Gillie anatomy CSS is missing marker: ${marker}`);
 }
 for (const marker of [
   'ENGINE = "home-gillie-direct-gills-v3"',
   "directGillMarkup",
   "replaceHomeGills",
+  'ns.startsWith("reefpreview-")',
   'data-home-gill="left-upper"',
   'data-home-gill="right-lower"',
   "matches.length !== 6",
@@ -114,16 +115,16 @@ for (const marker of [
   'document.documentElement.dataset.homeGillieEngine = ENGINE',
   'typeof renderAxo === "function"',
 ]) {
-  if (!homeGillieJs.includes(marker)) throw new Error(`Generated Home Gillie JavaScript is missing marker: ${marker}`);
+  if (!homeGillieJs.includes(marker)) throw new Error(`Generated Gillie anatomy JavaScript is missing marker: ${marker}`);
 }
-if (!html.includes('data-gillie-v1-home-gillie="true"')) throw new Error("Generated index is missing the Home Gillie runtime tag.");
-if (!html.includes('data-gillie-v1-home-gillie-styles="true"')) throw new Error("Generated index is missing the Home Gillie stylesheet tag.");
+if (!html.includes('data-gillie-v1-home-gillie="true"')) throw new Error("Generated index is missing the Gillie anatomy runtime tag.");
+if (!html.includes('data-gillie-v1-home-gillie-styles="true"')) throw new Error("Generated index is missing the Gillie anatomy stylesheet tag.");
 
 const directGillTags = homeGillieJs.match(/<path class="axo-gill-frond" data-home-gill="[^"]+"[^>]*>/g) || [];
-if (directGillTags.length !== 6) throw new Error(`Generated Home Gillie source has ${directGillTags.length} direct fronds instead of 6.`);
-if (directGillTags.some((tag) => /\btransform=/.test(tag))) throw new Error("Generated Home Gillie direct fronds must not use transform attributes.");
-const homeGillieRule = homeGillieCss.match(/#view-home #axo-svg \[data-home-gill\]\s*\{([\s\S]*?)\}/)?.[1] || "";
-if (!homeGillieRule) throw new Error("Generated Home Gillie direct-gill rule is missing.");
-if (/\btransform\s*:/.test(homeGillieRule)) throw new Error("Home Gillie direct-gill rule must not add transform positioning.");
+if (directGillTags.length !== 6) throw new Error(`Generated Gillie anatomy source has ${directGillTags.length} direct fronds instead of 6.`);
+if (directGillTags.some((tag) => /\btransform=/.test(tag))) throw new Error("Generated Gillie direct fronds must not use transform attributes.");
+const sharedGillRule = homeGillieCss.match(/#view-home #axo-svg \[data-home-gill\],[\s\S]*?\{([\s\S]*?)\}/)?.[1] || "";
+if (!sharedGillRule) throw new Error("Generated shared direct-gill rule is missing.");
+if (/\btransform\s*:/.test(sharedGillRule)) throw new Error("Shared direct-gill rule must not add transform positioning.");
 
-console.log("Injected Gillie's visual integrity, six direct-coordinate Home fronds, visible subscription disclosure, and simplified active-subscriber state.");
+console.log("Injected Gillie's visual integrity and six direct-coordinate fronds for Home and the full-size Reef preview.");
