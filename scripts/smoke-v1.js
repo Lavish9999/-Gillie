@@ -24,6 +24,8 @@ const reefDashboard = read("v1/reef-dashboard.js");
 const reefDashboardStyles = read("v1/reef-dashboard.css");
 const coach = read("v1/coach.js");
 const backup = read("v1/backup.js");
+const visualIntegrity = read("v1/visual-integrity.js");
+const paywall = read("phase5-paywall.js");
 const styles = read("v1/v1.css");
 
 for (const asset of ["core", "onboarding", "sos", "progress", "reef", "reef-dashboard", "coach", "backup"]) {
@@ -51,7 +53,9 @@ requireMarker(onboarding, "v1-onboarding-details", "Deferred onboarding estimate
 requireMarker(sos, "you do not have to decide anything yet", "SOS relief-first copy");
 requireMarker(sos, "I made it through this moment", "SOS completion action");
 requireMarker(progress, "Always free", "Free Progress patterns");
-requireMarker(progress, "Advanced predictions", "Premium Progress boundary");
+requireMarker(progress, "Advanced patterns and planning", "Premium Progress boundary");
+requireMarker(visualIntegrity, "Spot the times cravings may be more likely", "Probability-based paywall subtitle");
+requireMarker(paywall, "See when cravings may be more likely", "Probability-based paywall benefit");
 requireMarker(reef, "Curated aquarium collection", "Reef curation");
 requireMarker(reef, 'PREVIEW_ENGINE = "canonical-v3-swipe"', "Canonical Reef swipe preview engine");
 requireMarker(reef, "handlePreviewCapture", "Reef capture-phase override");
@@ -110,8 +114,13 @@ if (canonicalJs.includes("new MutationObserver")) {
 if (canonicalJs.includes("setInterval(")) {
   throw new Error("Canonical V1 modules must not add recurring polling intervals.");
 }
+for (const forbidden of ["Advanced predictions", "Know the hard moment before it arrives", "Know when cravings are most likely to hit"]) {
+  if (progress.includes(forbidden) || visualIntegrity.includes(forbidden) || paywall.includes(forbidden)) {
+    throw new Error(`Overly certain launch copy returned: ${forbidden}`);
+  }
+}
 if (html.includes("data-gillie-phase5-hotfix")) {
   throw new Error("Legacy paywall hotfix returned to the generated bundle.");
 }
 
-console.log("Gillie V1 smoke checks passed: strict tab isolation, flex-layout exclusion, canonical Reef rendering, swipe dismissal, progression, daily care, and premium collection value are present.");
+console.log("Gillie V1 smoke checks passed: strict tab isolation, safer wellness copy, canonical Reef rendering, swipe dismissal, progression, daily care, and premium collection value are present.");
