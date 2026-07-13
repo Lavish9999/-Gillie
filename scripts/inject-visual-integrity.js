@@ -4,7 +4,14 @@ const path = require("path");
 const root = path.resolve(__dirname, "..");
 const out = path.join(root, "www");
 const indexPath = path.join(out, "index.html");
-const assets = ["v1/visual-integrity.css", "v1/home-gillie.css", "v1/home-gillie.js", "v1/visual-integrity.js"];
+const assets = [
+  "v1/visual-integrity.css",
+  "v1/home-gillie.css",
+  "v1/plus-value.css",
+  "v1/home-gillie.js",
+  "v1/visual-integrity.js",
+  "v1/plus-value.js",
+];
 
 if (!fs.existsSync(indexPath)) {
   throw new Error("Visual integrity injection requires www/index.html. Run the canonical injectors first.");
@@ -31,8 +38,10 @@ html = html
 
 const styleTag = '<link rel="stylesheet" href="./v1/visual-integrity.css" data-gillie-v1-visual-integrity-styles="true">';
 const homeGillieStyleTag = '<link rel="stylesheet" href="./v1/home-gillie.css" data-gillie-v1-home-gillie-styles="true">';
+const plusValueStyleTag = '<link rel="stylesheet" href="./v1/plus-value.css" data-gillie-v1-plus-value-styles="true">';
 const homeGillieScriptTag = '<script src="./v1/home-gillie.js" defer data-gillie-v1-home-gillie="true"></script>';
 const scriptTag = '<script src="./v1/visual-integrity.js" defer data-gillie-v1-visual-integrity="true"></script>';
+const plusValueScriptTag = '<script src="./v1/plus-value.js" defer data-gillie-v1-plus-value="true"></script>';
 
 if (!html.includes(styleTag)) {
   const moonlitStyle = '<link rel="stylesheet" href="./v1/moonlit-reef.css" data-gillie-v1-moonlit-reef-styles="true">';
@@ -45,6 +54,11 @@ if (!html.includes(styleTag)) {
 if (!html.includes(homeGillieStyleTag)) {
   if (!html.includes(styleTag)) throw new Error("Could not locate visual integrity stylesheet for Home Gillie injection.");
   html = html.replace(styleTag, `${styleTag}\n${homeGillieStyleTag}`);
+}
+
+if (!html.includes(plusValueStyleTag)) {
+  if (!html.includes(homeGillieStyleTag)) throw new Error("Could not locate Home Gillie stylesheet for Plus value injection.");
+  html = html.replace(homeGillieStyleTag, `${homeGillieStyleTag}\n${plusValueStyleTag}`);
 }
 
 if (!html.includes(homeGillieScriptTag)) {
@@ -60,12 +74,19 @@ if (!html.includes(scriptTag)) {
   html = html.replace(homeGillieScriptTag, `${homeGillieScriptTag}\n${scriptTag}`);
 }
 
+if (!html.includes(plusValueScriptTag)) {
+  if (!html.includes(scriptTag)) throw new Error("Could not locate visual integrity script for Plus value injection.");
+  html = html.replace(scriptTag, `${scriptTag}\n${plusValueScriptTag}`);
+}
+
 fs.writeFileSync(indexPath, html, "utf8");
 
 const css = fs.readFileSync(path.join(out, "v1/visual-integrity.css"), "utf8");
 const homeGillieCss = fs.readFileSync(path.join(out, "v1/home-gillie.css"), "utf8");
+const plusValueCss = fs.readFileSync(path.join(out, "v1/plus-value.css"), "utf8");
 const homeGillieJs = fs.readFileSync(path.join(out, "v1/home-gillie.js"), "utf8");
 const js = fs.readFileSync(path.join(out, "v1/visual-integrity.js"), "utf8");
+const plusValueJs = fs.readFileSync(path.join(out, "v1/plus-value.js"), "utf8");
 for (const marker of [
   'register("visual-integrity"',
   'ENGINE = "visual-integrity-v1.1"',
@@ -123,8 +144,34 @@ for (const marker of [
 ]) {
   if (!homeGillieJs.includes(marker)) throw new Error(`Generated Gillie anatomy JavaScript is missing marker: ${marker}`);
 }
+for (const marker of [
+  'register("plus-value"',
+  'ENGINE = "plus-value-v1"',
+  'WEEKLY_REPORT_DAYS = 7',
+  'DAILY_TARGET = 3',
+  'PERFECT_TARGET = 5',
+  'WELCOME_PEARLS = 250',
+  'claimPlusWelcomeBundle',
+  'A quit plan that remembers what works.',
+  'Your Weekly Pattern Report',
+  'plus_perfect_care_claimed',
+  'First tank mate included',
+]) {
+  if (!plusValueJs.includes(marker)) throw new Error(`Generated Plus value JavaScript is missing marker: ${marker}`);
+}
+for (const marker of [
+  "Gillie V1 Plus Value",
+  "#plus-overlay .pv-paywall-showcase",
+  "#view-progress .v1-weekly-report",
+  "#view-reef .pv-perfect-care",
+  "#pv-plus-welcome",
+]) {
+  if (!plusValueCss.includes(marker)) throw new Error(`Generated Plus value CSS is missing marker: ${marker}`);
+}
 if (!html.includes('data-gillie-v1-home-gillie="true"')) throw new Error("Generated index is missing the Gillie anatomy runtime tag.");
 if (!html.includes('data-gillie-v1-home-gillie-styles="true"')) throw new Error("Generated index is missing the Gillie anatomy stylesheet tag.");
+if (!html.includes('data-gillie-v1-plus-value="true"')) throw new Error("Generated index is missing the Plus value runtime tag.");
+if (!html.includes('data-gillie-v1-plus-value-styles="true"')) throw new Error("Generated index is missing the Plus value stylesheet tag.");
 
 const directGillTags = homeGillieJs.match(/<path class="axo-gill-frond" data-home-gill="[^"]+"[^>]*>/g) || [];
 if (directGillTags.length !== 6) throw new Error(`Generated Gillie anatomy source has ${directGillTags.length} direct fronds instead of 6.`);
@@ -133,4 +180,4 @@ const sharedGillRule = homeGillieCss.match(/#view-home #axo-svg \[data-home-gill
 if (!sharedGillRule) throw new Error("Generated shared direct-gill rule is missing.");
 if (/\btransform\s*:/.test(sharedGillRule)) throw new Error("Shared direct-gill rule must not add transform positioning.");
 
-console.log("Injected Gillie's visual integrity, safer wellness copy, and six direct-coordinate fronds for Home and the full-size Reef preview.");
+console.log("Injected Gillie's visual integrity, safer wellness copy, six direct-coordinate fronds, and complete Plus value system.");
