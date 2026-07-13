@@ -18,8 +18,14 @@ if (!source.includes("const STANDALONE_MOON_PEARL_SVG")) {
 if (!source.includes('class="moonlit-preview-character-svg"')) {
   throw new Error("Moonlit preview is missing its standalone character SVG.");
 }
-if (source.includes("axoSVG(")) {
-  throw new Error("Moonlit preview must not reuse the globally animated axoSVG renderer.");
+for (const forbidden of [
+  'if (typeof axoSVG === "function")',
+  "return axoSVG(",
+  "svg.innerHTML = axoSVG(",
+]) {
+  if (source.includes(forbidden)) {
+    throw new Error(`Moonlit preview restored executable use of the globally animated Gillie renderer: ${forbidden}`);
+  }
 }
 for (const forbidden of ['class="gill', 'class="axo-core', 'class="axo-tail', 'class="axo-leg', 'class="axo-eye']) {
   if (source.includes(forbidden)) throw new Error(`Standalone Moon Pearl art restored a global animation class: ${forbidden}`);
