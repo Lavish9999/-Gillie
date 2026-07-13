@@ -54,31 +54,33 @@ const required = [
   ["www/index.html", "data-gillie-foundation=\"true\"", "Foundation asset injection"],
   ["www/index.html", "data-gillie-v1-reef-dashboard=\"true\"", "Reef dashboard script injection"],
   ["www/index.html", "data-gillie-v1-reef-dashboard-styles=\"true\"", "Reef dashboard style injection"],
-  ["www/index.html", "data-gillie-v1-home-gillie=\"true\"", "Home Gillie runtime injection"],
-  ["www/index.html", "data-gillie-v1-home-gillie-styles=\"true\"", "Home Gillie stylesheet injection"],
+  ["www/index.html", "data-gillie-v1-home-gillie=\"true\"", "Gillie anatomy runtime injection"],
+  ["www/index.html", "data-gillie-v1-home-gillie-styles=\"true\"", "Gillie anatomy stylesheet injection"],
   ["www/v1/core.js", "late-module safe", "Late-safe V1 coordinator"],
   ["www/v1/core.js", "strict tab isolation", "Strict tab-isolation owner"],
   ["www/v1/core.js", "enforceViewIsolation", "Canonical tab enforcement"],
   ["www/v1/v1.css", "#main > .view[data-v1-active=\"true\"]:not([hidden])", "Single active tab display rule"],
   ["www/v1/v1.css", "#main > .view[data-v1-active=\"false\"]", "Inactive tab flex exclusion"],
-  ["www/v1/home-gillie.js", "home-gillie-direct-gills-v3", "Home Gillie direct-coordinate engine"],
-  ["www/v1/home-gillie.js", "directGillMarkup", "Home Gillie direct frond source"],
-  ["www/v1/home-gillie.js", "replaceHomeGills", "Home Gillie legacy replacement"],
-  ["www/v1/home-gillie.js", "data-home-gill=\"left-upper\"", "Home Gillie left upper frond"],
-  ["www/v1/home-gillie.js", "data-home-gill=\"right-lower\"", "Home Gillie right lower frond"],
-  ["www/v1/home-gillie.js", "matches.length !== 6", "Home Gillie six-group atomic guard"],
-  ["www/v1/home-gillie.js", "window.axoSVG = hardenedAxoSVG", "Home Gillie renderer replacement"],
+  ["www/v1/home-gillie.js", "home-gillie-direct-gills-v3", "Gillie direct-coordinate engine"],
+  ["www/v1/home-gillie.js", "directGillMarkup", "Gillie direct frond source"],
+  ["www/v1/home-gillie.js", "replaceHomeGills", "Gillie legacy replacement"],
+  ["www/v1/home-gillie.js", "ns.startsWith(\"reefpreview-\")", "Full-size Reef preview namespace coverage"],
+  ["www/v1/home-gillie.js", "data-home-gill=\"left-upper\"", "Gillie left upper frond"],
+  ["www/v1/home-gillie.js", "data-home-gill=\"right-lower\"", "Gillie right lower frond"],
+  ["www/v1/home-gillie.js", "matches.length !== 6", "Gillie six-group atomic guard"],
+  ["www/v1/home-gillie.js", "window.axoSVG = hardenedAxoSVG", "Gillie renderer replacement"],
   ["www/v1/home-gillie.js", "typeof renderAxo === \"function\"", "Home Gillie immediate repaint"],
-  ["www/v1/home-gillie.css", "direct-coordinate six-frond anatomy", "Home Gillie direct anatomy styles"],
-  ["www/v1/home-gillie.css", "#view-home #axo-svg [data-home-gill]", "Home Gillie direct gill selector"],
-  ["www/v1/home-gillie.css", ".axo-gill-vein", "Home Gillie vein styles"],
+  ["www/v1/home-gillie.css", "direct-coordinate six-frond gills", "Gillie direct anatomy styles"],
+  ["www/v1/home-gillie.css", "#view-home #axo-svg [data-home-gill]", "Home direct-gill selector"],
+  ["www/v1/home-gillie.css", "#phase2-tank-preview .v1-preview-axo-svg [data-home-gill]", "Reef preview direct-gill selector"],
+  ["www/v1/home-gillie.css", "#phase2-tank-preview .v1-preview-axo-svg .axo-gill-vein", "Reef preview vein selector"],
   ["www/v1/reef.js", "PREVIEW_ENGINE = \"canonical-v3-swipe\"", "Canonical Reef preview engine"],
   ["www/v1/reef.js", "document.addEventListener(\"click\", handlePreviewCapture, true)", "Reef capture listener"],
   ["www/v1/reef.js", "document.addEventListener(\"touchend\", handlePreviewTouchEnd", "Reef swipe completion listener"],
   ["www/v1/reef.js", "dismissPreviewWithGesture", "Reef swipe dismissal"],
   ["www/v1/reef-dashboard.js", "DASHBOARD_ENGINE = \"reef-progression-v1\"", "Reef progression engine"],
-  ["www/v1/reef-dashboard.js", "Daily Reef Care", "Daily Reef Care loop"],
-  ["www/v1/reef-dashboard.js", "claimDailyBonus", "Daily Reef completion reward"],
+  ["www/v1/reef-dashboard.js", "Daily Reef Care", "Reef daily care loop"],
+  ["www/v1/reef-dashboard.js", "claimDailyBonus", "Reef completion reward"],
   ["www/v1/reef-dashboard.css", "Gillie V1 Reef Dashboard", "Reef dashboard styles"],
   ["www/v1/reef-dashboard.css", ".v1-reef-vault", "Reef vault styles"],
   ["www/v1/moonlit-reef.js", "PREVIEW_ART_ENGINE = \"standalone-svg-v4\"", "Standalone Moonlit preview engine"],
@@ -102,23 +104,26 @@ const required = [
 
 for (const [file, marker, label] of required) requireMarker(file, marker, label);
 
-const homeGillieCss = read("www/v1/home-gillie.css");
-const homeGillieRule = homeGillieCss.match(/#view-home #axo-svg \[data-home-gill\]\s*\{([\s\S]*?)\}/)?.[1] || "";
-if (!homeGillieRule) throw new Error("Codemagic contract failed: Home Gillie direct-gill rule is missing.");
-if (/\btransform\s*:/.test(homeGillieRule)) {
-  throw new Error("Codemagic contract failed: Home Gillie CSS cannot add transform positioning to direct fronds.");
+const gillCss = read("www/v1/home-gillie.css");
+const sharedGillRule = gillCss.match(/#view-home #axo-svg \[data-home-gill\],[\s\S]*?\{([\s\S]*?)\}/)?.[1] || "";
+if (!sharedGillRule) throw new Error("Codemagic contract failed: shared direct-gill rule is missing.");
+if (/\btransform\s*:/.test(sharedGillRule)) {
+  throw new Error("Codemagic contract failed: direct-gill CSS cannot add transform positioning.");
 }
 
-const homeGillieJs = read("www/v1/home-gillie.js");
-const homeGillTags = homeGillieJs.match(/<path class="axo-gill-frond" data-home-gill="[^"]+"[^>]*>/g) || [];
-if (homeGillTags.length !== 6) {
-  throw new Error(`Codemagic contract failed: Home Gillie source must contain 6 direct fronds; found ${homeGillTags.length}.`);
+const gillJs = read("www/v1/home-gillie.js");
+const directGillTags = gillJs.match(/<path class="axo-gill-frond" data-home-gill="[^"]+"[^>]*>/g) || [];
+if (directGillTags.length !== 6) {
+  throw new Error(`Codemagic contract failed: Gillie anatomy source must contain 6 direct fronds; found ${directGillTags.length}.`);
 }
-if (homeGillTags.some((tag) => /\btransform=/.test(tag))) {
-  throw new Error("Codemagic contract failed: Home Gillie direct fronds cannot use transform attributes.");
+if (directGillTags.some((tag) => /\btransform=/.test(tag))) {
+  throw new Error("Codemagic contract failed: Gillie direct fronds cannot use transform attributes.");
 }
-if (!homeGillieJs.includes("if (matches.length !== 6)")) {
-  throw new Error("Codemagic contract failed: Home Gillie can partially replace the legacy six-gill anatomy.");
+if (!gillJs.includes("if (matches.length !== 6)")) {
+  throw new Error("Codemagic contract failed: Gillie can partially replace the legacy six-gill anatomy.");
+}
+if (!gillJs.includes('ns === "main" || ns.startsWith("reefpreview-")')) {
+  throw new Error("Codemagic contract failed: full-size Reef preview is not covered by the direct-gill renderer.");
 }
 
 const moonlitSource = read("www/v1/moonlit-reef.js");
@@ -157,4 +162,4 @@ forbidMarker(
   "Legacy paywall hotfix must remain removed",
 );
 
-console.log(`Codemagic source contracts passed: ${required.length} named requirements verified with direct-coordinate Home and Moonlit character anatomy.`);
+console.log(`Codemagic source contracts passed: ${required.length} named requirements verified with direct-coordinate Home, Reef-preview, and Moonlit anatomy.`);
