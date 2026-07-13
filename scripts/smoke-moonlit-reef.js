@@ -53,9 +53,18 @@ if (gillTags.length !== 6) {
 if (gillTags.some((tag) => /\btransform=/.test(tag))) {
   throw new Error("Generated Moonlit preview gills must not depend on transform attributes.");
 }
-for (const forbidden of ["axoSVG(", 'class="gill', 'class="axo-core', 'class="axo-tail', "moonlit-preview-art.js", "data-gillie-v1-moonlit-preview-art"]) {
+for (const forbidden of [
+  'if (typeof axoSVG === "function")',
+  "return axoSVG(",
+  "svg.innerHTML = axoSVG(",
+]) {
+  if (js.includes(forbidden)) {
+    throw new Error(`Generated Moonlit preview restored executable live-render dependency: ${forbidden}`);
+  }
+}
+for (const forbidden of ['class="gill', 'class="axo-core', 'class="axo-tail', "moonlit-preview-art.js", "data-gillie-v1-moonlit-preview-art"]) {
   if (js.includes(forbidden) || html.includes(forbidden)) {
-    throw new Error(`Generated Moonlit preview restored a removed live-render dependency: ${forbidden}`);
+    throw new Error(`Generated Moonlit preview restored a removed dependency: ${forbidden}`);
   }
 }
 if (js.includes("new MutationObserver") || js.includes("setInterval(")) {
