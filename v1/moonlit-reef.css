@@ -43,8 +43,8 @@
 .moonlit-live-particles b:nth-child(3n){animation-delay:-2s}.moonlit-live-particles b:nth-child(3n+1){animation-delay:-4s}
 .moonlit-live-decor{position:absolute;z-index:3;pointer-events:none;transform-origin:50% 100%}
 .moonlit-live-decor svg{width:100%;height:100%;overflow:visible;filter:drop-shadow(0 8px 12px rgba(13,18,49,.22))}
-.moonlit-crescent-live{left:6%;bottom:13%;width:76px;height:88px;animation:moonlitDecorSway 7.5s ease-in-out infinite}
-.moonlit-star-coral-live{right:7%;bottom:14%;width:72px;height:72px;animation:moonlitDecorSway 8.5s -3s ease-in-out infinite reverse}
+.moonlit-crescent-live{left:4%;bottom:10%;width:86px;height:80px;animation:moonlitDecorSway 7.5s ease-in-out infinite}
+.moonlit-star-coral-live{right:7%;bottom:14%;width:68px;height:68px;animation:moonlitDecorSway 8.5s -3s ease-in-out infinite reverse}
 .moonlit-jelly-live{position:absolute;right:10%;top:28%;width:61px;height:78px;z-index:5;pointer-events:none;animation:moonlitJellyFloat 6.5s ease-in-out infinite;filter:drop-shadow(0 0 12px rgba(198,205,255,.26))}
 .moonlit-jelly-live svg{width:100%;height:100%;overflow:visible}
 @keyframes moonlitRaySway{0%,100%{transform:translateX(-8px) rotate(13deg)}50%{transform:translateX(15px) rotate(16deg)}}
@@ -62,7 +62,7 @@
 .moonlit-preview-copy span{display:block;color:#aab6e4;font-size:10px;font-weight:900;letter-spacing:.12em;text-transform:uppercase}
 .moonlit-preview-copy h2{margin:7px 0 7px;color:#fff;font:850 34px/1 var(--font-display)}
 .moonlit-preview-copy p{max-width:360px;color:rgba(255,255,255,.67);font-size:13px;line-height:1.42;font-weight:650}
-.moonlit-preview-tank{position:relative;width:100%;aspect-ratio:1/.99;overflow:hidden;border-radius:30px;background:radial-gradient(90% 55% at 50% 12%,rgba(159,181,255,.30),transparent 62%),linear-gradient(180deg,#52669b,#2c3c6b 54%,#162742 79%,#8f94ab 79.5%);box-shadow:0 25px 55px rgba(0,0,0,.28),inset 0 0 0 1px rgba(255,255,255,.16)}
+.moonlit-preview-tank{position:relative;isolation:isolate;width:100%;aspect-ratio:1/.99;overflow:hidden;border-radius:30px;background:radial-gradient(90% 55% at 50% 12%,rgba(159,181,255,.30),transparent 62%),linear-gradient(180deg,#52669b,#2c3c6b 54%,#162742 79%,#8f94ab 79.5%);box-shadow:0 25px 55px rgba(0,0,0,.28),inset 0 0 0 1px rgba(255,255,255,.16)}
 .moonlit-preview-tank::after{content:"";position:absolute;inset:0;z-index:8;pointer-events:none;background:linear-gradient(115deg,rgba(255,255,255,.24),transparent 24%),radial-gradient(90% 72% at 50% 100%,rgba(3,8,28,.40),transparent 70%)}
 .moonlit-preview-moon{position:absolute;right:8%;top:7%;z-index:1;width:72px;height:72px;border-radius:50%;background:radial-gradient(circle at 38% 34%,#fff,#e5eaff 58%,#9ba8d9);box-shadow:0 0 36px rgba(209,219,255,.42)}
 .moonlit-preview-moon::after{content:"";position:absolute;left:-16px;top:-8px;width:72px;height:72px;border-radius:50%;background:#4d6094}
@@ -70,12 +70,15 @@
 .moonlit-preview-stars{position:absolute;inset:0;z-index:2}
 .moonlit-preview-stars i{position:absolute;left:var(--x);top:var(--y);width:3px;height:3px;border-radius:50%;background:#f4f5ff;box-shadow:0 0 10px rgba(239,241,255,.85);animation:moonlitParticle 5.6s ease-in-out infinite}
 .moonlit-preview-stars i:nth-child(3n){animation-delay:-1.8s}.moonlit-preview-stars i:nth-child(3n+1){animation-delay:-3.6s}
-.moonlit-preview-gillie{position:absolute;left:50%;top:49%;z-index:5;width:54%;transform:translate(-50%,-50%);filter:drop-shadow(0 17px 16px rgba(4,8,25,.24));animation:moonlitPreviewGillie 5.8s ease-in-out infinite}
-.moonlit-preview-gillie svg{display:block;width:100%;overflow:visible}
-.moonlit-preview-crescent{position:absolute;left:5%;bottom:12%;z-index:4;width:23%;animation:moonlitDecorSway 7s ease-in-out infinite}
+.moonlit-preview-gillie{position:absolute;left:49%;top:50%;z-index:5;width:57%;transform:translate(-50%,-50%);filter:drop-shadow(0 17px 16px rgba(4,8,25,.24));animation:moonlitPreviewGillie 5.8s ease-in-out infinite}
+.moonlit-preview-gillie-svg{display:block;width:100%;height:auto;overflow:visible}
+/* The global Gillie animations set CSS transforms on SVG groups. In a standalone preview that overrides each gill's SVG translate/rotate transform and detaches the gills. Keep the whole character floating, but freeze its internal groups so their authored transforms remain intact. */
+.moonlit-preview-gillie-svg *{animation:none!important;transition:none!important}
+.moonlit-preview-gillie-svg .gill{filter:none!important}
+.moonlit-preview-crescent{position:absolute;left:4%;bottom:9%;z-index:3;width:27%;animation:moonlitDecorSway 7s ease-in-out infinite}
 .moonlit-preview-crescent svg,.moonlit-preview-coral svg,.moonlit-preview-jelly svg{display:block;width:100%;overflow:visible}
-.moonlit-preview-coral{position:absolute;right:6%;bottom:13%;z-index:4;width:22%;animation:moonlitDecorSway 8s -3s ease-in-out infinite reverse}
-.moonlit-preview-jelly{position:absolute;right:9%;top:30%;z-index:4;width:18%;animation:moonlitJellyFloat 6s ease-in-out infinite;filter:drop-shadow(0 0 13px rgba(198,205,255,.3))}
+.moonlit-preview-coral{position:absolute;right:7%;bottom:11%;z-index:4;width:18%;animation:moonlitDecorSway 8s -3s ease-in-out infinite reverse}
+.moonlit-preview-jelly{position:absolute;right:9%;top:31%;z-index:4;width:16%;animation:moonlitJellyFloat 6s ease-in-out infinite;filter:drop-shadow(0 0 13px rgba(198,205,255,.3))}
 .moonlit-preview-sand{position:absolute;left:0;right:0;bottom:0;height:21%;z-index:2;background:radial-gradient(ellipse 50% 30% at 34% 9%,rgba(255,255,255,.20),transparent 70%),linear-gradient(180deg,#9aa0b7,#797f98)}
 @keyframes moonlitPreviewRays{0%,100%{transform:translateX(-8px) skewX(0)}50%{transform:translateX(16px) skewX(-3deg)}}
 @keyframes moonlitPreviewGillie{0%,100%{transform:translate(-52%,-48%) rotate(-1deg)}50%{transform:translate(-47%,-53%) rotate(1.5deg)}}
