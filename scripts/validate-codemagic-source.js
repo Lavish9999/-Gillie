@@ -97,7 +97,15 @@ if (moonlitGills.length !== 6) {
 if (moonlitGills.some((tag) => /\btransform=/.test(tag))) {
   throw new Error("Codemagic contract failed: standalone Moon Pearl gills cannot depend on transform attributes.");
 }
-forbidMarker("www/v1/moonlit-reef.js", "axoSVG(", "Moonlit preview must not reuse the globally animated Gillie renderer");
+for (const forbidden of [
+  'if (typeof axoSVG === "function")',
+  "return axoSVG(",
+  "svg.innerHTML = axoSVG(",
+]) {
+  if (moonlitSource.includes(forbidden)) {
+    throw new Error(`Codemagic contract failed: Moonlit preview restored executable live-render dependency: ${forbidden}`);
+  }
+}
 forbidMarker("www/v1/moonlit-reef.js", 'class=\"gill', "Standalone Moon Pearl must not expose global gill classes");
 forbidMarker("www/index.html", "moonlit-preview-art.js", "Obsolete Moonlit sanitizer asset must remain removed");
 forbidMarker("www/index.html", "data-gillie-v1-moonlit-preview-art", "Obsolete Moonlit sanitizer tag must remain removed");
