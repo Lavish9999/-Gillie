@@ -11,7 +11,7 @@
       "reasons", "quitAt", "originalQuitAt", "bankedCleanMs", "slips", "cravings",
       "pendingFollowup", "sosRewards", "checkins", "milestonesSeen", "milestonesRewarded",
       "growthSeen", "cost", "goal", "theme", "buddies", "coach", "reminders", "justSlippedAt",
-      "reefProgress", "moonlitReef",
+      "reefProgress", "moonlitReef", "plusValue", "plusWelcome",
     ];
 
     const group = document.createElement("div");
@@ -20,7 +20,7 @@
     group.innerHTML = `
       <button class="set-row" id="v1-export-backup"><span class="t">Export Gillie backup</span><span class="v">Save file</span></button>
       <button class="set-row" id="v1-import-backup"><span class="t">Import Gillie backup</span><span class="v">Restore</span></button>
-      <div class="v1-backup-note">Includes streak history, check-ins, cravings, Reef progression, collection items, and preferences. Gillie Plus is always re-verified by Apple.</div>`;
+      <div class="v1-backup-note">Includes streak history, check-ins, cravings, Reef progression, collection items, Plus reward state, and preferences. Gillie Plus is always re-verified by Apple.</div>`;
 
     const production = qs("#phase1-settings", view);
     const disclaimer = Array.from(view.children).find((node) => node.tagName === "P");
@@ -115,6 +115,16 @@
           equippedAt: 0,
         };
       }
+      if (!next.plusValue || typeof next.plusValue !== "object" || Array.isArray(next.plusValue)) next.plusValue = { perfectCareClaims: {} };
+      next.plusValue.perfectCareClaims = next.plusValue.perfectCareClaims && typeof next.plusValue.perfectCareClaims === "object" && !Array.isArray(next.plusValue.perfectCareClaims) ? next.plusValue.perfectCareClaims : {};
+      if (!next.plusWelcome || typeof next.plusWelcome !== "object" || Array.isArray(next.plusWelcome)) {
+        next.plusWelcome = { version: 1, claimedAt: 0, bonusPearlsGranted: 0, buddyCredits: 0, nativeCheckedAt: 0 };
+      }
+      next.plusWelcome.version = 1;
+      next.plusWelcome.claimedAt = Math.max(0, Number(next.plusWelcome.claimedAt || 0));
+      next.plusWelcome.bonusPearlsGranted = Math.max(0, Number(next.plusWelcome.bonusPearlsGranted || 0));
+      next.plusWelcome.buddyCredits = Math.max(0, Number(next.plusWelcome.buddyCredits || 0));
+      next.plusWelcome.nativeCheckedAt = Math.max(0, Number(next.plusWelcome.nativeCheckedAt || 0));
 
       next.premium = false;
       next.premiumEntitlement = { active: false, checkedAt: 0, source: "restore-pending-apple" };
