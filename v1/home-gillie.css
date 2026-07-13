@@ -1,16 +1,18 @@
-/* Gillie V1 Home character — direct-coordinate six-frond anatomy. */
+/* Gillie V1 character anatomy — direct-coordinate six-frond gills. */
 
 /*
  * home-gillie.js removes the six legacy transformed .gill groups and inserts
- * six final-coordinate paths behind Gillie's head. The fronds do not depend on
- * CSS transforms, animation timing, or global .gill selectors in WKWebView.
- * Whole-character, body, tail, eye, swim, tap, and celebration motion remains.
+ * six final-coordinate paths for the Home tank and the full-size Reef preview.
+ * The fronds do not depend on CSS transforms, animation timing, or global
+ * .gill selectors in WKWebView. SOS and onboarding keep their existing art.
  */
-#view-home #axo-svg [data-home-gill]{
+#view-home #axo-svg [data-home-gill],
+#phase2-tank-preview .v1-preview-axo-svg [data-home-gill]{
   animation:none!important;
   pointer-events:none;
 }
-#view-home #axo-svg .axo-gill-vein{
+#view-home #axo-svg .axo-gill-vein,
+#phase2-tank-preview .v1-preview-axo-svg .axo-gill-vein{
   fill:none;
   stroke:#fff;
   stroke-width:2.1;
