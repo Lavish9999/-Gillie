@@ -61,7 +61,16 @@ for (const marker of [
 const gillTags = js.match(/<path data-moonlit-gill="[^"]+"[^>]*>/g) || [];
 if (gillTags.length !== 6) throw new Error(`Generated standalone Moon Pearl art has ${gillTags.length} gills instead of 6.`);
 if (gillTags.some((tag) => /\btransform=/.test(tag))) throw new Error("Generated Moon Pearl gills still depend on transform attributes.");
-for (const forbidden of ["axoSVG(", 'class="gill', 'class="axo-core', 'class="axo-tail', "moonlit-preview-art.js", "data-gillie-v1-moonlit-preview-art"]) {
+
+const executableLiveRendererMarkers = [
+  'if (typeof axoSVG === "function")',
+  "return axoSVG(",
+  "svg.innerHTML = axoSVG(",
+];
+for (const forbidden of executableLiveRendererMarkers) {
+  if (js.includes(forbidden)) throw new Error(`Generated Moonlit preview restored executable live-render dependency: ${forbidden}`);
+}
+for (const forbidden of ['class="gill', 'class="axo-core', 'class="axo-tail', "moonlit-preview-art.js", "data-gillie-v1-moonlit-preview-art"]) {
   if (js.includes(forbidden) || html.includes(forbidden)) throw new Error(`Generated Moonlit preview restored removed dependency: ${forbidden}`);
 }
 for (const marker of [
