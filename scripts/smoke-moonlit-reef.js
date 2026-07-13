@@ -16,18 +16,18 @@ function requireMarker(source, marker, label) {
 
 const html = read("index.html");
 const js = read("v1/moonlit-reef.js");
-const artJs = read("v1/moonlit-preview-art.js");
 const css = read("v1/moonlit-reef.css");
 
 requireMarker(html, 'data-gillie-v1-moonlit-reef="true"', "Generated index.html");
 requireMarker(html, 'data-gillie-v1-moonlit-reef-styles="true"', "Generated index.html");
-requireMarker(html, 'data-gillie-v1-moonlit-preview-art="true"', "Generated index.html");
 requireMarker(js, 'register("moonlit-reef"', "Moonlit Reef module");
 requireMarker(js, 'COLLECTION_ENGINE = "moonlit-reef-v1"', "Moonlit Reef engine");
-requireMarker(js, 'PREVIEW_ART_ENGINE = "attached-gills-v2"', "Moonlit attached-gill preview engine");
+requireMarker(js, 'PREVIEW_ART_ENGINE = "standalone-svg-v4"', "Standalone Moonlit preview engine");
 requireMarker(js, 'const THEME_ID = "moonlit"', "Moonlit theme catalog entry");
 requireMarker(js, 'const SKIN_ID = "moonpearl"', "Moon Pearl skin catalog entry");
-requireMarker(js, 'class="moonlit-preview-gillie-svg"', "Dedicated Moonlit Gillie SVG wrapper");
+requireMarker(js, "const STANDALONE_MOON_PEARL_SVG", "Standalone Moon Pearl artwork");
+requireMarker(js, 'class="moonlit-preview-character-svg"', "Standalone Moon Pearl SVG wrapper");
+requireMarker(js, 'data-preview-character="standalone-v4"', "Standalone preview identity");
 requireMarker(js, "A grounded lunar arch for the reef floor", "Grounded Crescent Arch copy");
 requireMarker(js, "equipFullCollection", "One-tap full collection equip");
 requireMarker(js, "if (!current.premium)", "Equip-time Plus boundary");
@@ -38,30 +38,34 @@ requireMarker(js, "ambienceEquipped", "Animated environment state");
 requireMarker(js, "jellyEquipped", "Moon-jelly state");
 requireMarker(js, "crescentEquipped", "Crescent Arch state");
 requireMarker(js, "starCoralEquipped", "Star Coral state");
-requireMarker(artJs, 'register("moonlit-preview-art"', "Moonlit preview art module");
-requireMarker(artJs, 'ART_ENGINE = "class-isolated-v3"', "Class-isolated Moonlit art engine");
-requireMarker(artJs, 'qsa("g.gill[transform]", svg)', "Six authored gill transform check");
-requireMarker(artJs, 'node.removeAttribute("class")', "Global SVG class removal");
-requireMarker(artJs, 'moonlitGillCount = "6"', "Attached-gill integrity marker");
 requireMarker(css, ".moonlit-seasonal-card", "Moonlit seasonal card styles");
 requireMarker(css, "#tank.moonlit-reef-live", "Live Moonlit tank styles");
 requireMarker(css, "#moonlit-light-layer", "Animated moonlight layer");
 requireMarker(css, ".moonlit-jelly-live", "Moon-jelly tank mate styles");
 requireMarker(css, "#moonlit-reef-preview", "Full-screen preview styles");
 requireMarker(css, ".moonlit-preview-items", "Collection item list styles");
+requireMarker(css, ".moonlit-preview-character-svg", "Standalone character sizing styles");
 
-if (js.includes("new MutationObserver") || js.includes("setInterval(") || artJs.includes("new MutationObserver") || artJs.includes("setInterval(")) {
-  throw new Error("Moonlit Reef must not add observer patch loops or polling intervals.");
+const gillTags = js.match(/<path data-moonlit-gill="[^"]+"[^>]*>/g) || [];
+if (gillTags.length !== 6) {
+  throw new Error(`Generated Moonlit preview must ship exactly six final-position gills; found ${gillTags.length}.`);
 }
-if (js.includes('<div class="moonlit-preview-gillie"><svg viewBox="0 0 200 160"></svg></div>')) {
-  throw new Error("Moonlit Reef restored the unscoped preview SVG that allowed gill animation collisions.");
+if (gillTags.some((tag) => /\btransform=/.test(tag))) {
+  throw new Error("Generated Moonlit preview gills must not depend on transform attributes.");
+}
+for (const forbidden of ["axoSVG(", 'class="gill', 'class="axo-core', 'class="axo-tail', "moonlit-preview-art.js", "data-gillie-v1-moonlit-preview-art"]) {
+  if (js.includes(forbidden) || html.includes(forbidden)) {
+    throw new Error(`Generated Moonlit preview restored a removed live-render dependency: ${forbidden}`);
+  }
+}
+if (js.includes("new MutationObserver") || js.includes("setInterval(")) {
+  throw new Error("Moonlit Reef must not add observer patch loops or polling intervals.");
 }
 
 const layoutIndex = html.indexOf('data-gillie-v1-reef-layout-fixes="true"');
 const moonlitIndex = html.indexOf('data-gillie-v1-moonlit-reef="true"');
-const artIndex = html.indexOf('data-gillie-v1-moonlit-preview-art="true"');
-if (layoutIndex < 0 || moonlitIndex < layoutIndex || artIndex < moonlitIndex) {
-  throw new Error("Moonlit preview art isolation must load after the stable Reef and Moonlit collection modules.");
+if (layoutIndex < 0 || moonlitIndex < layoutIndex) {
+  throw new Error("Moonlit Reef must load after the stable Reef layout module.");
 }
 
-console.log("Moonlit Reef smoke checks passed: six class-isolated Gillie gills, grounded arch art, free preview, equip-time Plus gate, collection state, and live effects are present.");
+console.log("Moonlit Reef smoke checks passed: standalone six-gill artwork, grounded arch, free preview, equip-time Plus gate, collection state, and live effects are present.");
