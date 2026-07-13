@@ -46,25 +46,24 @@ requireMarker(css, "#moonlit-reef-preview", "Full-screen preview styles");
 requireMarker(css, ".moonlit-preview-items", "Collection item list styles");
 requireMarker(css, ".moonlit-preview-character-svg", "Standalone character sizing styles");
 
-const gillTags = js.match(/<path data-moonlit-gill="[^"]+"[^>]*>/g) || [];
+const standaloneMatch = js.match(/const STANDALONE_MOON_PEARL_SVG = `([\s\S]*?)`;/);
+if (!standaloneMatch) throw new Error("Generated Moonlit preview is missing its standalone SVG block.");
+const standaloneSvg = standaloneMatch[1];
+const gillTags = standaloneSvg.match(/<path data-moonlit-gill="[^"]+"[^>]*>/g) || [];
 if (gillTags.length !== 6) {
   throw new Error(`Generated Moonlit preview must ship exactly six final-position gills; found ${gillTags.length}.`);
 }
 if (gillTags.some((tag) => /\btransform=/.test(tag))) {
   throw new Error("Generated Moonlit preview gills must not depend on transform attributes.");
 }
-for (const forbidden of [
-  'if (typeof axoSVG === "function")',
-  "return axoSVG(",
-  "svg.innerHTML = axoSVG(",
-]) {
-  if (js.includes(forbidden)) {
-    throw new Error(`Generated Moonlit preview restored executable live-render dependency: ${forbidden}`);
+for (const forbidden of ['class="gill', 'class="axo-core', 'class="axo-tail', 'class="axo-leg', 'class="axo-eye']) {
+  if (standaloneSvg.includes(forbidden)) {
+    throw new Error(`Standalone Moon Pearl SVG restored a global animation class: ${forbidden}`);
   }
 }
-for (const forbidden of ['class="gill', 'class="axo-core', 'class="axo-tail', "moonlit-preview-art.js", "data-gillie-v1-moonlit-preview-art"]) {
-  if (js.includes(forbidden) || html.includes(forbidden)) {
-    throw new Error(`Generated Moonlit preview restored a removed dependency: ${forbidden}`);
+for (const forbidden of ["moonlit-preview-art.js", "data-gillie-v1-moonlit-preview-art"]) {
+  if (html.includes(forbidden)) {
+    throw new Error(`Generated Moonlit preview restored an obsolete asset: ${forbidden}`);
   }
 }
 if (js.includes("new MutationObserver") || js.includes("setInterval(")) {
