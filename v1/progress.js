@@ -79,7 +79,7 @@
       const legacyBox = qs("#insights-box", view);
       const premium = Boolean(current.premium);
       if (legacyHeading) {
-        legacyHeading.textContent = "Advanced predictions";
+        legacyHeading.textContent = "Advanced patterns and planning";
         legacyHeading.hidden = !premium;
       }
       if (legacyBox) legacyBox.hidden = !premium;
