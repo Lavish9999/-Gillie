@@ -1,0 +1,14 @@
+/* Gillie V1 Home character — preserve authored SVG gill positions in WebKit. */
+
+/*
+ * axoSVG() positions each gill group with an SVG transform attribute.
+ * Animating CSS transform on that same group replaces the authored SVG
+ * translation/rotation in WKWebView and pulls the gills onto the head.
+ *
+ * Keep the anatomy fixed and let the existing outer character, body, tail,
+ * eyes, tap, swim, and celebration animations provide the live movement.
+ * Do not add a CSS transform declaration to this rule.
+ */
+#view-home #axo-svg g.gill[transform]{
+  animation:none!important;
+}
