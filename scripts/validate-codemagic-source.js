@@ -54,15 +54,22 @@ const required = [
   ["www/index.html", "data-gillie-foundation=\"true\"", "Foundation asset injection"],
   ["www/index.html", "data-gillie-v1-reef-dashboard=\"true\"", "Reef dashboard script injection"],
   ["www/index.html", "data-gillie-v1-reef-dashboard-styles=\"true\"", "Reef dashboard style injection"],
-  ["www/index.html", "data-gillie-v1-home-gillie-styles=\"true\"", "Home Gillie gill-position stylesheet injection"],
+  ["www/index.html", "data-gillie-v1-home-gillie=\"true\"", "Home Gillie runtime injection"],
+  ["www/index.html", "data-gillie-v1-home-gillie-styles=\"true\"", "Home Gillie stylesheet injection"],
   ["www/v1/core.js", "late-module safe", "Late-safe V1 coordinator"],
   ["www/v1/core.js", "strict tab isolation", "Strict tab-isolation owner"],
   ["www/v1/core.js", "enforceViewIsolation", "Canonical tab enforcement"],
   ["www/v1/v1.css", "#main > .view[data-v1-active=\"true\"]:not([hidden])", "Single active tab display rule"],
   ["www/v1/v1.css", "#main > .view[data-v1-active=\"false\"]", "Inactive tab flex exclusion"],
-  ["www/v1/home-gillie.css", "Gillie V1 Home character", "Home Gillie authored-gill contract"],
-  ["www/v1/home-gillie.css", "#view-home #axo-svg g.gill[transform]", "Home Gillie scoped gill selector"],
-  ["www/v1/home-gillie.css", "animation:none!important", "Home Gillie gill animation isolation"],
+  ["www/v1/home-gillie.js", "home-gillie-static-gills-v2", "Home Gillie runtime engine"],
+  ["www/v1/home-gillie.js", "isolateGillClasses", "Home Gillie rendered-class isolation"],
+  ["www/v1/home-gillie.js", "class=\"axo-gill-static", "Home Gillie static gill class"],
+  ["www/v1/home-gillie.js", "count !== 6", "Home Gillie six-gill atomic guard"],
+  ["www/v1/home-gillie.js", "window.axoSVG = hardenedAxoSVG", "Home Gillie renderer replacement"],
+  ["www/v1/home-gillie.js", "typeof renderAxo === \"function\"", "Home Gillie immediate repaint"],
+  ["www/v1/home-gillie.css", "Gillie V1 Home character", "Home Gillie authored-position contract"],
+  ["www/v1/home-gillie.css", "#view-home #axo-svg .axo-gill-static", "Home Gillie isolated gill selector"],
+  ["www/v1/home-gillie.css", "animation:none!important", "Home Gillie residual animation isolation"],
   ["www/v1/reef.js", "PREVIEW_ENGINE = \"canonical-v3-swipe\"", "Canonical Reef preview engine"],
   ["www/v1/reef.js", "document.addEventListener(\"click\", handlePreviewCapture, true)", "Reef capture listener"],
   ["www/v1/reef.js", "document.addEventListener(\"touchend\", handlePreviewTouchEnd", "Reef swipe completion listener"],
@@ -94,10 +101,18 @@ const required = [
 for (const [file, marker, label] of required) requireMarker(file, marker, label);
 
 const homeGillieCss = read("www/v1/home-gillie.css");
-const homeGillieRule = homeGillieCss.match(/#view-home #axo-svg g\.gill\[transform\]\s*\{([\s\S]*?)\}/)?.[1] || "";
-if (!homeGillieRule) throw new Error("Codemagic contract failed: Home Gillie gill rule is missing.");
+const homeGillieRule = homeGillieCss.match(/#view-home #axo-svg \.axo-gill-static\s*\{([\s\S]*?)\}/)?.[1] || "";
+if (!homeGillieRule) throw new Error("Codemagic contract failed: Home Gillie isolated-gill rule is missing.");
 if (/\btransform\s*:/.test(homeGillieRule)) {
   throw new Error("Codemagic contract failed: Home Gillie CSS must not replace authored SVG gill transforms.");
+}
+
+const homeGillieJs = read("www/v1/home-gillie.js");
+if (!/class=\"gill\(\?=\[\\s\"\]\)/.test(homeGillieJs) && !homeGillieJs.includes('/class="gill(?=[\\s"])([^"]*)"/g')) {
+  throw new Error("Codemagic contract failed: Home Gillie runtime no longer targets the exact generated .gill class boundary.");
+}
+if (!homeGillieJs.includes("if (count !== 6)")) {
+  throw new Error("Codemagic contract failed: Home Gillie runtime can partially rewrite the six-gill anatomy.");
 }
 
 const moonlitSource = read("www/v1/moonlit-reef.js");
