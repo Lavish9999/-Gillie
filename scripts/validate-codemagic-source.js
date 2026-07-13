@@ -54,11 +54,15 @@ const required = [
   ["www/index.html", "data-gillie-foundation=\"true\"", "Foundation asset injection"],
   ["www/index.html", "data-gillie-v1-reef-dashboard=\"true\"", "Reef dashboard script injection"],
   ["www/index.html", "data-gillie-v1-reef-dashboard-styles=\"true\"", "Reef dashboard style injection"],
+  ["www/index.html", "data-gillie-v1-home-gillie-styles=\"true\"", "Home Gillie gill-position stylesheet injection"],
   ["www/v1/core.js", "late-module safe", "Late-safe V1 coordinator"],
   ["www/v1/core.js", "strict tab isolation", "Strict tab-isolation owner"],
   ["www/v1/core.js", "enforceViewIsolation", "Canonical tab enforcement"],
   ["www/v1/v1.css", "#main > .view[data-v1-active=\"true\"]:not([hidden])", "Single active tab display rule"],
   ["www/v1/v1.css", "#main > .view[data-v1-active=\"false\"]", "Inactive tab flex exclusion"],
+  ["www/v1/home-gillie.css", "Gillie V1 Home character", "Home Gillie authored-gill contract"],
+  ["www/v1/home-gillie.css", "#view-home #axo-svg g.gill[transform]", "Home Gillie scoped gill selector"],
+  ["www/v1/home-gillie.css", "animation:none!important", "Home Gillie gill animation isolation"],
   ["www/v1/reef.js", "PREVIEW_ENGINE = \"canonical-v3-swipe\"", "Canonical Reef preview engine"],
   ["www/v1/reef.js", "document.addEventListener(\"click\", handlePreviewCapture, true)", "Reef capture listener"],
   ["www/v1/reef.js", "document.addEventListener(\"touchend\", handlePreviewTouchEnd", "Reef swipe completion listener"],
@@ -88,6 +92,13 @@ const required = [
 ];
 
 for (const [file, marker, label] of required) requireMarker(file, marker, label);
+
+const homeGillieCss = read("www/v1/home-gillie.css");
+const homeGillieRule = homeGillieCss.match(/#view-home #axo-svg g\.gill\[transform\]\s*\{([\s\S]*?)\}/)?.[1] || "";
+if (!homeGillieRule) throw new Error("Codemagic contract failed: Home Gillie gill rule is missing.");
+if (/\btransform\s*:/.test(homeGillieRule)) {
+  throw new Error("Codemagic contract failed: Home Gillie CSS must not replace authored SVG gill transforms.");
+}
 
 const moonlitSource = read("www/v1/moonlit-reef.js");
 const standaloneMatch = moonlitSource.match(/const STANDALONE_MOON_PEARL_SVG = `([\s\S]*?)`;/);
