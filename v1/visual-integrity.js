@@ -94,10 +94,24 @@
       });
     }
 
+    function normalizeHealthClaimCopy() {
+      const overlay = qs("#plus-overlay");
+      if (!overlay) return;
+
+      const subtitle = qs("#plus-subtitle", overlay);
+      if (subtitle) subtitle.textContent = "Spot the times cravings may be more likely — and what to do next.";
+
+      const riskBenefit = qs("#plus-proof > div:first-child em", overlay);
+      if (riskBenefit) riskBenefit.textContent = "See when cravings may be more likely.";
+    }
+
     function ensurePaywallDisclosure() {
       const overlay = qs("#plus-overlay");
+      if (!overlay) return;
+      normalizeHealthClaimCopy();
+
       const footer = qs(".gp-footer", overlay);
-      if (!overlay || !footer) return;
+      if (!footer) return;
 
       let disclosure = qs("#v1-renewal-disclosure", footer);
       if (!disclosure) {
@@ -195,6 +209,7 @@
       removeDecorativeAccentStripes();
       compactOversizedStatusPills();
       collapseEmptyOversizedSurfaces();
+      normalizeHealthClaimCopy();
       ensurePaywallDisclosure();
       cleanVersionLabel();
       document.documentElement.dataset.visualIntegrity = ENGINE;
