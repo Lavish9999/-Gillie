@@ -7,18 +7,18 @@ const root = path.resolve(__dirname, "..");
 const source = fs.readFileSync(path.join(root, "v1", "purchase-director.js"), "utf8");
 
 for (const marker of [
-  "purchase-director-v2-direct-native",
+  "purchase-director-v1-authoritative",
   "selected-product-direct-to-storekit-v1",
   "stopImmediatePropagation",
-  "native.purchase({ productId })",
-  "pricing/product-list lookup is display-only",
+  "native.purchase({ productId: product.id })",
+  "does not call native.getProducts()",
   "GillieEntitlementSync.apply",
   "GilliePurchaseDirector",
 ]) {
   assert(source.includes(marker), `Purchase director is missing: ${marker}`);
 }
 assert(!source.includes("await availablePlan("), "Checkout must not wait for pricing preflight");
-assert(!source.includes("native.getProducts()"), "Checkout director must not perform a product-list lookup");
+assert(!source.includes("await native.getProducts("), "Checkout director must not perform a product-list lookup");
 new Function(source);
 
 class FakeClassList {
@@ -132,7 +132,8 @@ vm.runInContext(source, context, { filename: "v1/purchase-director.js" });
 
 assert(context.window.GilliePurchaseDirector, "Purchase director API must be installed");
 assert.strictEqual(purchase.disabled, false, "Purchase CTA must remain tappable");
-assert.strictEqual(purchase.dataset.purchaseDirector, "purchase-director-v2-direct-native");
+assert.strictEqual(purchase.dataset.purchaseDirector, "purchase-director-v1-authoritative");
+assert.strictEqual(context.window.GilliePurchaseDirector.checkoutMode, "selected-product-direct-to-storekit-v1");
 assert(listeners.has("click:true"), "Purchase director must own checkout in capture phase");
 
 (async () => {
@@ -142,7 +143,7 @@ assert(listeners.has("click:true"), "Purchase director must own checkout in capt
   assert.strictEqual(applied, 1, "Verified entitlement must be applied exactly once");
   assert.strictEqual(overlay.hidden, true, "Paywall must close after verified entitlement");
   assert.strictEqual(purchase.disabled, false, "CTA must be restored after checkout");
-  console.log("Purchase director test passed: pricing was bypassed, one selected product reached native StoreKit, and one verified entitlement was applied.");
+  console.log("Purchase director test passed: zero JavaScript pricing preflight, one selected-product native purchase, and one verified entitlement application.");
 })().catch((error) => {
   console.error(error);
   process.exitCode = 1;
