@@ -1,4 +1,4 @@
-/* Gillie Purchase Director — one authoritative tap path from paywall to verified entitlement. */
+/* Gillie Purchase Director — direct native checkout; pricing can never block purchase. */
 (() => {
   "use strict";
 
@@ -6,9 +6,13 @@
   window.__gilliePurchaseDirectorInstalled = true;
 
   const ENGINE = "purchase-director-v1-authoritative";
-  const LOOKUP_MODE = "shared-timed-storekit-lookup-v1";
-  const PRODUCT_IDS = Object.freeze({ monthly: "gillie.plus.monthly", yearly: "gillie.plus.yearly" });
-  const PRODUCT_LOOKUP_TIMEOUT = 15000;
+  const CHECKOUT_MODE = "selected-product-direct-to-storekit-v1";
+  // Compatibility contract: there is deliberately no JavaScript product lookup timeout.
+  const PRODUCT_LOOKUP_TIMEOUT = 0;
+  const PRODUCT_IDS = Object.freeze({
+    monthly: "gillie.plus.monthly",
+    yearly: "gillie.plus.yearly",
+  });
   const PURCHASE_TIMEOUT = 120000;
   const RESTORE_TIMEOUT = 45000;
 
@@ -27,8 +31,12 @@
     .slice(0, max);
 
   function track(name, properties = {}) {
-    try { bridge()?.trackEvent?.({ name, properties: { engine: ENGINE, lookupMode: LOOKUP_MODE, ...properties } }); }
-    catch (_) {}
+    try {
+      bridge()?.trackEvent?.({
+        name,
+        properties: { engine: ENGINE, checkoutMode: CHECKOUT_MODE, ...properties },
+      });
+    } catch (_) {}
   }
 
   function withTimeout(promise, timeoutMs, code, message) {
@@ -42,8 +50,9 @@
   }
 
   function selectedPlanKey() {
-    try { if (typeof selectedPlusPlan !== "undefined" && PRODUCT_IDS[selectedPlusPlan]) return selectedPlusPlan; }
-    catch (_) {}
+    try {
+      if (typeof selectedPlusPlan !== "undefined" && PRODUCT_IDS[selectedPlusPlan]) return selectedPlusPlan;
+    } catch (_) {}
     return $("#plus-plans [data-plus-plan].on")?.dataset?.plusPlan || "yearly";
   }
 
@@ -81,6 +90,7 @@
     row.className = `gp-store-health ${type || ""}`.trim();
     row.replaceChildren(document.createTextNode(clean(message)));
     if (!allowCopy) return;
+
     const copy = document.createElement("button");
     copy.type = "button";
     copy.textContent = "Copy details";
@@ -105,6 +115,7 @@
     busy = Boolean(active);
     const purchase = $("#plus-purchase");
     const restore = $("#plus-restore");
+
     if (purchase) {
       purchase.disabled = false;
       purchase.setAttribute("aria-disabled", "false");
@@ -114,6 +125,7 @@
       purchase.classList.toggle("phase2-loading", busy && mode === "purchase");
       purchase.textContent = busy && mode === "purchase" ? "Opening Apple…" : "Start Gillie Plus";
     }
+
     if (restore) {
       restore.disabled = false;
       restore.setAttribute("aria-disabled", "false");
@@ -122,64 +134,11 @@
       restore.setAttribute("aria-busy", String(busy && mode === "restore"));
       restore.textContent = busy && mode === "restore" ? "Checking Apple…" : "Restore purchases";
     }
+
     $$("#plus-plans [data-plus-plan]").forEach((button) => {
       button.disabled = false;
       button.setAttribute("aria-disabled", "false");
     });
-  }
-
-  function normalizeProducts(response) {
-    const allowed = new Set(Object.values(PRODUCT_IDS));
-    return (Array.isArray(response?.products) ? response.products : [])
-      .map((product) => ({ id: clean(product?.id, 80), displayPrice: clean(product?.displayPrice, 80) }))
-      .filter((product) => allowed.has(product.id));
-  }
-
-  async function sharedProducts(native) {
-    const pricing = window.GillieStorePricing;
-    if (pricing?.load) {
-      const before = pricing.snapshot?.() || {};
-      const map = await withTimeout(
-        pricing.load({ force: before.state === "error" || before.state === "unavailable" }),
-        PRODUCT_LOOKUP_TIMEOUT,
-        "PRODUCT_LOOKUP_TIMEOUT",
-        "Apple billing did not return the Gillie Plus plans in time.",
-      );
-      const products = map && typeof map.values === "function" ? Array.from(map.values()) : [];
-      const after = pricing.snapshot?.() || {};
-      if (!products.length) {
-        throw Object.assign(
-          new Error(clean(after.error || `Apple returned no Gillie Plus plans for ${after.native?.bundleId || "com.lavish9999.gillie"}.`)),
-          { code: "STORE_PRODUCTS_EMPTY", response: after.native || null },
-        );
-      }
-      return { products, response: after.native || null, source: LOOKUP_MODE };
-    }
-
-    const response = await withTimeout(
-      native.getProducts(),
-      PRODUCT_LOOKUP_TIMEOUT,
-      "PRODUCT_LOOKUP_TIMEOUT",
-      "Apple billing did not return the Gillie Plus plans in time.",
-    );
-    const products = normalizeProducts(response);
-    if (!products.length) {
-      throw Object.assign(
-        new Error(`Apple returned no Gillie Plus plans for ${clean(response?.bundleId || "com.lavish9999.gillie", 100)}.`),
-        { code: "STORE_PRODUCTS_EMPTY", response },
-      );
-    }
-    return { products, response, source: "direct-native-fallback" };
-  }
-
-  async function availablePlan(native, requestedKey) {
-    const loaded = await sharedProducts(native);
-    const requestedId = PRODUCT_IDS[requestedKey] || PRODUCT_IDS.yearly;
-    const chosen = loaded.products.find((product) => product.id === requestedId) || loaded.products[0];
-    const chosenKey = Object.entries(PRODUCT_IDS).find(([, id]) => id === chosen.id)?.[0] || requestedKey;
-    selectPlan(chosenKey);
-    track("purchase_director_product_ready", { source: loaded.source, productId: chosen.id });
-    return { product: chosen, response: loaded.response, key: chosenKey };
   }
 
   function applyEntitlement(status, source) {
@@ -190,10 +149,14 @@
       else if (typeof applyEntitlementStatus === "function") active = Boolean(applyEntitlementStatus(status));
     } catch (_) {}
     if (!active) return false;
+
     const overlay = $("#plus-overlay");
     if (overlay) overlay.hidden = true;
     try { if (typeof toast === "function") toast("👑", "Gillie Plus active. Your plan is unlocked."); } catch (_) {}
-    track("purchase_director_entitlement_active", { source, productId: clean(status.productId, 80) });
+    track("purchase_director_entitlement_active", {
+      source,
+      productId: clean(status.productId, 80),
+    });
     return true;
   }
 
@@ -201,8 +164,15 @@
     const native = bridge();
     if (!native?.getEntitlementStatus) return null;
     try {
-      return await withTimeout(native.getEntitlementStatus(), 12000, "ENTITLEMENT_TIMEOUT", "Apple took too long to confirm the subscription.");
-    } catch (_) { return null; }
+      return await withTimeout(
+        native.getEntitlementStatus(),
+        12000,
+        "ENTITLEMENT_TIMEOUT",
+        "Apple took too long to confirm the subscription.",
+      );
+    } catch (_) {
+      return null;
+    }
   }
 
   async function confirmAfterPurchase(source) {
@@ -217,20 +187,23 @@
   async function purchase() {
     if (busy) return;
     const native = bridge();
-    if (!native?.getProducts || !native?.purchase) {
+    if (!native?.purchase) {
       setHealth("error", "This build is missing the native Apple purchase bridge.", true);
       track("purchase_director_bridge_missing");
       return;
     }
+
     const token = ++operation;
-    const requestedKey = selectedPlanKey();
+    const planKey = selectedPlanKey();
+    const product = { id: PRODUCT_IDS[planKey] || PRODUCT_IDS.yearly };
+    selectPlan(planKey);
     setButtonState(true, "purchase");
-    setHealth("", "Checking this plan with Apple…");
-    track("purchase_director_started", { plan: requestedKey });
+    setHealth("", `Opening Apple’s secure ${planKey === "monthly" ? "monthly" : "yearly"} purchase sheet…`);
+    track("purchase_director_started", { plan: planKey, productId: product.id });
+
     try {
-      const { product, key } = await availablePlan(native, requestedKey);
-      if (token !== operation) return;
-      setHealth("", `Opening Apple’s secure ${key === "monthly" ? "monthly" : "yearly"} purchase sheet…`);
+      // Checkout intentionally does not call native.getProducts(). Pricing is display-only.
+      // Swift fetches only the selected StoreKit product and then presents Apple checkout.
       const result = await withTimeout(
         native.purchase({ productId: product.id }),
         PURCHASE_TIMEOUT,
@@ -238,6 +211,7 @@
         "Apple checkout did not return to Gillie in time.",
       );
       if (token !== operation) return;
+
       if (applyEntitlement(result, "purchase-result")) return;
       if (result?.cancelled) {
         setHealth("", "Purchase cancelled. Nothing was charged.");
@@ -250,6 +224,7 @@
         return;
       }
       if (await confirmAfterPurchase("purchase-recheck")) return;
+
       setHealth("error", "Apple returned without an active Gillie Plus entitlement. Tap Restore purchases, then Copy details if it remains inactive.", true);
       track("purchase_director_inactive", { productId: product.id });
     } catch (error) {
@@ -258,7 +233,7 @@
       const message = clean(error?.message || error || "Purchase was not completed.");
       if (await confirmAfterPurchase("purchase-error-recheck")) return;
       setHealth("error", message, true);
-      track("purchase_director_failed", { code, message: message.slice(0, 100) });
+      track("purchase_director_failed", { code, productId: product.id, message: message.slice(0, 140) });
     } finally {
       if (token === operation) setButtonState(false);
     }
@@ -271,12 +246,19 @@
       setHealth("error", "This build is missing Restore Purchases.", true);
       return;
     }
+
     const token = ++operation;
     setButtonState(true, "restore");
     setHealth("", "Checking purchases for this Apple ID…");
     track("purchase_director_restore_started");
+
     try {
-      const result = await withTimeout(native.restorePurchases(), RESTORE_TIMEOUT, "RESTORE_TIMEOUT", "Apple took too long to restore purchases.");
+      const result = await withTimeout(
+        native.restorePurchases(),
+        RESTORE_TIMEOUT,
+        "RESTORE_TIMEOUT",
+        "Apple took too long to restore purchases.",
+      );
       if (token !== operation) return;
       if (applyEntitlement(result, "restore-result")) return;
       if (await confirmAfterPurchase("restore-recheck")) return;
@@ -287,7 +269,7 @@
       const message = clean(error?.message || error || "Could not restore purchases.");
       if (await confirmAfterPurchase("restore-error-recheck")) return;
       setHealth("error", message, true);
-      track("purchase_director_restore_failed", { message: message.slice(0, 100) });
+      track("purchase_director_restore_failed", { message: message.slice(0, 140) });
     } finally {
       if (token === operation) setButtonState(false);
     }
@@ -306,9 +288,13 @@
     const purchaseButton = $("#plus-purchase");
     const restoreButton = $("#plus-restore");
     if (!purchaseButton || !restoreButton) return false;
+
     purchaseButton.onclick = null;
     restoreButton.onclick = null;
-    setButtonState(busy, busy && restoreButton.getAttribute("aria-busy") === "true" ? "restore" : "purchase");
+    setButtonState(
+      busy,
+      busy && restoreButton.getAttribute("aria-busy") === "true" ? "restore" : "purchase",
+    );
     document.documentElement.dataset.purchaseDirector = ENGINE;
     return true;
   }
@@ -324,24 +310,29 @@
   function install() {
     const overlay = $("#plus-overlay");
     if (!overlay || !enforceOwnership()) return false;
+
     document.addEventListener("click", captureCheckout, true);
     overlayObserver?.disconnect?.();
     overlayObserver = new MutationObserver(syncPaywall);
     overlayObserver.observe(overlay, { attributes: true, attributeFilter: ["hidden", "class"] });
+
     bodyObserver?.disconnect?.();
     bodyObserver = new MutationObserver(() => {
       if ($("#plus-purchase")?.dataset?.purchaseDirector !== ENGINE) enforceOwnership();
     });
     bodyObserver.observe(document.body, { childList: true, subtree: true });
+
     document.addEventListener("visibilitychange", () => {
       if (!document.hidden && !overlay.hidden) {
         enforceOwnership();
         confirmAfterPurchase("foreground");
       }
     });
+
     window.GilliePurchaseDirector = Object.freeze({
       engine: ENGINE,
-      lookupMode: LOOKUP_MODE,
+      checkoutMode: CHECKOUT_MODE,
+      productLookupTimeout: PRODUCT_LOOKUP_TIMEOUT,
       purchase,
       restore,
       busy: () => busy,
@@ -356,6 +347,9 @@
     if (attempt < 180) setTimeout(() => boot(attempt + 1), 50);
   }
 
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => boot(), { once: true });
-  else boot();
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => boot(), { once: true });
+  } else {
+    boot();
+  }
 })();

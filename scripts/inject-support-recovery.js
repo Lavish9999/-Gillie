@@ -22,7 +22,7 @@ const assets = [
 ];
 
 if (!fs.existsSync(indexPath)) {
-  throw new Error("Launch, SOS support, authoritative Plus checkout, entitlement sync, theme access, and theme paint injection requires www/index.html.");
+  throw new Error("Launch, SOS support, direct native Plus checkout, entitlement sync, theme access, and theme paint injection requires www/index.html.");
 }
 
 for (const asset of assets) {
@@ -129,13 +129,17 @@ for (const required of [
 }
 new Function(purchaseFlow);
 for (const required of [
-  "purchase-director-v1-authoritative",
+  "purchase-director-v2-direct-native",
+  "selected-product-direct-to-storekit-v1",
   "stopImmediatePropagation",
-  "PRODUCT_LOOKUP_TIMEOUT",
-  "native.purchase({ productId: product.id })",
+  "native.purchase({ productId })",
+  "pricing/product-list lookup is display-only",
   "GilliePurchaseDirector",
 ]) {
   if (!purchaseDirector.includes(required)) throw new Error(`Generated purchase director is missing marker: ${required}`);
+}
+if (purchaseDirector.includes("native.getProducts()")) {
+  throw new Error("Generated purchase director still allows product-list pricing lookup to gate checkout.");
 }
 new Function(purchaseDirector);
 for (const required of ["entitlement-sync-v1-always-on", "app-boot", "foreground", "entitlementChanged", "gillie:entitlement-updated", "GillieEntitlementSync"]) {
@@ -195,4 +199,4 @@ for (const required of ["--gp-system-top", ".gp-store-health", "safe-area-inset-
 }
 
 fs.writeFileSync(indexPath, html, "utf8");
-console.log("Injected one animated launch, one authoritative Plus checkout path, CSS-only safe chrome, entitlement sync, working themes, and Reef rewards.");
+console.log("Injected one animated launch, direct native Plus checkout, CSS-only safe chrome, entitlement sync, working themes, and Reef rewards.");
