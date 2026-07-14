@@ -6,6 +6,19 @@
   --gp-system-right:max(env(safe-area-inset-right),0px);
 }
 
+#plus-overlay.gp-paywall-overlay::before{
+  content:"";
+  position:absolute;
+  z-index:24;
+  top:0;
+  left:0;
+  right:0;
+  height:var(--gp-system-top);
+  pointer-events:none;
+  background:#EAF7F3;
+  border-bottom:1px solid rgba(17,51,47,.06);
+}
+
 #plus-overlay.gp-paywall-overlay .gp-paywall-scroll{
   scroll-padding-top:calc(var(--gp-system-top) + 20px)!important;
 }

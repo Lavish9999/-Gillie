@@ -9,6 +9,7 @@
   const EXPECTED_IDS = Object.freeze(["gillie.plus.monthly", "gillie.plus.yearly"]);
   let probeToken = 0;
   let observer = null;
+  let chromeActive = false;
 
   const $ = (selector, root = document) => root?.querySelector?.(selector) || null;
   const bridge = () => window.Capacitor?.Plugins?.GilliePurchases || null;
@@ -19,13 +20,16 @@
   }
 
   function setNativeChrome(paywallVisible) {
+    const next = Boolean(paywallVisible);
+    if (next === chromeActive) return;
+    chromeActive = next;
+    document.documentElement?.classList?.toggle("gillie-plus-system-chrome", next);
     try {
       bridge()?.setInterfaceStyle?.({
-        lightStatusBar: Boolean(paywallVisible),
-        surface: paywallVisible ? "plus" : "app",
+        lightStatusBar: next,
+        surface: next ? "plus" : "app",
       });
     } catch (_) {}
-    document.documentElement.classList.toggle("gillie-plus-system-chrome", Boolean(paywallVisible));
   }
 
   function ensureHealthRow() {
@@ -80,6 +84,9 @@
   }
 
   async function probeStoreKit(reason = "paywall-open") {
+    const overlay = $("#plus-overlay");
+    if (!overlay || overlay.hidden) return false;
+
     const token = ++probeToken;
     const native = bridge();
     setHealth("", "Checking Apple billing…");
@@ -93,7 +100,7 @@
     try {
       try { await window.GillieStorePricing?.load?.({ force: true }); } catch (_) {}
       const response = await native.getProducts();
-      if (token !== probeToken) return false;
+      if (token !== probeToken || overlay.hidden) return false;
 
       const products = normalizeProducts(response);
       const returned = products.map((product) => product.id);
@@ -123,7 +130,7 @@
       });
       return true;
     } catch (error) {
-      if (token !== probeToken) return false;
+      if (token !== probeToken || overlay.hidden) return false;
       const message = String(error?.message || error || "Apple billing could not be reached.").replace(/\s+/g, " ").trim().slice(0, 180);
       setHealth("error", message || "Apple billing could not be reached.", true);
       track("paywall_storekit_probe_failed", { reason, code: "request-error", message: message.slice(0, 80) });
@@ -160,20 +167,29 @@
       else setTimeout(() => syncOverlay("paywall-control"), 20);
     }, true);
 
-    document.addEventListener("gillie:purchase-flow-settled", () => setTimeout(() => probeStoreKit("purchase-settled"), 80));
-    document.addEventListener("gillie:entitlement-updated", () => setTimeout(() => probeStoreKit("entitlement-updated"), 80));
-    document.addEventListener("visibilitychange", () => {
-      if (!document.hidden) setTimeout(() => syncOverlay("foreground"), 60);
+    document.addEventListener("gillie:purchase-flow-settled", () => {
+      if (!overlay.hidden) setTimeout(() => probeStoreKit("purchase-settled"), 80);
     });
-    window.addEventListener("pagehide", () => setNativeChrome(false));
+    document.addEventListener("gillie:entitlement-updated", () => {
+      if (!overlay.hidden) setTimeout(() => probeStoreKit("entitlement-updated"), 80);
+    });
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden && !overlay.hidden) setTimeout(() => syncOverlay("foreground"), 60);
+    });
+    window.addEventListener("pagehide", () => {
+      if (chromeActive) setNativeChrome(false);
+    });
 
     window.GilliePaywallRuntimeFix = Object.freeze({
       engine: ENGINE,
       probe: probeStoreKit,
       sync: syncOverlay,
     });
-    syncOverlay("install");
-    track("paywall_runtime_fix_loaded");
+
+    // Critical: the paywall runtime must have zero native or visual side effects
+    // during app boot. It activates only when the paywall is actually visible.
+    if (!overlay.hidden) syncOverlay("install-visible");
+    track("paywall_runtime_fix_loaded", { startupSideEffects: false });
     return true;
   }
 
