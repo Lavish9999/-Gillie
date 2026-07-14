@@ -40,6 +40,8 @@ workflows:
           grep -q 'GilliePurchases?.clearDiagnostics' ios/App/App/GillieBridgeViewController.swift
           grep -q 'claimPlusWelcomeBundle' ios/App/App/GilliePurchasesPlugin.swift
           grep -q 'kSecClassGenericPassword' ios/App/App/GilliePurchasesPlugin.swift
+          grep -q 'CAPPluginMethod(name: "requestReview"' ios/App/App/GilliePurchasesPlugin.swift
+          grep -q 'SKStoreReviewController.requestReview' ios/App/App/GilliePurchasesPlugin.swift
           grep -q 'GillieWelcomeRecoveryPlugin' ios/App/App/GillieBridgeViewController.swift
           grep -q 'recoverWelcomeBundle' ios/App/App/GillieBridgeViewController.swift
 
@@ -182,6 +184,8 @@ workflows:
           test -f "$app_path/public/v1/welcome-recovery.js"
           test -f "$app_path/public/v1/purchase-flow.js"
           test -f "$app_path/public/v1/theme-engine.js"
+          test -f "$app_path/public/v1/launch-experience.js"
+          test -f "$app_path/public/v1/launch-experience.css"
           test -f "$app_path/public/v1/support-recovery.css"
           grep -q 'store-pricing-v1' "$app_path/public/v1/store-pricing.js"
           grep -q 'Loading Apple price' "$app_path/public/v1/store-pricing.js"
@@ -200,6 +204,13 @@ workflows:
           grep -Fq '#theme-row [data-theme]' "$app_path/public/v1/theme-engine.js"
           grep -q 'gillie:theme-applied' "$app_path/public/v1/theme-engine.js"
           grep -q 'GillieThemeEngine' "$app_path/public/v1/theme-engine.js"
+          grep -q 'launch-experience-v1' "$app_path/public/v1/launch-experience.js"
+          grep -q 'Stay clean · Keep the water clear' "$app_path/public/v1/launch-experience.js"
+          grep -q 'first_setup_rating_prompt_shown' "$app_path/public/v1/launch-experience.js"
+          grep -q 'requestNativeReview' "$app_path/public/v1/launch-experience.js"
+          grep -q 'Rate Gillie' "$app_path/public/v1/launch-experience.js"
+          grep -q 'gillieLaunchSwimIn' "$app_path/public/v1/launch-experience.css"
+          grep -q '.gillie-rating-overlay' "$app_path/public/v1/launch-experience.css"
           grep -q 'id="toast" role="status" aria-live="polite" aria-atomic="true"' "$app_path/public/index.html"
 
           if grep -R -qE 'fonts\.googleapis\.com|fonts\.gstatic\.com' "$app_path/public"; then
