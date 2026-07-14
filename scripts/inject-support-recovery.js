@@ -93,6 +93,10 @@ for (const required of ["welcome-recovery-v1", "recoverWelcomeBundle", "plus_wel
 }
 for (const required of [
   "purchase-flow-v1",
+  "purchase-flow-v3-production-branch",
+  "Apple returned zero Gillie Plus products",
+  "STORE_PRODUCTS_EMPTY",
+  "Copy purchase details",
   "entitlementChanged",
   "Confirming your Apple subscription",
   "Purchase pending with Apple",
@@ -100,6 +104,7 @@ for (const required of [
 ]) {
   if (!purchaseFlow.includes(required)) throw new Error(`Generated purchase-flow module is missing marker: ${required}`);
 }
+new Function(purchaseFlow);
 for (const required of [
   "theme-engine-v1",
   "#theme-row [data-theme]",
@@ -135,4 +140,4 @@ for (const required of [".gillie-launch-intro", ".gillie-rating-overlay", "gilli
 }
 
 fs.writeFileSync(indexPath, html, "utf8");
-console.log("Injected cinematic launch, first-setup rating invitation, human SOS support, Plus recovery, resilient purchases, and visibly painted Reef themes.");
+console.log("Injected cinematic launch, first-setup rating invitation, human SOS support, production StoreKit preflight, Plus diagnostics, and visibly painted Reef themes.");
