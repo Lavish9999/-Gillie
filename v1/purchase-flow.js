@@ -1,4 +1,4 @@
-/* Gillie V1 Purchase Flow — immediate feedback, StoreKit reconciliation, and duplicate-tap protection. */
+/* Gillie V1 Purchase Flow — StoreKit product preflight, checkout, restore, and diagnostics. */
 (() => {
   "use strict";
 
@@ -6,6 +6,7 @@
   window.__gilliePurchaseFlowInstalled = true;
 
   const ENGINE = "purchase-flow-v1";
+  const VERSION = "purchase-flow-v3-production-branch";
   const PRODUCT_IDS = Object.freeze({
     monthly: "gillie.plus.monthly",
     yearly: "gillie.plus.yearly",
@@ -15,22 +16,26 @@
   const RECENT_ATTEMPT_MS = 5 * 60 * 1000;
 
   let busy = false;
-  let busyMode = "";
   let attemptToken = 0;
   let attemptStartedAt = 0;
   let timeoutHandle = 0;
   let listenerInstalled = false;
   let lastFinishedToken = 0;
+  let lastFailure = null;
   const priorDisabled = new WeakMap();
 
-  const $ = (selector, root = document) => root.querySelector(selector);
-  const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
+  const $ = (selector, root = document) => root?.querySelector?.(selector) || null;
+  const $$ = (selector, root = document) => Array.from(root?.querySelectorAll?.(selector) || []);
   const bridge = () => window.Capacitor?.Plugins?.GilliePurchases || null;
+  const clean = (value, max = 500) => String(value || "")
+    .replace(/[\u0000-\u001F\u007F]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, max);
 
   function track(name, properties = {}) {
-    try {
-      bridge()?.trackEvent?.({ name, properties: { engine: ENGINE, ...properties } });
-    } catch (_) {}
+    try { bridge()?.trackEvent?.({ name, properties: { engine: ENGINE, version: VERSION, ...properties } }); }
+    catch (_) {}
   }
 
   function selectedPlanKey() {
@@ -40,44 +45,37 @@
     return $("#plus-plans [data-plus-plan].on")?.dataset?.plusPlan || "yearly";
   }
 
-  function selectedPlan() {
-    const key = selectedPlanKey();
-    let plan = null;
-    try { plan = CONFIG?.plus?.products?.[key] || null; } catch (_) {}
+  function choosePlan(key) {
+    if (!PRODUCT_IDS[key]) return;
+    try { selectedPlusPlan = key; } catch (_) {}
+    $$("#plus-plans [data-plus-plan]").forEach((button) => {
+      const selected = button.dataset.plusPlan === key;
+      button.classList.toggle("on", selected);
+      button.setAttribute("aria-checked", String(selected));
+    });
+  }
+
+  function planFor(key = selectedPlanKey()) {
+    let configured = null;
+    try { configured = CONFIG?.plus?.products?.[key] || null; } catch (_) {}
     return {
       key,
-      id: plan?.id || PRODUCT_IDS[key] || PRODUCT_IDS.yearly,
-      name: plan?.name || (key === "monthly" ? "Monthly" : "Yearly"),
+      id: configured?.id || PRODUCT_IDS[key] || PRODUCT_IDS.yearly,
+      name: configured?.name || (key === "monthly" ? "Monthly" : "Yearly"),
     };
   }
 
-  function purchaseButton() {
-    return $("#plus-purchase");
-  }
-
-  function restoreButton() {
-    return $("#plus-restore");
-  }
-
-  function statusBanner() {
-    return $("#gp-status-banner");
-  }
-
-  function legalElement() {
-    return $("#plus-legal");
-  }
-
   function setStatus(message, type = "working") {
-    const clean = String(message || "").trim();
-    const legal = legalElement();
-    if (legal) legal.textContent = clean;
-
-    const banner = statusBanner();
+    const text = clean(message);
+    const legal = $("#plus-legal");
+    if (legal) legal.textContent = text;
+    const banner = $("#gp-status-banner");
     if (banner) {
-      banner.textContent = clean;
+      banner.textContent = text;
       banner.className = `gp-status-banner ${type}`;
-      banner.hidden = !clean;
+      banner.hidden = !text;
     }
+    if (type === "error") ensureDiagnosticsButton(true);
   }
 
   function rememberAndDisable(element) {
@@ -97,16 +95,12 @@
 
   function setBusy(active, mode = "purchase", label = "") {
     busy = Boolean(active);
-    busyMode = busy ? mode : "";
-
-    const purchase = purchaseButton();
-    const restore = restoreButton();
+    const purchase = $("#plus-purchase");
+    const restore = $("#plus-restore");
     const plans = $$("#plus-plans [data-plus-plan]");
 
     if (busy) {
-      rememberAndDisable(purchase);
-      rememberAndDisable(restore);
-      plans.forEach(rememberAndDisable);
+      [purchase, restore, ...plans].forEach(rememberAndDisable);
       if (purchase) {
         purchase.dataset.purchaseBusy = "1";
         purchase.setAttribute("aria-busy", "true");
@@ -124,70 +118,94 @@
     if (purchase) {
       delete purchase.dataset.purchaseBusy;
       purchase.removeAttribute("aria-busy");
-      if (!purchase.disabled) purchase.textContent = "Start Gillie Plus";
+      purchase.disabled = false;
+      purchase.setAttribute("aria-disabled", "false");
+      purchase.textContent = "Start Gillie Plus";
     }
     if (restore) {
       delete restore.dataset.purchaseBusy;
       restore.removeAttribute("aria-busy");
+      restore.disabled = false;
       restore.textContent = "Restore purchases";
     }
     document.dispatchEvent(new CustomEvent("gillie:purchase-flow-settled"));
   }
 
-  function closePaywall() {
-    const overlay = $("#plus-overlay");
-    if (!overlay || overlay.hidden) return;
-    try {
-      if (typeof closeSheetOverlay === "function") closeSheetOverlay(overlay, false);
-      else overlay.hidden = true;
-    } catch (_) {
-      overlay.hidden = true;
-    }
-  }
-
-  function announceSuccess(message) {
-    closePaywall();
-    setTimeout(() => {
-      try {
-        if (typeof toast === "function") toast("👑", message);
-      } catch (_) {}
-    }, 180);
-  }
-
   function applyActiveEntitlement(status, source = "unknown") {
     if (!status?.active) return false;
     clearTimeout(timeoutHandle);
-    try {
-      if (typeof applyEntitlementStatus === "function") applyEntitlementStatus(status);
-    } catch (_) {}
+    lastFailure = null;
+    try { if (typeof applyEntitlementStatus === "function") applyEntitlementStatus(status); } catch (_) {}
     setBusy(false);
+    ensureDiagnosticsButton(false);
     setStatus("Gillie Plus is active.", "success");
-    announceSuccess("Gillie Plus active. Your plan is unlocked.");
-    track("purchase_flow_active", {
-      source,
-      productId: String(status?.productId || "").slice(0, 80),
-    });
+    const overlay = $("#plus-overlay");
+    if (overlay) overlay.hidden = true;
+    try { if (typeof toast === "function") toast("👑", "Gillie Plus active. Your plan is unlocked."); } catch (_) {}
+    track("purchase_flow_active", { source, productId: clean(status?.productId, 80) });
     return true;
   }
 
-  function delay(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+  function normalizeProducts(response) {
+    const expected = new Set(Object.values(PRODUCT_IDS));
+    return (Array.isArray(response?.products) ? response.products : [])
+      .map((product) => ({ id: clean(product?.id, 80), displayPrice: clean(product?.displayPrice, 80) }))
+      .filter((product) => expected.has(product.id));
   }
 
-  async function readEntitlement() {
-    const plugin = bridge();
-    if (!plugin?.getEntitlementStatus) return null;
-    try {
-      return await plugin.getEntitlementStatus();
-    } catch (error) {
-      track("purchase_entitlement_check_failed", {
-        message: String(error?.message || error).slice(0, 100),
+  async function preflight(native = bridge(), requested = planFor()) {
+    if (!native?.getProducts) {
+      throw Object.assign(new Error("The native Gillie purchase bridge cannot load Apple products in this build."), {
+        code: "BRIDGE_PRODUCTS_MISSING",
       });
+    }
+
+    const response = await native.getProducts();
+    const products = normalizeProducts(response);
+    const available = products.map((product) => product.id);
+    let resolved = requested;
+
+    if (!available.includes(resolved.id)) {
+      const fallback = ["yearly", "monthly"].find((key) => available.includes(PRODUCT_IDS[key]));
+      if (fallback) {
+        choosePlan(fallback);
+        resolved = planFor(fallback);
+      } else {
+        const requestedIds = Array.isArray(response?.requestedProductIds)
+          ? response.requestedProductIds.join(", ")
+          : Object.values(PRODUCT_IDS).join(", ");
+        const returnedIds = Array.isArray(response?.returnedProductIds)
+          ? response.returnedProductIds.join(", ")
+          : available.join(", ");
+        throw Object.assign(
+          new Error(`Apple returned zero Gillie Plus products. Requested: ${requestedIds || "none"}. Returned: ${returnedIds || "none"}.`),
+          { code: "STORE_PRODUCTS_EMPTY", details: response || null },
+        );
+      }
+    }
+
+    track("purchase_product_preflight_ready", {
+      requestedPlan: requested.key,
+      resolvedPlan: resolved.key,
+      productId: resolved.id,
+      availableCount: available.length,
+    });
+    return { plan: resolved, response };
+  }
+
+  const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  async function readEntitlement() {
+    const native = bridge();
+    if (!native?.getEntitlementStatus) return null;
+    try { return await native.getEntitlementStatus(); }
+    catch (error) {
+      track("purchase_entitlement_check_failed", { message: clean(error?.message || error, 120) });
       return null;
     }
   }
 
-  async function reconcileEntitlement(token, reason = "purchase_return") {
+  async function reconcileEntitlement(token, reason) {
     for (const wait of RECHECK_DELAYS) {
       if (token !== attemptToken || token === lastFinishedToken) return false;
       if (wait) await delay(wait);
@@ -205,12 +223,40 @@
     timeoutHandle = setTimeout(() => {
       if (token !== attemptToken || token === lastFinishedToken || !busy) return;
       setBusy(false);
-      setStatus(
-        "Apple is still processing this purchase. You can tap Restore purchases, or return to Gillie and it will unlock automatically when Apple confirms it.",
-        "pending",
-      );
-      track("purchase_flow_timeout", { mode: busyMode || "purchase" });
+      setStatus("Apple is still processing this purchase. Tap Restore purchases, or return to Gillie and it will unlock when Apple confirms it.", "pending");
+      track("purchase_flow_timeout");
     }, PURCHASE_TIMEOUT_MS);
+  }
+
+  function rememberFailure(stage, error, extra = {}) {
+    lastFailure = {
+      stage,
+      code: clean(error?.code || "UNKNOWN", 80),
+      message: clean(error?.message || error || "Unknown purchase error."),
+      at: new Date().toISOString(),
+      ...extra,
+    };
+    track("purchase_flow_error", {
+      stage,
+      code: lastFailure.code,
+      message: lastFailure.message.slice(0, 140),
+      ...extra,
+    });
+  }
+
+  function visibleFailure(error) {
+    const message = clean(error?.message || error || "Purchase was not completed.");
+    if (/cancel/i.test(message)) return { text: "Purchase cancelled. Nothing was charged.", type: "info" };
+    if (error?.code === "STORE_PRODUCTS_EMPTY") {
+      return {
+        text: "Apple returned zero Gillie Plus products for this TestFlight build. The app bridge is present, but StoreKit cannot see the monthly or yearly subscription. Tap Copy purchase details below.",
+        type: "error",
+      };
+    }
+    if (error?.code === "BRIDGE_PRODUCTS_MISSING") {
+      return { text: "This build is missing the native Gillie purchase bridge and cannot open Apple checkout.", type: "error" };
+    }
+    return { text: `Purchase was not completed. ${message}`, type: "error" };
   }
 
   async function handlePurchase(event) {
@@ -218,29 +264,37 @@
     event?.stopPropagation?.();
     if (busy) return;
 
-    const plugin = bridge();
-    if (!plugin?.purchase) {
-      setStatus("Gillie Plus purchases are available in the iOS App Store build.", "error");
+    const native = bridge();
+    if (!native?.purchase || !native?.getProducts) {
+      const error = Object.assign(new Error("The native Gillie purchase bridge is missing."), { code: "BRIDGE_PRODUCTS_MISSING" });
+      rememberFailure("bridge", error);
+      setStatus(visibleFailure(error).text, "error");
       return;
     }
 
-    const plan = selectedPlan();
+    const requested = planFor();
     const token = ++attemptToken;
     attemptStartedAt = Date.now();
-    setBusy(true, "purchase", "Opening Apple…");
-    setStatus(`Opening Apple’s secure ${plan.name.toLowerCase()} purchase…`, "working");
-    track("purchase_flow_started", { plan: plan.key, productId: plan.id });
+    setBusy(true, "purchase", "Connecting to Apple…");
+    setStatus("Checking that Apple can see this Gillie Plus plan…", "working");
+    track("purchase_flow_started", { plan: requested.key, productId: requested.id });
     startTimeout(token);
 
-    const reassurance = setTimeout(() => {
-      if (token !== attemptToken || token === lastFinishedToken || !busy) return;
-      const purchase = purchaseButton();
-      if (purchase) purchase.textContent = "Waiting for Apple…";
-      setStatus("Complete the Apple purchase sheet. Gillie will confirm your access automatically.", "working");
-    }, 1800);
-
+    let reassurance = 0;
     try {
-      const result = await plugin.purchase({ productId: plan.id });
+      const { plan } = await preflight(native, requested);
+      if (token !== attemptToken || token === lastFinishedToken) return;
+      const purchaseButton = $("#plus-purchase");
+      if (purchaseButton) purchaseButton.textContent = "Opening Apple…";
+      setStatus(`Opening Apple’s secure ${plan.name.toLowerCase()} purchase…`, "working");
+      reassurance = setTimeout(() => {
+        if (token !== attemptToken || token === lastFinishedToken || !busy) return;
+        const button = $("#plus-purchase");
+        if (button) button.textContent = "Waiting for Apple…";
+        setStatus("Complete the Apple purchase sheet. Gillie will confirm your access automatically.", "working");
+      }, 1800);
+
+      const result = await native.purchase({ productId: plan.id });
       clearTimeout(reassurance);
       if (token !== attemptToken || token === lastFinishedToken) return;
 
@@ -248,57 +302,44 @@
         lastFinishedToken = token;
         return;
       }
-
       if (result?.cancelled) {
         clearTimeout(timeoutHandle);
         lastFinishedToken = token;
         setBusy(false);
         setStatus("Purchase cancelled. Nothing was charged.", "info");
-        track("purchase_flow_cancelled", { plan: plan.key });
         return;
       }
-
       if (result?.pending) {
         clearTimeout(timeoutHandle);
         lastFinishedToken = token;
         setBusy(false);
-        setStatus("Purchase pending with Apple. Gillie will unlock automatically when Apple approves it.", "pending");
-        track("purchase_flow_pending", { plan: plan.key });
+        setStatus("Purchase pending with Apple. Gillie will unlock when Apple approves it.", "pending");
         return;
       }
 
-      const purchase = purchaseButton();
-      if (purchase) purchase.textContent = "Confirming access…";
+      const confirmButton = $("#plus-purchase");
+      if (confirmButton) confirmButton.textContent = "Confirming access…";
       setStatus("Apple returned to Gillie. Confirming your subscription…", "working");
-      const active = await reconcileEntitlement(token, "inactive_result");
-      if (active) return;
+      if (await reconcileEntitlement(token, "inactive_result")) return;
 
       clearTimeout(timeoutHandle);
       lastFinishedToken = token;
       setBusy(false);
-      setStatus(
-        "Apple did not confirm an active subscription yet. Tap Restore purchases once; if it still does not unlock, check that the sandbox purchase completed.",
-        "error",
-      );
-      track("purchase_flow_inactive_return", { plan: plan.key });
+      const inactiveError = Object.assign(new Error("Apple returned without an active Gillie Plus entitlement."), { code: "INACTIVE_AFTER_PURCHASE" });
+      rememberFailure("entitlement", inactiveError, { plan: plan.key, productId: plan.id });
+      setStatus("Apple did not confirm an active subscription. Tap Restore purchases once, then copy the purchase details if it remains inactive.", "error");
     } catch (error) {
       clearTimeout(reassurance);
       if (token !== attemptToken || token === lastFinishedToken) return;
-
-      setStatus("Apple returned to Gillie. Checking whether the purchase completed…", "working");
-      const active = await reconcileEntitlement(token, "purchase_error");
-      if (active) return;
+      setStatus("Checking whether Apple completed the purchase…", "working");
+      if (await reconcileEntitlement(token, "purchase_error")) return;
 
       clearTimeout(timeoutHandle);
       lastFinishedToken = token;
       setBusy(false);
-      const message = String(error?.message || "Purchase was not completed.");
-      const cancelled = /cancel/i.test(message);
-      setStatus(
-        cancelled ? "Purchase cancelled. Nothing was charged." : `Purchase was not completed. ${message}`,
-        cancelled ? "info" : "error",
-      );
-      track("purchase_flow_error", { message: message.slice(0, 100), plan: plan.key });
+      rememberFailure("purchase", error, { plan: requested.key, productId: requested.id });
+      const friendly = visibleFailure(error);
+      setStatus(friendly.text, friendly.type);
     }
   }
 
@@ -307,9 +348,11 @@
     event?.stopPropagation?.();
     if (busy) return;
 
-    const plugin = bridge();
-    if (!plugin?.restorePurchases) {
-      setStatus("Restore purchases is available in the iOS App Store build.", "error");
+    const native = bridge();
+    if (!native?.restorePurchases) {
+      const error = Object.assign(new Error("The native Restore Purchases bridge is missing."), { code: "BRIDGE_RESTORE_MISSING" });
+      rememberFailure("restore-bridge", error);
+      setStatus(error.message, "error");
       return;
     }
 
@@ -321,116 +364,167 @@
     startTimeout(token);
 
     try {
-      const result = await plugin.restorePurchases();
+      const result = await native.restorePurchases();
       if (token !== attemptToken || token === lastFinishedToken) return;
       if (applyActiveEntitlement(result, "restore_result")) {
         lastFinishedToken = token;
         return;
       }
-
-      const active = await reconcileEntitlement(token, "restore_result");
-      if (active) return;
+      if (await reconcileEntitlement(token, "restore_result")) return;
 
       clearTimeout(timeoutHandle);
       lastFinishedToken = token;
       setBusy(false);
-      setStatus("No active Gillie Plus subscription was found for this Apple ID.", "error");
-      track("purchase_restore_inactive");
+      const restoreError = Object.assign(new Error("No active Gillie Plus subscription was found for this Apple ID."), { code: "NO_ACTIVE_ENTITLEMENT" });
+      rememberFailure("restore", restoreError);
+      setStatus(restoreError.message, "error");
     } catch (error) {
       if (token !== attemptToken || token === lastFinishedToken) return;
-      const active = await reconcileEntitlement(token, "restore_error");
-      if (active) return;
-
+      if (await reconcileEntitlement(token, "restore_error")) return;
       clearTimeout(timeoutHandle);
       lastFinishedToken = token;
       setBusy(false);
-      const message = String(error?.message || "Could not restore purchases right now.");
-      setStatus(message, "error");
-      track("purchase_restore_error", { message: message.slice(0, 100) });
+      rememberFailure("restore", error);
+      setStatus(clean(error?.message || error || "Could not restore purchases right now."), "error");
     }
+  }
+
+  async function collectDiagnostics() {
+    const native = bridge();
+    const report = {
+      engine: VERSION,
+      generatedAt: new Date().toISOString(),
+      selectedPlan: planFor(),
+      expectedProductIds: PRODUCT_IDS,
+      pricing: window.GillieStorePricing?.snapshot?.() || null,
+      lastFailure,
+      bridge: {
+        available: Boolean(native),
+        getProducts: Boolean(native?.getProducts),
+        purchase: Boolean(native?.purchase),
+        restorePurchases: Boolean(native?.restorePurchases),
+        getEntitlementStatus: Boolean(native?.getEntitlementStatus),
+      },
+    };
+    try { if (native?.getProducts) report.products = await native.getProducts(); }
+    catch (error) { report.productsError = clean(error?.message || error); }
+    try { if (native?.getEntitlementStatus) report.entitlement = await native.getEntitlementStatus(); }
+    catch (error) { report.entitlementError = clean(error?.message || error); }
+    try {
+      if (native?.getDiagnostics) {
+        const diagnostics = await native.getDiagnostics();
+        report.nativeApp = diagnostics?.app || null;
+        report.nativeEvents = Array.isArray(diagnostics?.events) ? diagnostics.events.slice(-30) : [];
+      }
+    } catch (error) {
+      report.nativeDiagnosticsError = clean(error?.message || error);
+    }
+    return report;
+  }
+
+  async function copyDiagnostics() {
+    const button = $("#gillie-purchase-diagnostics");
+    if (button) button.textContent = "Collecting…";
+    try {
+      const text = JSON.stringify(await collectDiagnostics(), null, 2);
+      await navigator.clipboard.writeText(text);
+      if (button) button.textContent = "Purchase details copied";
+      try { if (typeof toast === "function") toast("✓", "Purchase details copied."); } catch (_) {}
+    } catch (error) {
+      if (button) button.textContent = "Copy purchase details";
+      setStatus(`Could not copy purchase details. ${clean(error?.message || error, 200)}`, "error");
+    }
+  }
+
+  function ensureDiagnosticsButton(show = Boolean(lastFailure)) {
+    const overlay = $("#plus-overlay");
+    if (!overlay) return null;
+    let button = $("#gillie-purchase-diagnostics", overlay);
+    if (!button) {
+      button = document.createElement("button");
+      button.id = "gillie-purchase-diagnostics";
+      button.type = "button";
+      button.textContent = "Copy purchase details";
+      button.style.cssText = "display:block;width:100%;margin:10px 0 0;padding:10px 12px;border:1px solid rgba(126,149,143,.35);border-radius:14px;background:rgba(255,255,255,.7);color:#48645e;font-weight:800;font-size:12px";
+      button.addEventListener("click", copyDiagnostics);
+      const restoreRow = $(".plus-restore-row", overlay) || $(".gp-restore-row", overlay);
+      if (restoreRow?.insertAdjacentElement) restoreRow.insertAdjacentElement("afterend", button);
+      else $(".gp-footer", overlay)?.appendChild(button);
+    }
+    button.hidden = !show;
+    if (!show) button.textContent = "Copy purchase details";
+    return button;
   }
 
   async function reconcileAfterForeground() {
     if (!attemptStartedAt || Date.now() - attemptStartedAt > RECENT_ATTEMPT_MS) return;
     const token = attemptToken;
     if (token === lastFinishedToken) return;
-    if (busy) {
-      const purchase = purchaseButton();
-      if (purchase && busyMode === "purchase") purchase.textContent = "Confirming access…";
-      setStatus("Back in Gillie. Confirming your Apple subscription…", "working");
-    }
-    const active = await reconcileEntitlement(token, "app_foreground");
-    if (active) lastFinishedToken = token;
+    if (busy) setStatus("Back in Gillie. Confirming your Apple subscription…", "working");
+    if (await reconcileEntitlement(token, "app_foreground")) lastFinishedToken = token;
   }
 
   function installEntitlementListener() {
     if (listenerInstalled) return;
-    const plugin = bridge();
-    if (!plugin?.addListener) return;
+    const native = bridge();
+    if (!native?.addListener) return;
     listenerInstalled = true;
     try {
-      Promise.resolve(plugin.addListener("entitlementChanged", (status) => {
+      Promise.resolve(native.addListener("entitlementChanged", (status) => {
         if (!status?.active) return;
         lastFinishedToken = attemptToken;
         applyActiveEntitlement(status, "native_listener");
-      })).catch((error) => {
-        listenerInstalled = false;
-        track("purchase_listener_failed", { message: String(error?.message || error).slice(0, 100) });
-      });
-    } catch (error) {
+      })).catch(() => { listenerInstalled = false; });
+    } catch (_) {
       listenerInstalled = false;
-      track("purchase_listener_failed", { message: String(error?.message || error).slice(0, 100) });
     }
   }
 
   function bindButtons() {
-    const purchase = purchaseButton();
-    const restore = restoreButton();
+    const purchase = $("#plus-purchase");
+    const restore = $("#plus-restore");
     if (!purchase || !restore) return false;
     purchase.onclick = handlePurchase;
     restore.onclick = handleRestore;
-    purchase.dataset.purchaseFlow = ENGINE;
-    restore.dataset.purchaseFlow = ENGINE;
+    purchase.dataset.purchaseFlow = VERSION;
+    restore.dataset.purchaseFlow = VERSION;
+    ensureDiagnosticsButton(Boolean(lastFailure));
     return true;
   }
 
   function install() {
     installEntitlementListener();
     if (!bindButtons()) return false;
-
     document.addEventListener("visibilitychange", () => {
       if (!document.hidden) {
         installEntitlementListener();
         setTimeout(reconcileAfterForeground, 80);
       }
     });
-
-    document.addEventListener("gillie:purchase-flow-settled", () => {
-      setTimeout(bindButtons, 20);
-    });
-
+    document.addEventListener("gillie:purchase-flow-settled", () => setTimeout(bindButtons, 20));
     const observer = new MutationObserver(() => {
-      if (!purchaseButton()?.dataset?.purchaseFlow) bindButtons();
+      if ($("#plus-purchase")?.dataset?.purchaseFlow !== VERSION) bindButtons();
       installEntitlementListener();
     });
     observer.observe(document.body, { childList: true, subtree: true });
 
-    track("purchase_flow_loaded", { engine: ENGINE });
+    window.GilliePurchaseFlow = Object.freeze({
+      engine: VERSION,
+      productIds: PRODUCT_IDS,
+      preflight: () => preflight(bridge(), planFor()),
+      diagnostics: collectDiagnostics,
+      copyDiagnostics,
+      lastFailure: () => lastFailure,
+    });
+    track("purchase_flow_loaded", { engine: VERSION });
     return true;
   }
 
-  function wait(attempt = 0) {
+  function boot(attempt = 0) {
     if (install()) return;
-    if (attempt >= 120) {
-      track("purchase_flow_install_failed", { reason: "buttons_missing" });
-      return;
-    }
-    setTimeout(() => wait(attempt + 1), 50);
+    if (attempt < 160) setTimeout(() => boot(attempt + 1), 50);
   }
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => wait(), { once: true });
-  } else {
-    wait();
-  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => boot(), { once: true });
+  else boot();
 })();

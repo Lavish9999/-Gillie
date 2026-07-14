@@ -14,6 +14,7 @@ const sos = read("v1/sos-support.js");
 const recovery = read("v1/welcome-recovery.js");
 const purchaseFlow = read("v1/purchase-flow.js");
 const themeEngine = read("v1/theme-engine.js");
+const themePaint = read("v1/theme-paint.js");
 const launchExperience = read("v1/launch-experience.js");
 const supportStyles = read("v1/support-recovery.css");
 const launchStyles = read("v1/launch-experience.css");
@@ -25,6 +26,7 @@ for (const marker of [
   'data-gillie-v1-welcome-recovery="true"',
   'data-gillie-v1-purchase-flow="true"',
   'data-gillie-v1-theme-engine="true"',
+  'data-gillie-v1-theme-paint="true"',
   'data-gillie-v1-launch-experience="true"',
 ]) {
   if (!html.includes(marker)) throw new Error(`Generated index is missing marker: ${marker}`);
@@ -37,6 +39,10 @@ for (const marker of ["welcome-recovery-v1", "recoverWelcomeBundle", "plus_welco
 }
 for (const marker of [
   "purchase-flow-v1",
+  "purchase-flow-v3-production-branch",
+  "STORE_PRODUCTS_EMPTY",
+  "Apple returned zero Gillie Plus products",
+  "Copy purchase details",
   "entitlementChanged",
   "Opening Apple…",
   "Confirming your Apple subscription",
@@ -44,6 +50,7 @@ for (const marker of [
 ]) {
   if (!purchaseFlow.includes(marker)) throw new Error(`Generated purchase flow is missing: ${marker}`);
 }
+new Function(purchaseFlow);
 for (const marker of [
   "theme-engine-v1",
   "#theme-row [data-theme]",
@@ -53,6 +60,18 @@ for (const marker of [
 ]) {
   if (!themeEngine.includes(marker)) throw new Error(`Generated theme engine is missing: ${marker}`);
 }
+for (const marker of [
+  "theme-paint-v1",
+  "placeLayerAboveMurk",
+  "--gillie-theme-water-top",
+  "background-color",
+  "reef_theme_painted",
+  "gillie:theme-painted",
+  "GillieThemePaint",
+]) {
+  if (!themePaint.includes(marker)) throw new Error(`Generated theme paint is missing: ${marker}`);
+}
+new Function(themePaint);
 for (const marker of [
   "launch-experience-v1",
   "Stay clean · Keep the water clear",
@@ -68,4 +87,4 @@ for (const marker of [".gillie-launch-intro", ".gillie-rating-overlay", "gillieL
 }
 if (!supportStyles.includes(".v1-sos-support-sheet")) throw new Error("Generated support styles are missing.");
 
-console.log("Generated cinematic launch, first-setup rating prompt, SOS support, welcome recovery, purchase flow, and Reef theme-engine smoke checks passed.");
+console.log("Generated launch, production StoreKit preflight, zero-product diagnostics, Reef theme-engine, and direct theme-paint smoke checks passed.");

@@ -22,9 +22,11 @@ vm.runInContext(source, context, { filename: "v1/store-pricing.js" });
 
 const pricing = context.window.GillieStorePricing;
 assert(pricing, "Store pricing API was not exposed");
-assert.strictEqual(pricing.engine, "store-pricing-v1");
+assert.strictEqual(pricing.engine, "store-pricing-v2-retryable");
 assert.strictEqual(pricing.productIds.monthly, "gillie.plus.monthly");
 assert.strictEqual(pricing.productIds.yearly, "gillie.plus.yearly");
+assert.strictEqual(typeof pricing.load, "function", "Store pricing must expose a retryable load action");
+assert.strictEqual(typeof pricing.snapshot, "function", "Store pricing must expose a diagnostics snapshot");
 
 const products = pricing.normalizeProducts({
   products: [
@@ -50,4 +52,9 @@ assert.strictEqual(pricing.cadenceFor({ periodValue: 1, periodUnit: "unknown" })
 assert.strictEqual(pricing.normalizeProducts(null).size, 0);
 assert.strictEqual(pricing.normalizeProducts({ products: "bad" }).size, 0);
 
-console.log("Store pricing test passed: only localized Apple products are accepted and billing periods are normalized safely.");
+const ctaBlock = source.slice(source.indexOf('target.matches("#plus-purchase")'));
+assert(ctaBlock.includes("loadAppleProducts({ force: true })"), "A failed price load must be retryable from the Plus CTA");
+assert(!ctaBlock.includes("stopImmediatePropagation"), "Store pricing must never swallow the Plus purchase click");
+assert(!source.includes("Apple price unavailable\";\n        purchase.disabled = true"), "A pricing error must not permanently disable checkout");
+
+console.log("Store pricing test passed: Apple products are normalized, zero-product failures remain retryable, and pricing cannot swallow checkout.");

@@ -11,11 +11,12 @@ const assets = [
   "v1/welcome-recovery.js",
   "v1/purchase-flow.js",
   "v1/theme-engine.js",
+  "v1/theme-paint.js",
   "v1/launch-experience.js",
 ];
 
 if (!fs.existsSync(indexPath)) {
-  throw new Error("Launch, SOS support, welcome recovery, purchase-flow, and theme-engine injection requires www/index.html.");
+  throw new Error("Launch, SOS support, welcome recovery, purchase-flow, theme-engine, and theme-paint injection requires www/index.html.");
 }
 
 for (const asset of assets) {
@@ -38,6 +39,7 @@ const injection = `${marker}
 <script src="./v1/welcome-recovery.js" defer data-gillie-v1-welcome-recovery="true"></script>
 <script src="./v1/purchase-flow.js" defer data-gillie-v1-purchase-flow="true"></script>
 <script src="./v1/theme-engine.js" defer data-gillie-v1-theme-engine="true"></script>
+<script src="./v1/theme-paint.js" defer data-gillie-v1-theme-paint="true"></script>
 <script src="./v1/launch-experience.js" defer data-gillie-v1-launch-experience="true"></script>`;
 
 if (html.includes(themeMarker) && !html.includes(marker)) {
@@ -56,6 +58,11 @@ if (html.includes(themeMarker) && !html.includes(marker)) {
   if (!html.includes("</body>")) throw new Error("Cannot inject launch/support assets: missing </body>.");
   html = html.replace("</body>", `${injection}
 </body>`);
+} else if (!html.includes('data-gillie-v1-theme-paint="true"')) {
+  const engineTag = '<script src="./v1/theme-engine.js" defer data-gillie-v1-theme-engine="true"></script>';
+  if (!html.includes(engineTag)) throw new Error("Cannot add theme paint after theme engine: engine tag missing.");
+  html = html.replace(engineTag, `${engineTag}
+<script src="./v1/theme-paint.js" defer data-gillie-v1-theme-paint="true"></script>`);
 }
 
 for (const markerText of [
@@ -65,6 +72,7 @@ for (const markerText of [
   'data-gillie-v1-welcome-recovery="true"',
   'data-gillie-v1-purchase-flow="true"',
   'data-gillie-v1-theme-engine="true"',
+  'data-gillie-v1-theme-paint="true"',
   'data-gillie-v1-launch-experience="true"',
 ]) {
   if (!html.includes(markerText)) throw new Error(`Generated index is missing launch/support marker: ${markerText}`);
@@ -74,6 +82,7 @@ const sos = fs.readFileSync(path.join(out, "v1", "sos-support.js"), "utf8");
 const recovery = fs.readFileSync(path.join(out, "v1", "welcome-recovery.js"), "utf8");
 const purchaseFlow = fs.readFileSync(path.join(out, "v1", "purchase-flow.js"), "utf8");
 const themeEngine = fs.readFileSync(path.join(out, "v1", "theme-engine.js"), "utf8");
+const themePaint = fs.readFileSync(path.join(out, "v1", "theme-paint.js"), "utf8");
 const launchExperience = fs.readFileSync(path.join(out, "v1", "launch-experience.js"), "utf8");
 const launchStyles = fs.readFileSync(path.join(out, "v1", "launch-experience.css"), "utf8");
 for (const required of ["1-800-QUIT-NOW", "QUITNOW to 333888", "smokefree.gov", "Message someone I trust"]) {
@@ -84,6 +93,10 @@ for (const required of ["welcome-recovery-v1", "recoverWelcomeBundle", "plus_wel
 }
 for (const required of [
   "purchase-flow-v1",
+  "purchase-flow-v3-production-branch",
+  "Apple returned zero Gillie Plus products",
+  "STORE_PRODUCTS_EMPTY",
+  "Copy purchase details",
   "entitlementChanged",
   "Confirming your Apple subscription",
   "Purchase pending with Apple",
@@ -91,6 +104,7 @@ for (const required of [
 ]) {
   if (!purchaseFlow.includes(required)) throw new Error(`Generated purchase-flow module is missing marker: ${required}`);
 }
+new Function(purchaseFlow);
 for (const required of [
   "theme-engine-v1",
   "#theme-row [data-theme]",
@@ -100,6 +114,17 @@ for (const required of [
 ]) {
   if (!themeEngine.includes(required)) throw new Error(`Generated theme-engine module is missing marker: ${required}`);
 }
+for (const required of [
+  "theme-paint-v1",
+  "placeLayerAboveMurk",
+  "--gillie-theme-water-top",
+  "reef_theme_painted",
+  "gillie:theme-painted",
+  "GillieThemePaint",
+]) {
+  if (!themePaint.includes(required)) throw new Error(`Generated theme-paint module is missing marker: ${required}`);
+}
+new Function(themePaint);
 for (const required of [
   "launch-experience-v1",
   "Stay clean · Keep the water clear",
@@ -115,4 +140,4 @@ for (const required of [".gillie-launch-intro", ".gillie-rating-overlay", "gilli
 }
 
 fs.writeFileSync(indexPath, html, "utf8");
-console.log("Injected cinematic launch, first-setup rating invitation, human SOS support, Plus recovery, resilient purchases, and reliable Reef themes.");
+console.log("Injected cinematic launch, first-setup rating invitation, human SOS support, production StoreKit preflight, Plus diagnostics, and visibly painted Reef themes.");
