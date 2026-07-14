@@ -7,6 +7,7 @@ const indexPath = path.join(out, "index.html");
 const assets = [
   "v1/support-recovery.css",
   "v1/launch-experience.css",
+  "v1/paywall-runtime-fix.css",
   "v1/sos-support.js",
   "v1/welcome-recovery.js",
   "v1/purchase-flow.js",
@@ -16,10 +17,11 @@ const assets = [
   "v1/theme-paint.js",
   "v1/launch-experience.js",
   "v1/launch-handoff.js",
+  "v1/paywall-runtime-fix.js",
 ];
 
 if (!fs.existsSync(indexPath)) {
-  throw new Error("Launch, SOS support, Plus entitlement sync, theme access, and theme paint injection requires www/index.html.");
+  throw new Error("Launch, SOS support, Plus entitlement sync, paywall runtime, theme access, and theme paint injection requires www/index.html.");
 }
 
 for (const asset of assets) {
@@ -38,6 +40,7 @@ const legacyMarker = "<!-- Gillie SOS support and Plus welcome recovery -->";
 const injection = `${marker}
 <link rel="stylesheet" href="./v1/support-recovery.css" data-gillie-v1-support-recovery-styles="true">
 <link rel="stylesheet" href="./v1/launch-experience.css" data-gillie-v1-launch-experience-styles="true">
+<link rel="stylesheet" href="./v1/paywall-runtime-fix.css" data-gillie-v1-paywall-runtime-fix-styles="true">
 <script src="./v1/sos-support.js" defer data-gillie-v1-sos-support="true"></script>
 <script src="./v1/welcome-recovery.js" defer data-gillie-v1-welcome-recovery="true"></script>
 <script src="./v1/purchase-flow.js" defer data-gillie-v1-purchase-flow="true"></script>
@@ -46,7 +49,8 @@ const injection = `${marker}
 <script src="./v1/theme-engine.js" defer data-gillie-v1-theme-engine="true"></script>
 <script src="./v1/theme-paint.js" defer data-gillie-v1-theme-paint="true"></script>
 <script src="./v1/launch-experience.js" defer data-gillie-v1-launch-experience="true"></script>
-<script src="./v1/launch-handoff.js" defer data-gillie-v1-launch-handoff="true"></script>`;
+<script src="./v1/launch-handoff.js" defer data-gillie-v1-launch-handoff="true"></script>
+<script src="./v1/paywall-runtime-fix.js" defer data-gillie-v1-paywall-runtime-fix="true"></script>`;
 
 if (html.includes(themeMarker) && !html.includes(marker)) {
   const themePattern = /<!-- Gillie SOS support, Plus recovery, purchase flow, and theme engine -->[\s\S]*?<script src="\.\/v1\/theme-engine\.js" defer data-gillie-v1-theme-engine="true"><\/script>/;
@@ -73,6 +77,7 @@ if (html.includes(themeMarker) && !html.includes(marker)) {
 for (const markerText of [
   'data-gillie-v1-support-recovery-styles="true"',
   'data-gillie-v1-launch-experience-styles="true"',
+  'data-gillie-v1-paywall-runtime-fix-styles="true"',
   'data-gillie-v1-sos-support="true"',
   'data-gillie-v1-welcome-recovery="true"',
   'data-gillie-v1-purchase-flow="true"',
@@ -82,6 +87,7 @@ for (const markerText of [
   'data-gillie-v1-theme-paint="true"',
   'data-gillie-v1-launch-experience="true"',
   'data-gillie-v1-launch-handoff="true"',
+  'data-gillie-v1-paywall-runtime-fix="true"',
 ]) {
   if (!html.includes(markerText)) throw new Error(`Generated index is missing launch/support marker: ${markerText}`);
 }
@@ -95,7 +101,9 @@ const themeEngine = fs.readFileSync(path.join(out, "v1", "theme-engine.js"), "ut
 const themePaint = fs.readFileSync(path.join(out, "v1", "theme-paint.js"), "utf8");
 const launchExperience = fs.readFileSync(path.join(out, "v1", "launch-experience.js"), "utf8");
 const launchHandoff = fs.readFileSync(path.join(out, "v1", "launch-handoff.js"), "utf8");
+const paywallRuntime = fs.readFileSync(path.join(out, "v1", "paywall-runtime-fix.js"), "utf8");
 const launchStyles = fs.readFileSync(path.join(out, "v1", "launch-experience.css"), "utf8");
+const paywallStyles = fs.readFileSync(path.join(out, "v1", "paywall-runtime-fix.css"), "utf8");
 for (const required of ["1-800-QUIT-NOW", "QUITNOW to 333888", "smokefree.gov", "Message someone I trust"]) {
   if (!sos.includes(required)) throw new Error(`Generated SOS support module is missing marker: ${required}`);
 }
@@ -152,15 +160,22 @@ for (const required of [
   "Rate Gillie",
   "GillieLaunchExperience",
 ]) {
-  if (!launchExperience.includes(required)) throw new Error(`Generated launch experience is missing marker: ${required}`);
+  if (!launchExperience.includes(required)) throw new Error(`Generated launch experience module is missing marker: ${required}`);
 }
 for (const required of ["launch-handoff-v1-single-intro", "gillie-boot-pending", "launch_handoff_released"]) {
   if (!launchHandoff.includes(required)) throw new Error(`Generated launch handoff is missing marker: ${required}`);
 }
 new Function(launchHandoff);
+for (const required of ["paywall-runtime-fix-v1", "setInterfaceStyle", "Apple billing connected", "Copy details", "GilliePaywallRuntimeFix"]) {
+  if (!paywallRuntime.includes(required)) throw new Error(`Generated paywall runtime is missing marker: ${required}`);
+}
+new Function(paywallRuntime);
 for (const required of [".gillie-launch-intro", ".gillie-rating-overlay", "gillieLaunchSwimIn", "prefers-reduced-motion"]) {
   if (!launchStyles.includes(required)) throw new Error(`Generated launch styles are missing marker: ${required}`);
 }
+for (const required of ["--gp-system-top", ".gp-store-health", "safe-area-inset-top", "orientation:landscape"]) {
+  if (!paywallStyles.includes(required)) throw new Error(`Generated paywall runtime styles are missing marker: ${required}`);
+}
 
 fs.writeFileSync(indexPath, html, "utf8");
-console.log("Injected one animated launch, always-on Plus entitlement sync, working core themes, StoreKit checkout, and Reef rewards.");
+console.log("Injected one animated launch, safe Gillie Plus system chrome, live StoreKit readiness, entitlement sync, working themes, and Reef rewards.");
