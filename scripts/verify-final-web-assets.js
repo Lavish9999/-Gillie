@@ -63,6 +63,8 @@ function requireFinalContract(root) {
     "v1/theme-paint.js",
     "v1/launch-experience.js",
     "v1/launch-handoff.js",
+    "v1/paywall-runtime-fix.js",
+    "v1/paywall-runtime-fix.css",
   ];
   for (const relative of requiredFiles) {
     const file = path.join(root, relative);
@@ -90,6 +92,8 @@ function requireFinalContract(root) {
     ["index.html", 'data-gillie-v1-entitlement-sync="true"'],
     ["index.html", 'data-gillie-v1-theme-access="true"'],
     ["index.html", 'data-gillie-v1-launch-handoff="true"'],
+    ["index.html", 'data-gillie-v1-paywall-runtime-fix="true"'],
+    ["index.html", 'data-gillie-v1-paywall-runtime-fix-styles="true"'],
     ["v1/purchase-flow.js", "purchase-flow-v3-production-branch"],
     ["v1/purchase-flow.js", "Apple returned zero Gillie Plus products"],
     ["v1/purchase-flow.js", "Copy purchase details"],
@@ -102,6 +106,11 @@ function requireFinalContract(root) {
     ["v1/theme-paint.js", "theme-paint-v1"],
     ["v1/launch-experience.js", "launch-experience-v1"],
     ["v1/launch-handoff.js", "launch-handoff-v1-single-intro"],
+    ["v1/paywall-runtime-fix.js", "paywall-runtime-fix-v1"],
+    ["v1/paywall-runtime-fix.js", "setInterfaceStyle"],
+    ["v1/paywall-runtime-fix.js", "Apple billing connected"],
+    ["v1/paywall-runtime-fix.css", "--gp-system-top"],
+    ["v1/paywall-runtime-fix.css", ".gp-store-health"],
   ];
   for (const [relative, marker] of contracts) {
     const source = fs.readFileSync(path.join(root, relative), "utf8");
@@ -122,6 +131,7 @@ function requireFinalContract(root) {
     "theme-paint.js",
     "launch-experience.js",
     "launch-handoff.js",
+    "paywall-runtime-fix.js",
   ]) new Function(fs.readFileSync(path.join(root, "v1", relative), "utf8"));
   return provenance;
 }
