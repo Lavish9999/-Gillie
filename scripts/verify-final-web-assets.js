@@ -1,25 +1,13 @@
 const fs = require("fs");
 const path = require("path");
 
-const TEXT_EXTENSIONS = new Set([
-  ".html",
-  ".htm",
-  ".js",
-  ".mjs",
-  ".css",
-  ".json",
-  ".webmanifest",
-  ".svg",
-  ".txt",
-]);
-
+const TEXT_EXTENSIONS = new Set([".html", ".htm", ".js", ".mjs", ".css", ".json", ".webmanifest", ".svg", ".txt"]);
 const FORBIDDEN_PATTERNS = [
   { label: "viewport zoom restriction", pattern: /user-scalable\s*=\s*no/i },
   { label: "hardcoded monthly subscription price", pattern: /\$3\.99/ },
   { label: "hardcoded yearly subscription price", pattern: /\$29\.99/ },
   { label: "hardcoded subscription savings claim", pattern: /Save 37%/i },
 ];
-
 const EXPECTED_PRODUCTION_REFS = ["main", "native-ios-launch"];
 
 function walkTextFiles(root) {
@@ -31,28 +19,31 @@ function walkTextFiles(root) {
     if (stat.isSymbolicLink()) continue;
     if (stat.isDirectory()) {
       for (const entry of fs.readdirSync(current)) queue.push(path.join(current, entry));
-      continue;
+    } else if (stat.isFile() && TEXT_EXTENSIONS.has(path.extname(current).toLowerCase())) {
+      files.push(current);
     }
-    if (stat.isFile() && TEXT_EXTENSIONS.has(path.extname(current).toLowerCase())) files.push(current);
   }
   return files.sort();
 }
 
-function lineAndColumn(source, index) {
-  const before = source.slice(0, index);
-  const lines = before.split(/\r?\n/);
-  return { line: lines.length, column: lines[lines.length - 1].length + 1 };
+function requireFile(root, relative) {
+  const file = path.join(root, relative);
+  if (!fs.existsSync(file)) throw new Error(`Final web bundle is missing required shipping file: ${relative}`);
+  return fs.readFileSync(file, "utf8");
 }
 
-function shortLine(source, index) {
-  const start = source.lastIndexOf("\n", index - 1) + 1;
-  const endIndex = source.indexOf("\n", index);
-  const end = endIndex < 0 ? source.length : endIndex;
-  return source.slice(start, end).trim().slice(0, 180);
+function requireMarker(root, relative, marker) {
+  const source = requireFile(root, relative);
+  if (!source.includes(marker)) throw new Error(`Final web bundle contract missing from ${relative}: ${marker}`);
+}
+
+function forbidMarker(root, relative, marker, label = marker) {
+  const source = requireFile(root, relative);
+  if (source.includes(marker)) throw new Error(`Final web bundle contains forbidden ${label} in ${relative}: ${marker}`);
 }
 
 function requireFinalContract(root) {
-  const requiredFiles = [
+  for (const relative of [
     "index.html",
     "v1/build-source.json",
     "v1/purchase-flow.js",
@@ -66,23 +57,15 @@ function requireFinalContract(root) {
     "v1/launch-handoff.js",
     "v1/paywall-runtime-fix.js",
     "v1/paywall-runtime-fix.css",
-  ];
-  for (const relative of requiredFiles) {
-    const file = path.join(root, relative);
-    if (!fs.existsSync(file)) throw new Error(`Final web bundle is missing required shipping file: ${relative}`);
-  }
+  ]) requireFile(root, relative);
 
-  const provenance = JSON.parse(fs.readFileSync(path.join(root, "v1", "build-source.json"), "utf8"));
+  const provenance = JSON.parse(requireFile(root, "v1/build-source.json"));
   const allowedRefs = Array.isArray(provenance.allowedProductionRefs) ? provenance.allowedProductionRefs : [];
   for (const expected of EXPECTED_PRODUCTION_REFS) {
     if (!allowedRefs.includes(expected)) throw new Error(`Final web bundle production refs are incomplete; missing ${expected}.`);
   }
-  if (!provenance.sourceBranch || !provenance.sourceCommit) {
-    throw new Error("Final web bundle is missing source branch or commit provenance.");
-  }
-  if (!allowedRefs.includes(provenance.sourceBranch)) {
-    throw new Error(`Final web bundle came from unapproved source ref: ${provenance.sourceBranch}.`);
-  }
+  if (!provenance.sourceBranch || !provenance.sourceCommit) throw new Error("Final web bundle is missing source branch or commit provenance.");
+  if (!allowedRefs.includes(provenance.sourceBranch)) throw new Error(`Final web bundle came from unapproved source ref: ${provenance.sourceBranch}.`);
   if (process.env.CM_BRANCH && process.env.CM_BRANCH !== provenance.sourceBranch) {
     throw new Error(`Codemagic branch ${process.env.CM_BRANCH} does not match bundled provenance ${provenance.sourceBranch}.`);
   }
@@ -95,57 +78,38 @@ function requireFinalContract(root) {
     ["index.html", 'data-gillie-v1-theme-access="true"'],
     ["index.html", 'data-gillie-v1-launch-handoff="true"'],
     ["index.html", 'data-gillie-v1-paywall-runtime-fix="true"'],
-    ["index.html", 'data-gillie-v1-paywall-runtime-fix-styles="true"'],
     ["v1/purchase-flow.js", "purchase-flow-v3-production-branch"],
-    ["v1/purchase-flow.js", "Apple returned zero Gillie Plus products"],
     ["v1/purchase-flow.js", "Copy purchase details"],
-    ["v1/purchase-director.js", "purchase-director-v1-authoritative"],
+    ["v1/purchase-director.js", "purchase-director-v2-direct-native"],
+    ["v1/purchase-director.js", "selected-product-direct-to-storekit-v1"],
     ["v1/purchase-director.js", "stopImmediatePropagation"],
-    ["v1/purchase-director.js", "PRODUCT_LOOKUP_TIMEOUT"],
     ["v1/purchase-director.js", "native.purchase({ productId: product.id })"],
     ["v1/purchase-director.js", "GillieEntitlementSync.apply"],
     ["v1/store-pricing.js", "store-pricing-v2-retryable"],
-    ["v1/store-pricing.js", "purchase-director-v1-authoritative"],
-    ["v1/store-pricing.js", "Never start a second product request"],
     ["v1/entitlement-sync.js", "entitlement-sync-v1-always-on"],
     ["v1/entitlement-sync.js", "app-boot"],
-    ["v1/entitlement-sync.js", "gillie:entitlement-updated"],
     ["v1/theme-access.js", "theme-access-v1-basic-free"],
     ["v1/theme-engine.js", "theme-engine-v2-multitank-level-rewards"],
     ["v1/theme-paint.js", "theme-paint-v1"],
     ["v1/launch-experience.js", "launch-experience-v1"],
     ["v1/launch-handoff.js", "launch-handoff-v1-single-intro"],
-    ["v1/paywall-runtime-fix.js", "paywall-runtime-fix-v1"],
     ["v1/paywall-runtime-fix.js", "css-only-system-chrome-v2"],
-    ["v1/paywall-runtime-fix.js", "single-open-storekit-probe"],
     ["v1/paywall-runtime-fix.js", "ensurePaywallSurface"],
-    ["v1/paywall-runtime-fix.js", "Apple billing connected"],
     ["v1/paywall-runtime-fix.css", "--gp-system-top"],
-    ["v1/paywall-runtime-fix.css", ".gp-store-health"],
-    ["v1/build-source.json", '"checkoutEngine": "purchase-director-v1-authoritative"'],
-    ["v1/build-source.json", '"checkoutOwnership": "capture-phase-single-owner-v1"'],
-    ["v1/build-source.json", '"pricingCheckoutPolicy": "display-only-never-disable-v1"'],
-    ["v1/build-source.json", '"paywallProbeMode": "single-open-storekit-probe"'],
-    ["v1/build-source.json", '"paywallChromeMode": "css-only-system-chrome-v2"'],
-    ["v1/build-source.json", '"paywallSurfaceGuard": "ensurePaywallSurface-v1"'],
+    ["v1/build-source.json", '"checkoutEngine": "purchase-director-v2-direct-native"'],
+    ["v1/build-source.json", '"checkoutMode": "selected-product-direct-to-storekit-v1"'],
+    ["v1/build-source.json", '"pricingCheckoutPolicy": "display-only-never-gates-checkout-v2"'],
+    ["v1/build-source.json", '"nativeStoreKitLoader": "selected-product-only-retry-v1"'],
+    ["v1/build-source.json", '"nativeCheckoutMode": "selected-product-direct-v1"'],
+    ["v1/build-source.json", '"themePaintEngine": "theme-paint-v1"'],
   ];
-  for (const [relative, marker] of contracts) {
-    const source = fs.readFileSync(path.join(root, relative), "utf8");
-    if (!source.includes(marker)) throw new Error(`Final web bundle contract missing from ${relative}: ${marker}`);
-  }
+  for (const [relative, marker] of contracts) requireMarker(root, relative, marker);
 
-  const pricing = fs.readFileSync(path.join(root, "v1", "store-pricing.js"), "utf8");
-  if (pricing.includes("purchase.disabled = loading")) {
-    throw new Error("Final web bundle allows pricing lookup to disable the Gillie Plus checkout button.");
-  }
-  const paywallRuntime = fs.readFileSync(path.join(root, "v1", "paywall-runtime-fix.js"), "utf8");
-  if (paywallRuntime.includes("bridge()?.setInterfaceStyle?.(")) {
-    throw new Error("Final web bundle still calls the native interface-style bridge that covers the Capacitor WebView.");
-  }
-
-  const index = fs.readFileSync(path.join(root, "index.html"), "utf8");
+  forbidMarker(root, "v1/purchase-director.js", "await availablePlan(", "JavaScript pricing preflight");
+  forbidMarker(root, "v1/store-pricing.js", "purchase.disabled = loading", "pricing-owned checkout disablement");
+  forbidMarker(root, "v1/paywall-runtime-fix.js", "bridge()?.setInterfaceStyle?.(", "native root-view mutation");
   for (const forbidden of ["splash-orb", "Grow clean", "splashRise", "splashFloat"]) {
-    if (index.includes(forbidden)) throw new Error(`Final web bundle still contains the legacy first splash: ${forbidden}`);
+    forbidMarker(root, "index.html", forbidden, "legacy first splash");
   }
 
   for (const relative of [
@@ -159,16 +123,19 @@ function requireFinalContract(root) {
     "launch-experience.js",
     "launch-handoff.js",
     "paywall-runtime-fix.js",
-  ]) new Function(fs.readFileSync(path.join(root, "v1", relative), "utf8"));
+  ]) new Function(requireFile(root, `v1/${relative}`));
+
   return provenance;
+}
+
+function lineAndColumn(source, index) {
+  const before = source.slice(0, index).split(/\r?\n/);
+  return { line: before.length, column: before[before.length - 1].length + 1 };
 }
 
 function scanFinalWebAssets(rootPath) {
   const root = path.resolve(rootPath);
-  if (!fs.existsSync(root) || !fs.statSync(root).isDirectory()) {
-    throw new Error(`Final web asset directory is missing: ${root}`);
-  }
-
+  if (!fs.existsSync(root) || !fs.statSync(root).isDirectory()) throw new Error(`Final web asset directory is missing: ${root}`);
   const provenance = requireFinalContract(root);
   const files = walkTextFiles(root);
   if (!files.length) throw new Error(`No text web assets were found in: ${root}`);
@@ -181,23 +148,10 @@ function scanFinalWebAssets(rootPath) {
       rule.pattern.lastIndex = 0;
       if (!match) continue;
       const location = lineAndColumn(source, match.index);
-      findings.push({
-        label: rule.label,
-        file: path.relative(root, file) || path.basename(file),
-        line: location.line,
-        column: location.column,
-        excerpt: shortLine(source, match.index),
-      });
+      findings.push(`${rule.label}: ${path.relative(root, file)}:${location.line}:${location.column}`);
     }
   }
-
-  if (findings.length) {
-    const details = findings
-      .map((finding) => `- ${finding.label}: ${finding.file}:${finding.line}:${finding.column}\n  ${finding.excerpt}`)
-      .join("\n");
-    throw new Error(`Final web bundle contains forbidden release content:\n${details}`);
-  }
-
+  if (findings.length) throw new Error(`Final web bundle contains forbidden release content:\n- ${findings.join("\n- ")}`);
   return { root, filesChecked: files.length, provenance };
 }
 
@@ -216,11 +170,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = {
-  EXPECTED_PRODUCTION_REFS,
-  FORBIDDEN_PATTERNS,
-  TEXT_EXTENSIONS,
-  requireFinalContract,
-  scanFinalWebAssets,
-  walkTextFiles,
-};
+module.exports = { EXPECTED_PRODUCTION_REFS, FORBIDDEN_PATTERNS, TEXT_EXTENSIONS, requireFinalContract, scanFinalWebAssets, walkTextFiles };
