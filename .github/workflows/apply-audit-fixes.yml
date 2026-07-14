@@ -1,22 +1,24 @@
-name: Apply Gillie full-audit fixes
+name: Apply Gillie native audit fix
 
 on:
-  push:
+  pull_request:
     branches:
-      - fix/full-audit-errors-2026-07-14
+      - main
+    types: [opened, synchronize, reopened]
 
 permissions:
   contents: write
 
 jobs:
-  apply-and-validate:
+  apply-native-fix:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - name: Check out audit branch
+      - name: Check out the PR branch
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
 
       - name: Use Node 22
@@ -25,11 +27,43 @@ jobs:
           node-version: '22'
           cache: npm
 
-      - name: Decode and apply fixes
+      - name: Remove obsolete native interface bridge
+        shell: python
         run: |
-          base64 -d audit-fixes.patch.gz.b64 | gzip -d > /tmp/audit-fixes.patch
-          git apply --check --recount /tmp/audit-fixes.patch
-          git apply --recount /tmp/audit-fixes.patch
+          from pathlib import Path
+
+          path = Path('ios/App/App/GilliePurchasesPlugin.swift')
+          source = path.read_text(encoding='utf-8')
+          source = source.replace(
+              '        CAPPluginMethod(name: "setInterfaceStyle", returnType: CAPPluginReturnPromise),\n',
+              '',
+          )
+          obsolete = '''    @objc func setInterfaceStyle(_ call: CAPPluginCall) {
+                  let lightStatusBar = call.getBool("lightStatusBar") ?? false
+                  DispatchQueue.main.async {
+                      UIApplication.shared.statusBarStyle = lightStatusBar ? .lightContent : .darkContent
+                      let background = lightStatusBar
+                          ? UIColor(red: 10 / 255, green: 66 / 255, blue: 59 / 255, alpha: 1)
+                          : UIColor(red: 234 / 255, green: 247 / 255, blue: 243 / 255, alpha: 1)
+                      UIApplication.shared.connectedScenes
+                          .compactMap { $0 as? UIWindowScene }
+                          .flatMap(\.windows)
+                          .forEach { window in
+                              window.backgroundColor = background
+                              window.rootViewController?.view.backgroundColor = background
+                          }
+                      self.recordEvent(name: "interface_style_changed_native", properties: ["lightStatusBar": lightStatusBar])
+                      call.resolve(["lightStatusBar": lightStatusBar])
+                  }
+              }
+
+          '''
+          if obsolete not in source:
+              raise SystemExit('Expected obsolete setInterfaceStyle implementation was not found exactly.')
+          source = source.replace(obsolete, '', 1)
+          if 'setInterfaceStyle' in source:
+              raise SystemExit('setInterfaceStyle remains after native cleanup.')
+          path.write_text(source, encoding='utf-8')
 
       - name: Install locked dependencies
         run: npm ci
@@ -37,10 +71,11 @@ jobs:
       - name: Validate exact release bundle
         run: npm run validate:ship
 
-      - name: Commit validated fixes
+      - name: Commit validated native cleanup
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add v1/launch-experience.js v1/launch-experience.css ios/App/App/GilliePurchasesPlugin.swift scripts/prepare-ios-release.js
-          git commit -m 'Fix all Gillie audit findings [audit-fixes-applied]'
-          git push origin HEAD:fix/full-audit-errors-2026-07-14
+          git rm -f audit-fixes.patch.gz.b64 .github/workflows/apply-audit-fixes.yml
+          git add ios/App/App/GilliePurchasesPlugin.swift
+          git commit -m 'Remove obsolete native interface bridge'
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
