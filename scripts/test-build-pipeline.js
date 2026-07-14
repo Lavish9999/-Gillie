@@ -29,6 +29,14 @@ for (const command of requiredOrder) {
   previousIndex = index;
 }
 
+const phase3Injector = fs.readFileSync(path.join(root, "scripts/inject-phase3.js"), "utf8");
+if (!phase3Injector.includes('ENGINE = "store-pricing-v2-retryable"')) {
+  throw new Error("Phase 3 injector does not accept the current retryable StoreKit pricing engine.");
+}
+if (phase3Injector.includes('ENGINE = "store-pricing-v1"')) {
+  throw new Error("Phase 3 injector still rejects the current StoreKit pricing engine using the obsolete v1 marker.");
+}
+
 const safetySource = fs.readFileSync(path.join(root, "scripts/apply-release-safety.js"), "utf8");
 if (!safetySource.includes('path.join(root, "www", "phase5-paywall.js")')) {
   throw new Error("Release safety no longer validates the generated Phase 5 paywall.");
@@ -67,4 +75,4 @@ for (const marker of [
   if (!codemagic.includes(marker)) throw new Error(`Codemagic signed-IPA verification is missing: ${marker}`);
 }
 
-console.log("Build pipeline test passed: synchronized production refs are accepted and exact Plus/theme code is verified before and after IPA signing.");
+console.log("Build pipeline test passed: the current StoreKit pricing engine is accepted, synchronized production refs are allowed, and exact Plus/theme code is verified before and after IPA signing.");
