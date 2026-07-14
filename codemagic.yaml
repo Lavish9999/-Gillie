@@ -173,8 +173,23 @@ workflows:
           grep -q 'v1-renewal-disclosure' "$app_path/public/v1/visual-integrity.js"
           grep -q 'renews automatically unless cancelled at least 24 hours' "$app_path/public/v1/visual-integrity.js"
           grep -q 'v1ManageSubscription' "$app_path/public/v1/visual-integrity.js"
+
+          test -f "$app_path/public/v1/store-pricing.js"
+          test -f "$app_path/public/v1/accessibility.js"
+          grep -q 'store-pricing-v1' "$app_path/public/v1/store-pricing.js"
+          grep -q 'Loading Apple price' "$app_path/public/v1/store-pricing.js"
+          grep -q 'Restore purchases is still available' "$app_path/public/v1/store-pricing.js"
+          grep -q 'accessibility-v1' "$app_path/public/v1/accessibility.js"
+          grep -q 'normalizeViewportContent' "$app_path/public/v1/accessibility.js"
+          grep -q 'aria-modal' "$app_path/public/v1/accessibility.js"
+          grep -q 'id="toast" role="status" aria-live="polite" aria-atomic="true"' "$app_path/public/index.html"
+
           if grep -R -qE 'fonts\.googleapis\.com|fonts\.gstatic\.com' "$app_path/public"; then
             echo "Final IPA still contains remote Google Fonts"
+            exit 1
+          fi
+          if grep -R -qE 'user-scalable=no|\$3\.99|\$29\.99|Save 37%' "$app_path/public"; then
+            echo "Final IPA contains forbidden zoom restrictions or hardcoded subscription pricing"
             exit 1
           fi
           rm -rf "$verify_dir"
