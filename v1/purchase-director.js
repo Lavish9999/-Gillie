@@ -6,13 +6,11 @@
   window.__gilliePurchaseDirectorInstalled = true;
 
   const ENGINE = "purchase-director-v1-authoritative";
-  const PRODUCT_IDS = Object.freeze({
-    monthly: "gillie.plus.monthly",
-    yearly: "gillie.plus.yearly",
-  });
-  const PRODUCT_TIMEOUT_MS = 15000;
-  const PURCHASE_TIMEOUT_MS = 120000;
-  const RESTORE_TIMEOUT_MS = 45000;
+  const LOOKUP_MODE = "shared-timed-storekit-lookup-v1";
+  const PRODUCT_IDS = Object.freeze({ monthly: "gillie.plus.monthly", yearly: "gillie.plus.yearly" });
+  const PRODUCT_LOOKUP_TIMEOUT = 15000;
+  const PURCHASE_TIMEOUT = 120000;
+  const RESTORE_TIMEOUT = 45000;
 
   let busy = false;
   let operation = 0;
@@ -29,7 +27,7 @@
     .slice(0, max);
 
   function track(name, properties = {}) {
-    try { bridge()?.trackEvent?.({ name, properties: { engine: ENGINE, ...properties } }); }
+    try { bridge()?.trackEvent?.({ name, properties: { engine: ENGINE, lookupMode: LOOKUP_MODE, ...properties } }); }
     catch (_) {}
   }
 
@@ -44,9 +42,8 @@
   }
 
   function selectedPlanKey() {
-    try {
-      if (typeof selectedPlusPlan !== "undefined" && PRODUCT_IDS[selectedPlusPlan]) return selectedPlusPlan;
-    } catch (_) {}
+    try { if (typeof selectedPlusPlan !== "undefined" && PRODUCT_IDS[selectedPlusPlan]) return selectedPlusPlan; }
+    catch (_) {}
     return $("#plus-plans [data-plus-plan].on")?.dataset?.plusPlan || "yearly";
   }
 
@@ -57,53 +54,57 @@
       const selected = button.dataset.plusPlan === key;
       button.classList.toggle("on", selected);
       button.setAttribute("aria-checked", String(selected));
+      button.disabled = false;
+      button.setAttribute("aria-disabled", "false");
     });
   }
 
-  function setHealth(type, message, allowCopy = false) {
+  function healthRow() {
     const overlay = $("#plus-overlay");
-    if (!overlay) return;
+    if (!overlay) return null;
     let row = $("#gp-store-health", overlay);
-    if (!row) {
-      row = document.createElement("div");
-      row.id = "gp-store-health";
-      row.className = "gp-store-health";
-      row.setAttribute("role", "status");
-      row.setAttribute("aria-live", "polite");
-      const plans = $("#plus-plans", overlay);
-      if (plans?.parentElement) plans.parentElement.insertBefore(row, plans);
-      else $(".gp-pricing-section", overlay)?.appendChild(row);
-    }
+    if (row) return row;
+    row = document.createElement("div");
+    row.id = "gp-store-health";
+    row.className = "gp-store-health";
+    row.setAttribute("role", "status");
+    row.setAttribute("aria-live", "polite");
+    const plans = $("#plus-plans", overlay);
+    if (plans?.parentElement) plans.parentElement.insertBefore(row, plans);
+    else $(".gp-pricing-section", overlay)?.appendChild(row);
+    return row;
+  }
+
+  function setHealth(type, message, allowCopy = false) {
+    const row = healthRow();
+    if (!row) return;
     row.className = `gp-store-health ${type || ""}`.trim();
     row.replaceChildren(document.createTextNode(clean(message)));
-    if (allowCopy) {
-      const copy = document.createElement("button");
-      copy.type = "button";
-      copy.textContent = "Copy details";
-      copy.style.cssText = "margin-left:auto;padding:0;border:0;background:transparent;color:inherit;font:inherit;font-weight:850;text-decoration:underline;text-underline-offset:2px";
-      copy.onclick = async (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        copy.disabled = true;
-        copy.textContent = "Copying…";
-        try {
-          await window.GilliePurchaseFlow?.copyDiagnostics?.();
-          copy.textContent = "Copied";
-        } catch (_) {
-          copy.disabled = false;
-          copy.textContent = "Copy details";
-        }
-      };
-      row.appendChild(copy);
-    }
+    if (!allowCopy) return;
+    const copy = document.createElement("button");
+    copy.type = "button";
+    copy.textContent = "Copy details";
+    copy.style.cssText = "margin-left:auto;padding:0;border:0;background:transparent;color:inherit;font:inherit;font-weight:850;text-decoration:underline;text-underline-offset:2px";
+    copy.onclick = async (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      copy.disabled = true;
+      copy.textContent = "Copying…";
+      try {
+        await window.GilliePurchaseFlow?.copyDiagnostics?.();
+        copy.textContent = "Copied";
+      } catch (_) {
+        copy.disabled = false;
+        copy.textContent = "Copy details";
+      }
+    };
+    row.appendChild(copy);
   }
 
   function setButtonState(active, mode = "purchase") {
     busy = Boolean(active);
     const purchase = $("#plus-purchase");
     const restore = $("#plus-restore");
-    const plans = $$("#plus-plans [data-plus-plan]");
-
     if (purchase) {
       purchase.disabled = false;
       purchase.setAttribute("aria-disabled", "false");
@@ -121,7 +122,7 @@
       restore.setAttribute("aria-busy", String(busy && mode === "restore"));
       restore.textContent = busy && mode === "restore" ? "Checking Apple…" : "Restore purchases";
     }
-    plans.forEach((button) => {
+    $$("#plus-plans [data-plus-plan]").forEach((button) => {
       button.disabled = false;
       button.setAttribute("aria-disabled", "false");
     });
@@ -130,11 +131,55 @@
   function normalizeProducts(response) {
     const allowed = new Set(Object.values(PRODUCT_IDS));
     return (Array.isArray(response?.products) ? response.products : [])
-      .map((product) => ({
-        id: clean(product?.id, 80),
-        displayPrice: clean(product?.displayPrice, 80),
-      }))
+      .map((product) => ({ id: clean(product?.id, 80), displayPrice: clean(product?.displayPrice, 80) }))
       .filter((product) => allowed.has(product.id));
+  }
+
+  async function sharedProducts(native) {
+    const pricing = window.GillieStorePricing;
+    if (pricing?.load) {
+      const before = pricing.snapshot?.() || {};
+      const map = await withTimeout(
+        pricing.load({ force: before.state === "error" || before.state === "unavailable" }),
+        PRODUCT_LOOKUP_TIMEOUT,
+        "PRODUCT_LOOKUP_TIMEOUT",
+        "Apple billing did not return the Gillie Plus plans in time.",
+      );
+      const products = map && typeof map.values === "function" ? Array.from(map.values()) : [];
+      const after = pricing.snapshot?.() || {};
+      if (!products.length) {
+        throw Object.assign(
+          new Error(clean(after.error || `Apple returned no Gillie Plus plans for ${after.native?.bundleId || "com.lavish9999.gillie"}.`)),
+          { code: "STORE_PRODUCTS_EMPTY", response: after.native || null },
+        );
+      }
+      return { products, response: after.native || null, source: LOOKUP_MODE };
+    }
+
+    const response = await withTimeout(
+      native.getProducts(),
+      PRODUCT_LOOKUP_TIMEOUT,
+      "PRODUCT_LOOKUP_TIMEOUT",
+      "Apple billing did not return the Gillie Plus plans in time.",
+    );
+    const products = normalizeProducts(response);
+    if (!products.length) {
+      throw Object.assign(
+        new Error(`Apple returned no Gillie Plus plans for ${clean(response?.bundleId || "com.lavish9999.gillie", 100)}.`),
+        { code: "STORE_PRODUCTS_EMPTY", response },
+      );
+    }
+    return { products, response, source: "direct-native-fallback" };
+  }
+
+  async function availablePlan(native, requestedKey) {
+    const loaded = await sharedProducts(native);
+    const requestedId = PRODUCT_IDS[requestedKey] || PRODUCT_IDS.yearly;
+    const chosen = loaded.products.find((product) => product.id === requestedId) || loaded.products[0];
+    const chosenKey = Object.entries(PRODUCT_IDS).find(([, id]) => id === chosen.id)?.[0] || requestedKey;
+    selectPlan(chosenKey);
+    track("purchase_director_product_ready", { source: loaded.source, productId: chosen.id });
+    return { product: chosen, response: loaded.response, key: chosenKey };
   }
 
   function applyEntitlement(status, source) {
@@ -148,7 +193,6 @@
     const overlay = $("#plus-overlay");
     if (overlay) overlay.hidden = true;
     try { if (typeof toast === "function") toast("👑", "Gillie Plus active. Your plan is unlocked."); } catch (_) {}
-    setHealth("ready", "Gillie Plus is active.");
     track("purchase_director_entitlement_active", { source, productId: clean(status.productId, 80) });
     return true;
   }
@@ -157,38 +201,8 @@
     const native = bridge();
     if (!native?.getEntitlementStatus) return null;
     try {
-      return await withTimeout(
-        native.getEntitlementStatus(),
-        12000,
-        "ENTITLEMENT_TIMEOUT",
-        "Apple took too long to confirm the subscription.",
-      );
-    } catch (_) {
-      return null;
-    }
-  }
-
-  async function availablePlan(native, requestedKey) {
-    const response = await withTimeout(
-      native.getProducts(),
-      PRODUCT_TIMEOUT_MS,
-      "PRODUCT_LOOKUP_TIMEOUT",
-      "Apple billing did not return the Gillie Plus plans in time.",
-    );
-    const products = normalizeProducts(response);
-    if (!products.length) {
-      const error = Object.assign(
-        new Error(`Apple returned no Gillie Plus plans for ${clean(response?.bundleId || "com.lavish9999.gillie", 100)}.`),
-        { code: "STORE_PRODUCTS_EMPTY", response },
-      );
-      throw error;
-    }
-
-    const requestedId = PRODUCT_IDS[requestedKey] || PRODUCT_IDS.yearly;
-    const chosen = products.find((product) => product.id === requestedId) || products[0];
-    const chosenKey = Object.entries(PRODUCT_IDS).find(([, id]) => id === chosen.id)?.[0] || requestedKey;
-    selectPlan(chosenKey);
-    return { product: chosen, response, key: chosenKey };
+      return await withTimeout(native.getEntitlementStatus(), 12000, "ENTITLEMENT_TIMEOUT", "Apple took too long to confirm the subscription.");
+    } catch (_) { return null; }
   }
 
   async function confirmAfterPurchase(source) {
@@ -208,26 +222,22 @@
       track("purchase_director_bridge_missing");
       return;
     }
-
     const token = ++operation;
     const requestedKey = selectedPlanKey();
     setButtonState(true, "purchase");
     setHealth("", "Checking this plan with Apple…");
     track("purchase_director_started", { plan: requestedKey });
-
     try {
       const { product, key } = await availablePlan(native, requestedKey);
       if (token !== operation) return;
       setHealth("", `Opening Apple’s secure ${key === "monthly" ? "monthly" : "yearly"} purchase sheet…`);
-
       const result = await withTimeout(
         native.purchase({ productId: product.id }),
-        PURCHASE_TIMEOUT_MS,
+        PURCHASE_TIMEOUT,
         "PURCHASE_TIMEOUT",
         "Apple checkout did not return to Gillie in time.",
       );
       if (token !== operation) return;
-
       if (applyEntitlement(result, "purchase-result")) return;
       if (result?.cancelled) {
         setHealth("", "Purchase cancelled. Nothing was charged.");
@@ -240,7 +250,6 @@
         return;
       }
       if (await confirmAfterPurchase("purchase-recheck")) return;
-
       setHealth("error", "Apple returned without an active Gillie Plus entitlement. Tap Restore purchases, then Copy details if it remains inactive.", true);
       track("purchase_director_inactive", { productId: product.id });
     } catch (error) {
@@ -262,18 +271,12 @@
       setHealth("error", "This build is missing Restore Purchases.", true);
       return;
     }
-
     const token = ++operation;
     setButtonState(true, "restore");
     setHealth("", "Checking purchases for this Apple ID…");
     track("purchase_director_restore_started");
     try {
-      const result = await withTimeout(
-        native.restorePurchases(),
-        RESTORE_TIMEOUT_MS,
-        "RESTORE_TIMEOUT",
-        "Apple took too long to restore purchases.",
-      );
+      const result = await withTimeout(native.restorePurchases(), RESTORE_TIMEOUT, "RESTORE_TIMEOUT", "Apple took too long to restore purchases.");
       if (token !== operation) return;
       if (applyEntitlement(result, "restore-result")) return;
       if (await confirmAfterPurchase("restore-recheck")) return;
@@ -321,27 +324,24 @@
   function install() {
     const overlay = $("#plus-overlay");
     if (!overlay || !enforceOwnership()) return false;
-
     document.addEventListener("click", captureCheckout, true);
     overlayObserver?.disconnect?.();
     overlayObserver = new MutationObserver(syncPaywall);
     overlayObserver.observe(overlay, { attributes: true, attributeFilter: ["hidden", "class"] });
-
     bodyObserver?.disconnect?.();
     bodyObserver = new MutationObserver(() => {
       if ($("#plus-purchase")?.dataset?.purchaseDirector !== ENGINE) enforceOwnership();
     });
     bodyObserver.observe(document.body, { childList: true, subtree: true });
-
     document.addEventListener("visibilitychange", () => {
       if (!document.hidden && !overlay.hidden) {
         enforceOwnership();
         confirmAfterPurchase("foreground");
       }
     });
-
     window.GilliePurchaseDirector = Object.freeze({
       engine: ENGINE,
+      lookupMode: LOOKUP_MODE,
       purchase,
       restore,
       busy: () => busy,
