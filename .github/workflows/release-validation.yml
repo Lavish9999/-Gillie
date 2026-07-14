@@ -18,10 +18,31 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v4
 
-      - name: Verify generated web safety first
+      - name: Generate and inspect final web assets
         run: |
           npm run prepare:cap
-          node scripts/verify-final-web-assets.js www
+          set +e
+          node scripts/verify-final-web-assets.js www > final-web-verification.log 2>&1
+          verification_code=$?
+          set -e
+          echo "$verification_code" > final-web-verification.exit
+          cat final-web-verification.log
+
+      - name: Upload generated web verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: final-web-verification
+          path: |
+            final-web-verification.log
+            final-web-verification.exit
+            www
+          retention-days: 3
+
+      - name: Enforce generated web verification
+        run: |
+          cat final-web-verification.log
+          test "$(cat final-web-verification.exit)" = "0"
 
       - name: Set up Node 22
         uses: actions/setup-node@v4
