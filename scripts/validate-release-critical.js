@@ -80,6 +80,8 @@ requireMarker("v1/launch-experience.js", 'reason: "three_clean_days"', "rating a
 requireMarker("v1/launch-experience.js", "function installSlipCopyGuard()", "slip-copy grammar guard");
 requireMarker("v1/launch-experience.css", "min-height:44px!important", "44-point compact action targets");
 requireMarker("v1/launch-handoff.js", "launch-handoff-v1-single-intro", "single animated intro handoff");
+requireMarker("v1/launch-handoff.js", "post-hatch-handoff-v1", "post-hatch transition never reveals the final onboarding step");
+requireMarker("v1/launch-handoff.js", "gillie-hatch-handoff-active", "hatch cinematic remains visually covered until Home is ready");
 requireMarker("v1/paywall-runtime-fix.js", "css-only-system-chrome-v2", "CSS-only TestFlight/status-bar treatment");
 requireMarker("v1/paywall-runtime-fix.js", "ensurePaywallSurface", "visible paywall surface recovery");
 forbidMarker("v1/paywall-runtime-fix.js", "bridge()?.setInterfaceStyle?.(", "native root-view mutation");
@@ -129,6 +131,8 @@ const contracts = [
   ["www/v1/launch-experience.js", "function installSlipCopyGuard()", "generated slip-copy grammar guard"],
   ["www/v1/launch-experience.css", "min-height:44px!important", "generated 44-point touch targets"],
   ["www/v1/launch-handoff.js", "launch-handoff-v1-single-intro", "single intro handoff"],
+  ["www/v1/launch-handoff.js", "post-hatch-handoff-v1", "generated post-hatch transition handoff"],
+  ["www/v1/launch-handoff.js", "gillie-hatch-handoff-active", "generated hatch coverage until Home is ready"],
   ["www/v1/paywall-runtime-fix.js", "css-only-system-chrome-v2", "safe paywall chrome"],
   ["www/v1/paywall-runtime-fix.js", "ensurePaywallSurface", "visible paywall guard"],
   ["ios/App/App/GilliePurchasesPlugin.swift", "purchase_selected_lookup_started_native", "selected-product native lookup"],
@@ -175,4 +179,4 @@ for (const relative of [
 }
 
 run(process.execPath, ["scripts/verify-final-web-assets.js", "www"]);
-console.log("Release-critical validation passed: first launch waits for a user tap, destructive reset clears locally in two stages, bottom navigation self-recovers, checkout bypasses pricing, and signed assets match source.");
+console.log("Release-critical validation passed: first launch waits for a user tap, hatch completion transitions directly into Home, destructive reset clears locally in two stages, bottom navigation self-recovers, checkout bypasses pricing, and signed assets match source.");
