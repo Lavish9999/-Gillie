@@ -24,9 +24,6 @@ const branch = String(process.env.CM_BRANCH || gitValue(["branch", "--show-curre
 const commit = String(process.env.CM_COMMIT || gitValue(["rev-parse", "HEAD"])).trim();
 const isCodemagic = Boolean(process.env.CM_BRANCH || process.env.CM_BUILD_ID);
 
-// Codemagic currently builds `main`, while the legacy release workflow also
-// references `native-ios-launch`. Both refs are intentionally synchronized.
-// Validate the actual shipped engines rather than rejecting identical code by ref name.
 if (isCodemagic && !ALLOWED_PRODUCTION_REFS.includes(branch)) {
   throw new Error(`Refusing to ship Gillie from ${branch}. Allowed production refs: ${ALLOWED_PRODUCTION_REFS.join(", ")}.`);
 }
@@ -40,18 +37,24 @@ requireMarker("v1/theme-access.js", "theme-access-v1-basic-free");
 requireMarker("v1/theme-paint.js", "theme-paint-v1");
 requireMarker("v1/theme-engine.js", "theme-engine-v2-multitank-level-rewards");
 requireMarker("v1/launch-handoff.js", "launch-handoff-v1-single-intro");
+requireMarker("v1/paywall-runtime-fix.js", "paywall-runtime-fix-v1");
+requireMarker("v1/paywall-runtime-fix.css", "--gp-system-top");
+requireMarker("ios/App/App/GilliePurchasesPlugin.swift", "loadAvailableProducts");
+requireMarker("ios/App/App/GilliePurchasesPlugin.swift", "setInterfaceStyle");
 
 fs.mkdirSync(out, { recursive: true });
 const payload = {
-  schemaVersion: 3,
+  schemaVersion: 4,
   allowedProductionRefs: ALLOWED_PRODUCTION_REFS,
   sourceBranch: branch,
   sourceCommit: commit,
   generatedAt: new Date().toISOString(),
   commerceEngine: "purchase-flow-v3-production-branch",
   pricingEngine: "store-pricing-v2-retryable",
+  nativeStoreKitLoader: "combined-plus-per-product-retry-v1",
   entitlementSyncEngine: "entitlement-sync-v1-always-on",
   productIds: ["gillie.plus.monthly", "gillie.plus.yearly"],
+  paywallRuntimeEngine: "paywall-runtime-fix-v1",
   themeAccessEngine: "theme-access-v1-basic-free",
   themeEngine: "theme-engine-v2-multitank-level-rewards",
   themePaintEngine: "theme-paint-v1",
