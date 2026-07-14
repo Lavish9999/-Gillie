@@ -3,7 +3,7 @@
   "use strict";
 
   const ENGINE = "store-pricing-v2-retryable";
-  const CHECKOUT_OWNER = "purchase-director-v1-authoritative";
+  const CHECKOUT_OWNER = "purchase-director-v2-direct-native";
   const LOOKUP_MODE = "shared-timed-storekit-lookup-v1";
   const LOOKUP_TIMEOUT_MS = 12000;
   const PRODUCT_IDS = Object.freeze({ monthly: "gillie.plus.monthly", yearly: "gillie.plus.yearly" });

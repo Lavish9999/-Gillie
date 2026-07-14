@@ -1,0 +1,66 @@
+name: Free Gillie release validation
+
+on:
+  push:
+    branches:
+      - main
+      - native-ios-launch
+  pull_request:
+    branches:
+      - main
+      - native-ios-launch
+
+concurrency:
+  group: gillie-release-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-release:
+    name: Validate exact release bundle
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CM_BRANCH: ${{ github.base_ref || github.ref_name }}
+      CM_COMMIT: ${{ github.sha }}
+    steps:
+      - name: Check out exact commit
+        uses: actions/checkout@v4
+
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Run the same release validation as Codemagic
+        shell: bash
+        run: |
+          set +e
+          npm run validate:ship 2>&1 | tee validation.log
+          status=${PIPESTATUS[0]}
+          exit "$status"
+
+      - name: Confirm checkout v2 is in generated bundle
+        run: |
+          grep -q 'purchase-director-v2-direct-native' www/v1/purchase-director.js
+          grep -q 'selected-product-direct-to-storekit-v1' www/v1/purchase-director.js
+          grep -q 'native.purchase({ productId: product.id })' www/v1/purchase-director.js
+          grep -q 'purchase_selected_lookup_started_native' ios/App/App/GilliePurchasesPlugin.swift
+          grep -q 'purchase_sheet_requested_native' ios/App/App/GilliePurchasesPlugin.swift
+          grep -q 'Product.products(for: \[productID\])' ios/App/App/GilliePurchasesPlugin.swift
+          grep -q '"checkoutEngine": "purchase-director-v2-direct-native"' www/v1/build-source.json
+
+      - name: Upload validation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gillie-validation-${{ github.sha }}
+          path: |
+            validation.log
+            www/
+            ios/App/App/GilliePurchasesPlugin.swift
+          if-no-files-found: ignore
+          retention-days: 3

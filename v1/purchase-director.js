@@ -5,7 +5,7 @@
   if (window.__gilliePurchaseDirectorInstalled) return;
   window.__gilliePurchaseDirectorInstalled = true;
 
-  const ENGINE = "purchase-director-v1-authoritative";
+  const ENGINE = "purchase-director-v2-direct-native";
   const CHECKOUT_MODE = "selected-product-direct-to-storekit-v1";
   // Compatibility contract: there is deliberately no JavaScript product lookup timeout.
   const PRODUCT_LOOKUP_TIMEOUT = 0;

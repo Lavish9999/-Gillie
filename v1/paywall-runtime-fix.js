@@ -7,7 +7,7 @@
 
   const ENGINE = "paywall-runtime-fix-v1";
   const SYSTEM_CHROME_MODE = "css-only-system-chrome-v2";
-  const CHECKOUT_OWNER = "purchase-director-v1-authoritative";
+  const CHECKOUT_OWNER = "purchase-director-v2-direct-native";
   const PROBE_MODE = "single-open-storekit-probe";
   const SHARED_LOOKUP_MODE = "shared-timed-storekit-lookup-v1";
   const EXPECTED_IDS = Object.freeze(["gillie.plus.monthly", "gillie.plus.yearly"]);
