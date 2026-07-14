@@ -16,6 +16,13 @@ function requireMarker(relative, marker, label = marker) {
   }
 }
 
+function forbidMarker(relative, marker, label = marker) {
+  const source = read(relative);
+  if (source.includes(marker)) {
+    throw new Error(`Release-critical validation failed: ${label}\nFile: ${relative}\nObsolete marker: ${marker}`);
+  }
+}
+
 function syntaxCheck(relative) {
   const file = path.join(root, relative);
   execFileSync(process.execPath, ["--check", file], { cwd: root, stdio: "inherit" });
@@ -24,6 +31,12 @@ function syntaxCheck(relative) {
 function run(command, args) {
   execFileSync(command, args, { cwd: root, stdio: "inherit", env: process.env });
 }
+
+// Validate the build injector before it launches prepare:cap so a stale engine
+// contract is reported directly instead of surfacing as a generic child-process failure.
+syntaxCheck("scripts/inject-phase3.js");
+requireMarker("scripts/inject-phase3.js", 'ENGINE = "store-pricing-v2-retryable"', "current retryable StoreKit pricing contract");
+forbidMarker("scripts/inject-phase3.js", 'ENGINE = "store-pricing-v1"', "obsolete StoreKit pricing contract");
 
 console.log("Preparing the exact Capacitor web bundle that will be signed…");
 run(process.platform === "win32" ? "npm.cmd" : "npm", ["run", "prepare:cap"]);
