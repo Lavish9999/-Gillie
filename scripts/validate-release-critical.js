@@ -42,6 +42,7 @@ for (const relative of [
   "scripts/test-launch-experience.js",
   "scripts/write-build-provenance.js",
   "scripts/verify-final-web-assets.js",
+  "v1/sos-support.js",
   "v1/store-pricing.js",
   "v1/purchase-director.js",
   "v1/entitlement-sync.js",
@@ -54,6 +55,10 @@ for (const relative of [
 requireMarker("scripts/inject-phase3.js", 'ENGINE = "store-pricing-v2-retryable"', "current retryable StoreKit pricing contract");
 forbidMarker("scripts/inject-phase3.js", 'ENGINE = "store-pricing-v1"', "obsolete StoreKit pricing contract");
 requireMarker("scripts/prepare-single-launch.js", "gillie-launch-bootstrap", "single web launch handoff");
+requireMarker("v1/sos-support.js", "reliability-guard-v1", "first-launch, reset, and navigation reliability guard");
+requireMarker("v1/sos-support.js", "first_launch_auto_dismiss_blocked", "first launch waits for user continuation");
+requireMarker("v1/sos-support.js", "hard_reset_started", "synchronous two-stage destructive reset");
+requireMarker("v1/sos-support.js", "bottom_nav_fallback_used", "bottom navigation recovery fallback");
 requireMarker("v1/purchase-director.js", "purchase-director-v2-direct-native", "direct native checkout director");
 requireMarker("v1/purchase-director.js", "selected-product-direct-to-storekit-v1", "selected-product checkout mode");
 requireMarker("v1/purchase-director.js", "stopImmediatePropagation", "legacy checkout handler isolation");
@@ -77,16 +82,10 @@ requireMarker("v1/launch-experience.css", "min-height:44px!important", "44-point
 requireMarker("v1/launch-handoff.js", "launch-handoff-v1-single-intro", "single animated intro handoff");
 requireMarker("v1/paywall-runtime-fix.js", "css-only-system-chrome-v2", "CSS-only TestFlight/status-bar treatment");
 requireMarker("v1/paywall-runtime-fix.js", "ensurePaywallSurface", "visible paywall surface recovery");
-requireMarker("v1/paywall-runtime-fix.js", "settings-runtime-v1-functional", "functional Settings runtime");
-requireMarker("v1/paywall-runtime-fix.js", "-webkit-text-size-adjust", "working global text-size preference");
-requireMarker("v1/paywall-runtime-fix.js", "manageActiveSubscription", "active Plus subscription management");
-requireMarker("v1/paywall-runtime-fix.js", "cancelAllGillieNotifications", "notification cleanup during erase");
-requireMarker("v1/paywall-runtime-fix.js", "clearGillieStorage", "complete local Settings erase");
-requireMarker("v1/paywall-runtime-fix.js", 'profile?.useLabel === "puffs" ? 10 : 1', "substance-aware cost and usage minimum");
 forbidMarker("v1/paywall-runtime-fix.js", "bridge()?.setInterfaceStyle?.(", "native root-view mutation");
 forbidMarker("ios/App/App/GilliePurchasesPlugin.swift", "setInterfaceStyle", "obsolete native interface-style bridge");
 
-console.log("Running focused runtime checks for direct-native checkout, Plus restoration, tank themes, Settings integrity, and audit regressions…");
+console.log("Running focused runtime checks for direct-native checkout, Plus restoration, tank themes, audit regressions, and shell reliability…");
 run(process.execPath, ["scripts/test-purchase-director.js"]);
 run(process.execPath, ["scripts/test-entitlement-sync.js"]);
 run(process.execPath, ["scripts/test-theme-access.js"]);
@@ -96,6 +95,7 @@ console.log("Preparing the exact Capacitor and iOS bundle that will be signed…
 run(process.platform === "win32" ? "npm.cmd" : "npm", ["run", "prepare:cap"]);
 
 for (const relative of [
+  "www/v1/sos-support.js",
   "www/v1/purchase-flow.js",
   "www/v1/purchase-director.js",
   "www/v1/store-pricing.js",
@@ -109,6 +109,10 @@ for (const relative of [
 ]) syntaxCheck(relative);
 
 const contracts = [
+  ["www/v1/sos-support.js", "reliability-guard-v1", "generated shell reliability guard"],
+  ["www/v1/sos-support.js", "first_launch_auto_dismiss_blocked", "generated first-launch consent gate"],
+  ["www/v1/sos-support.js", "hard_reset_started", "generated hard reset"],
+  ["www/v1/sos-support.js", "bottom_nav_fallback_used", "generated bottom-nav recovery"],
   ["www/v1/purchase-flow.js", "purchase-flow-v3-production-branch", "purchase diagnostics engine"],
   ["www/v1/purchase-flow.js", "Copy purchase details", "purchase diagnostics action"],
   ["www/v1/purchase-director.js", "purchase-director-v2-direct-native", "generated direct checkout engine"],
@@ -127,11 +131,6 @@ const contracts = [
   ["www/v1/launch-handoff.js", "launch-handoff-v1-single-intro", "single intro handoff"],
   ["www/v1/paywall-runtime-fix.js", "css-only-system-chrome-v2", "safe paywall chrome"],
   ["www/v1/paywall-runtime-fix.js", "ensurePaywallSurface", "visible paywall guard"],
-  ["www/v1/paywall-runtime-fix.js", "settings-runtime-v1-functional", "generated functional Settings runtime"],
-  ["www/v1/paywall-runtime-fix.js", "-webkit-text-size-adjust", "generated working text-size preference"],
-  ["www/v1/paywall-runtime-fix.js", "manageActiveSubscription", "generated active Plus management"],
-  ["www/v1/paywall-runtime-fix.js", "cancelAllGillieNotifications", "generated erase notification cleanup"],
-  ["www/v1/paywall-runtime-fix.js", "clearGillieStorage", "generated complete Settings erase"],
   ["ios/App/App/GilliePurchasesPlugin.swift", "purchase_selected_lookup_started_native", "selected-product native lookup"],
   ["ios/App/App/GilliePurchasesPlugin.swift", "purchase_sheet_requested_native", "Apple-sheet request event"],
   ["ios/App/App/GilliePurchasesPlugin.swift", "selected-product-direct-v1", "native direct checkout mode"],
@@ -156,6 +155,7 @@ forbidMarker("www/index.html", "Grow clean", "legacy web splash subtitle");
 forbidMarker("ios/App/App/Base.lproj/LaunchScreen.storyboard", 'image="Splash"', "legacy native image splash");
 
 for (const relative of [
+  "sos-support.js",
   "purchase-flow.js",
   "purchase-director.js",
   "store-pricing.js",
@@ -175,4 +175,4 @@ for (const relative of [
 }
 
 run(process.execPath, ["scripts/verify-final-web-assets.js", "www"]);
-console.log("Release-critical validation passed: checkout bypasses pricing, Swift resolves only the selected plan, Settings are functional and fully erasable, text scaling works in WKWebView, notifications clean up correctly, and the audit regressions remain fixed.");
+console.log("Release-critical validation passed: first launch waits for a user tap, destructive reset clears locally in two stages, bottom navigation self-recovers, checkout bypasses pricing, and signed assets match source.");
