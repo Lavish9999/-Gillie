@@ -26,6 +26,7 @@ const requiredFiles = [
   "www/index.html",
   "www/v1/build-source.json",
   "www/v1/purchase-flow.js",
+  "www/v1/purchase-director.js",
   "www/v1/store-pricing.js",
   "www/v1/paywall-runtime-fix.js",
   "www/v1/paywall-runtime-fix.css",
@@ -39,19 +40,26 @@ const requiredFiles = [
 requiredFiles.forEach(read);
 
 const contracts = [
-  ["www/index.html", 'data-gillie-v1-purchase-flow="true"', "purchase-flow injection"],
+  ["www/index.html", 'data-gillie-v1-purchase-flow="true"', "purchase diagnostics injection"],
+  ["www/index.html", 'data-gillie-v1-purchase-director="true"', "authoritative purchase director injection"],
   ["www/index.html", 'data-gillie-v1-paywall-runtime-fix="true"', "paywall runtime injection"],
   ["www/index.html", 'data-gillie-v1-paywall-runtime-fix-styles="true"', "paywall safe-area CSS injection"],
   ["www/index.html", 'data-gillie-v1-theme-engine="true"', "theme-engine injection"],
   ["www/index.html", 'data-gillie-v1-theme-paint="true"', "theme-paint injection"],
-  ["www/v1/purchase-flow.js", "purchase-flow-v3-production-branch", "production purchase engine"],
+  ["www/v1/purchase-flow.js", "purchase-flow-v3-production-branch", "production purchase diagnostics engine"],
   ["www/v1/purchase-flow.js", "Apple returned zero Gillie Plus products", "zero-product diagnosis"],
   ["www/v1/purchase-flow.js", "Copy purchase details", "purchase diagnostics"],
-  ["www/v1/purchase-flow.js", "restorePurchases", "restore purchases"],
-  ["www/v1/purchase-flow.js", "entitlementChanged", "entitlement listener"],
+  ["www/v1/purchase-director.js", "purchase-director-v1-authoritative", "single checkout owner"],
+  ["www/v1/purchase-director.js", "stopImmediatePropagation", "legacy handler isolation"],
+  ["www/v1/purchase-director.js", "PRODUCT_LOOKUP_TIMEOUT", "bounded product lookup"],
+  ["www/v1/purchase-director.js", "native.purchase({ productId: product.id })", "native purchase call"],
+  ["www/v1/purchase-director.js", "GillieEntitlementSync.apply", "verified entitlement application"],
   ["www/v1/store-pricing.js", "store-pricing-v2-retryable", "retryable Apple pricing"],
+  ["www/v1/store-pricing.js", "purchase-director-v1-authoritative", "display-only pricing policy"],
+  ["www/v1/store-pricing.js", "Never start a second product request", "no duplicate checkout lookup"],
   ["www/v1/paywall-runtime-fix.js", "paywall-runtime-fix-v1", "safe Plus runtime"],
   ["www/v1/paywall-runtime-fix.js", "css-only-system-chrome-v2", "CSS-only TestFlight/status-bar treatment"],
+  ["www/v1/paywall-runtime-fix.js", "single-open-storekit-probe", "single passive product probe"],
   ["www/v1/paywall-runtime-fix.js", "ensurePaywallSurface", "visible paywall surface guard"],
   ["www/v1/paywall-runtime-fix.js", "Apple billing connected", "visible StoreKit readiness"],
   ["www/v1/paywall-runtime-fix.css", "--gp-system-top", "TestFlight/status-bar safe area"],
@@ -62,9 +70,13 @@ const contracts = [
   ["www/v1/theme-paint.js", "--gillie-theme-water-top", "direct tank water paint"],
   ["www/v1/build-source.json", '"sourceBranch"', "source branch provenance"],
   ["www/v1/build-source.json", '"sourceCommit"', "source commit provenance"],
-  ["www/v1/build-source.json", '"commerceEngine": "purchase-flow-v3-production-branch"', "commerce provenance"],
+  ["www/v1/build-source.json", '"commerceEngine": "purchase-flow-v3-production-branch"', "commerce diagnostics provenance"],
+  ["www/v1/build-source.json", '"checkoutEngine": "purchase-director-v1-authoritative"', "checkout engine provenance"],
+  ["www/v1/build-source.json", '"checkoutOwnership": "capture-phase-single-owner-v1"', "checkout ownership provenance"],
+  ["www/v1/build-source.json", '"pricingCheckoutPolicy": "display-only-never-disable-v1"', "pricing policy provenance"],
   ["www/v1/build-source.json", '"nativeStoreKitLoader": "combined-plus-per-product-retry-v1"', "native StoreKit loader provenance"],
   ["www/v1/build-source.json", '"paywallRuntimeEngine": "paywall-runtime-fix-v1"', "paywall runtime provenance"],
+  ["www/v1/build-source.json", '"paywallProbeMode": "single-open-storekit-probe"', "paywall probe provenance"],
   ["www/v1/build-source.json", '"paywallChromeMode": "css-only-system-chrome-v2"', "CSS-only paywall chrome provenance"],
   ["www/v1/build-source.json", '"paywallSurfaceGuard": "ensurePaywallSurface-v1"', "paywall surface guard provenance"],
   ["www/v1/build-source.json", '"themePaintEngine": "theme-paint-v1"', "theme provenance"],
@@ -81,10 +93,12 @@ const contracts = [
   ["ios/App/App.xcodeproj/project.pbxproj", "TARGETED_DEVICE_FAMILY = 1;", "iPhone-only target"],
 ];
 contracts.forEach(([file, marker, label]) => requireMarker(file, marker, label));
+forbidMarker("www/v1/store-pricing.js", "purchase.disabled = loading", "pricing cannot disable the checkout CTA");
 forbidMarker("www/v1/paywall-runtime-fix.js", "bridge()?.setInterfaceStyle?.(", "native root-view mutation that covers the WebView");
 
 for (const relative of [
   "www/v1/purchase-flow.js",
+  "www/v1/purchase-director.js",
   "www/v1/store-pricing.js",
   "www/v1/paywall-runtime-fix.js",
   "www/v1/theme-engine.js",
@@ -99,4 +113,4 @@ if (!/^[0-9a-f]{7,40}$/i.test(String(provenance.sourceCommit || ""))) {
   throw new Error("Codemagic source provenance does not contain a valid commit SHA.");
 }
 
-console.log(`Codemagic release contract passed for ${provenance.sourceBranch}@${provenance.sourceCommit}: visible CSS-only Plus paywall, resilient StoreKit products, entitlement restore, Reef rewards, and tank themes are present.`);
+console.log(`Codemagic release contract passed for ${provenance.sourceBranch}@${provenance.sourceCommit}: one authoritative Plus checkout, visible paywall, StoreKit diagnostics, entitlement restore, Reef rewards, and tank themes are present.`);

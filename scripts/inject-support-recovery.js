@@ -18,10 +18,11 @@ const assets = [
   "v1/launch-experience.js",
   "v1/launch-handoff.js",
   "v1/paywall-runtime-fix.js",
+  "v1/purchase-director.js",
 ];
 
 if (!fs.existsSync(indexPath)) {
-  throw new Error("Launch, SOS support, Plus entitlement sync, paywall runtime, theme access, and theme paint injection requires www/index.html.");
+  throw new Error("Launch, SOS support, authoritative Plus checkout, entitlement sync, theme access, and theme paint injection requires www/index.html.");
 }
 
 for (const asset of assets) {
@@ -50,7 +51,8 @@ const injection = `${marker}
 <script src="./v1/theme-paint.js" defer data-gillie-v1-theme-paint="true"></script>
 <script src="./v1/launch-experience.js" defer data-gillie-v1-launch-experience="true"></script>
 <script src="./v1/launch-handoff.js" defer data-gillie-v1-launch-handoff="true"></script>
-<script src="./v1/paywall-runtime-fix.js" defer data-gillie-v1-paywall-runtime-fix="true"></script>`;
+<script src="./v1/paywall-runtime-fix.js" defer data-gillie-v1-paywall-runtime-fix="true"></script>
+<script src="./v1/purchase-director.js" defer data-gillie-v1-purchase-director="true"></script>`;
 
 if (html.includes(themeMarker) && !html.includes(marker)) {
   const themePattern = /<!-- Gillie SOS support, Plus recovery, purchase flow, and theme engine -->[\s\S]*?<script src="\.\/v1\/theme-engine\.js" defer data-gillie-v1-theme-engine="true"><\/script>/;
@@ -88,6 +90,7 @@ for (const markerText of [
   'data-gillie-v1-launch-experience="true"',
   'data-gillie-v1-launch-handoff="true"',
   'data-gillie-v1-paywall-runtime-fix="true"',
+  'data-gillie-v1-purchase-director="true"',
 ]) {
   if (!html.includes(markerText)) throw new Error(`Generated index is missing launch/support marker: ${markerText}`);
 }
@@ -95,6 +98,7 @@ for (const markerText of [
 const sos = fs.readFileSync(path.join(out, "v1", "sos-support.js"), "utf8");
 const recovery = fs.readFileSync(path.join(out, "v1", "welcome-recovery.js"), "utf8");
 const purchaseFlow = fs.readFileSync(path.join(out, "v1", "purchase-flow.js"), "utf8");
+const purchaseDirector = fs.readFileSync(path.join(out, "v1", "purchase-director.js"), "utf8");
 const entitlementSync = fs.readFileSync(path.join(out, "v1", "entitlement-sync.js"), "utf8");
 const themeAccess = fs.readFileSync(path.join(out, "v1", "theme-access.js"), "utf8");
 const themeEngine = fs.readFileSync(path.join(out, "v1", "theme-engine.js"), "utf8");
@@ -124,6 +128,16 @@ for (const required of [
   if (!purchaseFlow.includes(required)) throw new Error(`Generated purchase-flow module is missing marker: ${required}`);
 }
 new Function(purchaseFlow);
+for (const required of [
+  "purchase-director-v1-authoritative",
+  "stopImmediatePropagation",
+  "PRODUCT_LOOKUP_TIMEOUT",
+  "native.purchase({ productId: product.id })",
+  "GilliePurchaseDirector",
+]) {
+  if (!purchaseDirector.includes(required)) throw new Error(`Generated purchase director is missing marker: ${required}`);
+}
+new Function(purchaseDirector);
 for (const required of ["entitlement-sync-v1-always-on", "app-boot", "foreground", "entitlementChanged", "gillie:entitlement-updated", "GillieEntitlementSync"]) {
   if (!entitlementSync.includes(required)) throw new Error(`Generated entitlement-sync module is missing marker: ${required}`);
 }
@@ -166,7 +180,7 @@ for (const required of ["launch-handoff-v1-single-intro", "gillie-boot-pending",
   if (!launchHandoff.includes(required)) throw new Error(`Generated launch handoff is missing marker: ${required}`);
 }
 new Function(launchHandoff);
-for (const required of ["paywall-runtime-fix-v1", "css-only-system-chrome-v2", "Apple billing connected", "Copy details", "ensurePaywallSurface", "GilliePaywallRuntimeFix"]) {
+for (const required of ["paywall-runtime-fix-v1", "css-only-system-chrome-v2", "single-open-storekit-probe", "Apple billing connected", "Copy details", "ensurePaywallSurface", "GilliePaywallRuntimeFix"]) {
   if (!paywallRuntime.includes(required)) throw new Error(`Generated paywall runtime is missing marker: ${required}`);
 }
 if (paywallRuntime.includes("bridge()?.setInterfaceStyle?.(")) {
@@ -181,4 +195,4 @@ for (const required of ["--gp-system-top", ".gp-store-health", "safe-area-inset-
 }
 
 fs.writeFileSync(indexPath, html, "utf8");
-console.log("Injected one animated launch, CSS-only safe Plus chrome, visible StoreKit readiness, entitlement sync, working themes, and Reef rewards.");
+console.log("Injected one animated launch, one authoritative Plus checkout path, CSS-only safe chrome, entitlement sync, working themes, and Reef rewards.");

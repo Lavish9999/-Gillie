@@ -1,4 +1,4 @@
-/* Gillie V1 Paywall Runtime Fix — CSS-only safe header chrome and live StoreKit readiness. */
+/* Gillie V1 Paywall Runtime Fix — CSS-only safe header chrome and one shared StoreKit readiness probe. */
 (() => {
   "use strict";
 
@@ -7,15 +7,20 @@
 
   const ENGINE = "paywall-runtime-fix-v1";
   const SYSTEM_CHROME_MODE = "css-only-system-chrome-v2";
+  const CHECKOUT_OWNER = "purchase-director-v1-authoritative";
+  const PROBE_MODE = "single-open-storekit-probe";
+  const SHARED_LOOKUP_MODE = "shared-timed-storekit-lookup-v1";
   const EXPECTED_IDS = Object.freeze(["gillie.plus.monthly", "gillie.plus.yearly"]);
   let probeToken = 0;
   let observer = null;
+  let lastVisible = false;
 
   const $ = (selector, root = document) => root?.querySelector?.(selector) || null;
   const bridge = () => window.Capacitor?.Plugins?.GilliePurchases || null;
+  const checkoutBusy = () => Boolean(window.GilliePurchaseDirector?.busy?.());
 
   function track(name, properties = {}) {
-    try { bridge()?.trackEvent?.({ name, properties: { engine: ENGINE, chromeMode: SYSTEM_CHROME_MODE, ...properties } }); }
+    try { bridge()?.trackEvent?.({ name, properties: { engine: ENGINE, chromeMode: SYSTEM_CHROME_MODE, probeMode: PROBE_MODE, sharedLookup: SHARED_LOOKUP_MODE, ...properties } }); }
     catch (_) {}
   }
 
@@ -24,28 +29,21 @@
     document.documentElement?.classList?.toggle("gillie-plus-system-chrome", active);
     const overlay = $("#plus-overlay");
     if (overlay) overlay.dataset.systemChrome = active ? SYSTEM_CHROME_MODE : "";
-
-    // Deliberately CSS-only. Calling the former native setInterfaceStyle bridge
-    // changed the Capacitor root-view background and covered the entire WebView.
-    // The light safe-area strip in paywall-runtime-fix.css keeps TestFlight and
-    // status-bar text readable without mutating the native window or view.
+    // Deliberately CSS-only. Never mutate the native root view.
   }
 
   function ensurePaywallSurface(reason = "surface-check") {
     const overlay = $("#plus-overlay");
     if (!overlay || overlay.hidden) return false;
-
     const sheet = $("#plus-overlay > .sheet") || $(".sheet", overlay);
     if (!sheet) {
       track("paywall_surface_missing", { reason, part: "sheet" });
       return false;
     }
-
     overlay.style.setProperty("visibility", "visible", "important");
     overlay.style.setProperty("opacity", "1", "important");
     sheet.style.setProperty("visibility", "visible", "important");
     sheet.style.setProperty("opacity", "1", "important");
-
     const content = $(".gp-paywall-scroll", sheet) || $(".plus-tank-hero", sheet) || $("#plus-title", sheet);
     if (content) {
       content.style?.setProperty?.("visibility", "visible", "important");
@@ -53,7 +51,6 @@
       sheet.dataset.paywallSurfaceReady = "true";
       return true;
     }
-
     track("paywall_surface_missing", { reason, part: "content" });
     return false;
   }
@@ -63,14 +60,12 @@
     if (!overlay) return null;
     let row = $("#gp-store-health", overlay);
     if (row) return row;
-
     row = document.createElement("div");
     row.id = "gp-store-health";
     row.className = "gp-store-health";
     row.setAttribute("role", "status");
     row.setAttribute("aria-live", "polite");
     row.textContent = "Checking Apple billing…";
-
     const pricing = $(".gp-pricing-section", overlay);
     const planList = $("#plus-plans", overlay);
     if (planList?.parentElement) planList.parentElement.insertBefore(row, planList);
@@ -79,17 +74,19 @@
   }
 
   function setHealth(type, message, allowCopy = false) {
+    if (checkoutBusy()) return;
     const row = ensureHealthRow();
     if (!row) return;
     row.className = `gp-store-health ${type || ""}`.trim();
     row.replaceChildren(document.createTextNode(message));
-
     if (allowCopy) {
       const button = document.createElement("button");
       button.type = "button";
       button.textContent = "Copy details";
       button.style.cssText = "margin-left:auto;padding:0;border:0;background:transparent;color:inherit;font:inherit;font-weight:850;text-decoration:underline;text-underline-offset:2px";
-      button.addEventListener("click", async () => {
+      button.addEventListener("click", async (event) => {
+        event.preventDefault();
+        event.stopPropagation();
         button.disabled = true;
         button.textContent = "Copying…";
         try {
@@ -104,59 +101,38 @@
     }
   }
 
-  function normalizeProducts(response) {
-    const products = Array.isArray(response?.products) ? response.products : [];
-    return products.filter((product) => EXPECTED_IDS.includes(String(product?.id || "")));
-  }
-
   async function probeStoreKit(reason = "paywall-open") {
     const overlay = $("#plus-overlay");
-    if (!overlay || overlay.hidden) return false;
-
+    if (!overlay || overlay.hidden || checkoutBusy()) return false;
     const token = ++probeToken;
-    const native = bridge();
+    const pricing = window.GillieStorePricing;
     setHealth("", "Checking Apple billing…");
-
-    if (!native?.getProducts) {
-      setHealth("error", "This build is missing the native Apple billing bridge.", true);
-      track("paywall_storekit_probe_failed", { reason, code: "bridge-missing" });
+    if (!pricing?.load) {
+      setHealth("error", "This build is missing the shared Apple pricing bridge.", true);
+      track("paywall_storekit_probe_failed", { reason, code: "pricing-bridge-missing" });
       return false;
     }
 
     try {
-      try { await window.GillieStorePricing?.load?.({ force: true }); } catch (_) {}
-      const response = await native.getProducts();
-      if (token !== probeToken || overlay.hidden) return false;
-
-      const products = normalizeProducts(response);
-      const returned = products.map((product) => product.id);
+      const before = pricing.snapshot?.() || {};
+      const map = await pricing.load({ force: before.state === "error" || before.state === "unavailable" });
+      if (token !== probeToken || overlay.hidden || checkoutBusy()) return false;
+      const returned = map && typeof map.keys === "function" ? Array.from(map.keys()) : [];
       const missing = EXPECTED_IDS.filter((id) => !returned.includes(id));
-
-      if (!products.length) {
-        const bundle = String(response?.bundleId || "com.lavish9999.gillie");
-        setHealth("error", `Apple returned no Gillie Plus plans for ${bundle}.`, true);
-        track("paywall_storekit_probe_empty", {
-          reason,
-          bundle,
-          requested: EXPECTED_IDS.join(","),
-        });
+      const after = pricing.snapshot?.() || {};
+      if (!returned.length) {
+        const bundle = String(after.native?.bundleId || "com.lavish9999.gillie");
+        const message = String(after.error || `Apple returned no Gillie Plus plans for ${bundle}.`).slice(0, 180);
+        setHealth("error", message, true);
+        track("paywall_storekit_probe_empty", { reason, bundle, requested: EXPECTED_IDS.join(",") });
         return false;
       }
-
-      if (missing.length) {
-        setHealth("ready", `Apple billing connected. ${products.length} of ${EXPECTED_IDS.length} plans available.`);
-      } else {
-        setHealth("ready", "Apple billing connected. Monthly and yearly plans are ready.");
-      }
-      track("paywall_storekit_probe_ready", {
-        reason,
-        count: products.length,
-        returned: returned.join(","),
-        missing: missing.join(","),
-      });
+      if (missing.length) setHealth("ready", `Apple billing connected. ${returned.length} of ${EXPECTED_IDS.length} plans available.`);
+      else setHealth("ready", "Apple billing connected. Monthly and yearly plans are ready.");
+      track("paywall_storekit_probe_ready", { reason, count: returned.length, returned: returned.join(","), missing: missing.join(",") });
       return true;
     } catch (error) {
-      if (token !== probeToken || overlay.hidden) return false;
+      if (token !== probeToken || overlay.hidden || checkoutBusy()) return false;
       const message = String(error?.message || error || "Apple billing could not be reached.").replace(/\s+/g, " ").trim().slice(0, 180);
       setHealth("error", message || "Apple billing could not be reached.", true);
       track("paywall_storekit_probe_failed", { reason, code: "request-error", message: message.slice(0, 80) });
@@ -173,50 +149,54 @@
       ensurePaywallSurface(reason);
       ensureHealthRow();
       setTimeout(() => ensurePaywallSurface(`${reason}:settled`), 180);
-      setTimeout(() => probeStoreKit(reason), 40);
-    } else {
-      probeToken += 1;
-    }
+      if (!lastVisible) setTimeout(() => probeStoreKit("paywall-open"), 40);
+    } else probeToken += 1;
+    lastVisible = visible;
     return true;
   }
 
   function install() {
     const overlay = $("#plus-overlay");
     if (!overlay) return false;
-
     observer?.disconnect?.();
     observer = new MutationObserver(() => syncOverlay("overlay-change"));
     observer.observe(overlay, { attributes: true, attributeFilter: ["hidden", "class"] });
-
     document.addEventListener("click", (event) => {
-      const target = event.target?.closest?.("#plus-open,#set-plus,[data-act='plus'],#ship-premium-teaser,#plus-purchase,#plus-restore,.gp-close,#plus-soft-close");
+      const target = event.target?.closest?.("#plus-open,#set-plus,[data-act='plus'],#ship-premium-teaser,.gp-close,#plus-soft-close");
       if (!target) return;
-      if (target.matches("#plus-purchase,#plus-restore")) setTimeout(() => probeStoreKit(target.id), 80);
-      else setTimeout(() => syncOverlay("paywall-control"), 20);
+      setTimeout(() => syncOverlay("paywall-control"), 20);
     }, true);
-
     document.addEventListener("gillie:purchase-flow-settled", () => {
-      if (!overlay.hidden) setTimeout(() => probeStoreKit("purchase-settled"), 80);
+      if (!overlay.hidden && !checkoutBusy()) setTimeout(() => probeStoreKit("purchase-settled"), 120);
     });
     document.addEventListener("gillie:entitlement-updated", () => {
-      if (!overlay.hidden) setTimeout(() => probeStoreKit("entitlement-updated"), 80);
+      if (!overlay.hidden && !checkoutBusy()) setTimeout(() => probeStoreKit("entitlement-updated"), 120);
     });
     document.addEventListener("visibilitychange", () => {
-      if (!document.hidden && !overlay.hidden) setTimeout(() => syncOverlay("foreground"), 60);
+      if (!document.hidden && !overlay.hidden) {
+        ensurePaywallSurface("foreground");
+        if (!checkoutBusy()) setTimeout(() => probeStoreKit("foreground"), 160);
+      }
     });
     window.addEventListener("pagehide", () => setSystemChrome(false));
-
     window.GilliePaywallRuntimeFix = Object.freeze({
       engine: ENGINE,
       chromeMode: SYSTEM_CHROME_MODE,
+      checkoutOwner: CHECKOUT_OWNER,
+      probeMode: PROBE_MODE,
+      sharedLookupMode: SHARED_LOOKUP_MODE,
       probe: probeStoreKit,
       sync: syncOverlay,
       ensureSurface: ensurePaywallSurface,
     });
-
-    // Critical: zero native window/view mutation during boot or paywall display.
     if (!overlay.hidden) syncOverlay("install-visible");
-    track("paywall_runtime_fix_loaded", { startupSideEffects: false, nativeViewMutation: false });
+    track("paywall_runtime_fix_loaded", {
+      startupSideEffects: false,
+      nativeViewMutation: false,
+      checkoutOwner: CHECKOUT_OWNER,
+      probeMode: PROBE_MODE,
+      sharedLookupMode: SHARED_LOOKUP_MODE,
+    });
     return true;
   }
 

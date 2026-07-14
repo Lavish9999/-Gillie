@@ -56,6 +56,7 @@ function requireFinalContract(root) {
     "index.html",
     "v1/build-source.json",
     "v1/purchase-flow.js",
+    "v1/purchase-director.js",
     "v1/store-pricing.js",
     "v1/entitlement-sync.js",
     "v1/theme-access.js",
@@ -89,6 +90,7 @@ function requireFinalContract(root) {
   const contracts = [
     ["index.html", 'class="gillie-boot-pending"'],
     ["index.html", "SINGLE LAUNCH HANDOFF"],
+    ["index.html", 'data-gillie-v1-purchase-director="true"'],
     ["index.html", 'data-gillie-v1-entitlement-sync="true"'],
     ["index.html", 'data-gillie-v1-theme-access="true"'],
     ["index.html", 'data-gillie-v1-launch-handoff="true"'],
@@ -97,7 +99,14 @@ function requireFinalContract(root) {
     ["v1/purchase-flow.js", "purchase-flow-v3-production-branch"],
     ["v1/purchase-flow.js", "Apple returned zero Gillie Plus products"],
     ["v1/purchase-flow.js", "Copy purchase details"],
+    ["v1/purchase-director.js", "purchase-director-v1-authoritative"],
+    ["v1/purchase-director.js", "stopImmediatePropagation"],
+    ["v1/purchase-director.js", "PRODUCT_LOOKUP_TIMEOUT"],
+    ["v1/purchase-director.js", "native.purchase({ productId: product.id })"],
+    ["v1/purchase-director.js", "GillieEntitlementSync.apply"],
     ["v1/store-pricing.js", "store-pricing-v2-retryable"],
+    ["v1/store-pricing.js", "purchase-director-v1-authoritative"],
+    ["v1/store-pricing.js", "Never start a second product request"],
     ["v1/entitlement-sync.js", "entitlement-sync-v1-always-on"],
     ["v1/entitlement-sync.js", "app-boot"],
     ["v1/entitlement-sync.js", "gillie:entitlement-updated"],
@@ -108,10 +117,15 @@ function requireFinalContract(root) {
     ["v1/launch-handoff.js", "launch-handoff-v1-single-intro"],
     ["v1/paywall-runtime-fix.js", "paywall-runtime-fix-v1"],
     ["v1/paywall-runtime-fix.js", "css-only-system-chrome-v2"],
+    ["v1/paywall-runtime-fix.js", "single-open-storekit-probe"],
     ["v1/paywall-runtime-fix.js", "ensurePaywallSurface"],
     ["v1/paywall-runtime-fix.js", "Apple billing connected"],
     ["v1/paywall-runtime-fix.css", "--gp-system-top"],
     ["v1/paywall-runtime-fix.css", ".gp-store-health"],
+    ["v1/build-source.json", '"checkoutEngine": "purchase-director-v1-authoritative"'],
+    ["v1/build-source.json", '"checkoutOwnership": "capture-phase-single-owner-v1"'],
+    ["v1/build-source.json", '"pricingCheckoutPolicy": "display-only-never-disable-v1"'],
+    ["v1/build-source.json", '"paywallProbeMode": "single-open-storekit-probe"'],
     ["v1/build-source.json", '"paywallChromeMode": "css-only-system-chrome-v2"'],
     ["v1/build-source.json", '"paywallSurfaceGuard": "ensurePaywallSurface-v1"'],
   ];
@@ -120,6 +134,10 @@ function requireFinalContract(root) {
     if (!source.includes(marker)) throw new Error(`Final web bundle contract missing from ${relative}: ${marker}`);
   }
 
+  const pricing = fs.readFileSync(path.join(root, "v1", "store-pricing.js"), "utf8");
+  if (pricing.includes("purchase.disabled = loading")) {
+    throw new Error("Final web bundle allows pricing lookup to disable the Gillie Plus checkout button.");
+  }
   const paywallRuntime = fs.readFileSync(path.join(root, "v1", "paywall-runtime-fix.js"), "utf8");
   if (paywallRuntime.includes("bridge()?.setInterfaceStyle?.(")) {
     throw new Error("Final web bundle still calls the native interface-style bridge that covers the Capacitor WebView.");
@@ -132,6 +150,7 @@ function requireFinalContract(root) {
 
   for (const relative of [
     "purchase-flow.js",
+    "purchase-director.js",
     "store-pricing.js",
     "entitlement-sync.js",
     "theme-access.js",

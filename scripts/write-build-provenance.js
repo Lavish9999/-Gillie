@@ -37,7 +37,12 @@ if (isCodemagic && !ALLOWED_PRODUCTION_REFS.includes(branch)) {
 requireMarker("v1/purchase-flow.js", "purchase-flow-v3-production-branch");
 requireMarker("v1/purchase-flow.js", "Apple returned zero Gillie Plus products");
 requireMarker("v1/purchase-flow.js", "Copy purchase details");
+requireMarker("v1/purchase-director.js", "purchase-director-v1-authoritative");
+requireMarker("v1/purchase-director.js", "stopImmediatePropagation");
+requireMarker("v1/purchase-director.js", "native.purchase({ productId: product.id })");
 requireMarker("v1/store-pricing.js", "store-pricing-v2-retryable");
+requireMarker("v1/store-pricing.js", "purchase-director-v1-authoritative");
+forbidMarker("v1/store-pricing.js", "purchase.disabled = loading");
 requireMarker("v1/entitlement-sync.js", "entitlement-sync-v1-always-on");
 requireMarker("v1/theme-access.js", "theme-access-v1-basic-free");
 requireMarker("v1/theme-paint.js", "theme-paint-v1");
@@ -45,6 +50,7 @@ requireMarker("v1/theme-engine.js", "theme-engine-v2-multitank-level-rewards");
 requireMarker("v1/launch-handoff.js", "launch-handoff-v1-single-intro");
 requireMarker("v1/paywall-runtime-fix.js", "paywall-runtime-fix-v1");
 requireMarker("v1/paywall-runtime-fix.js", "css-only-system-chrome-v2");
+requireMarker("v1/paywall-runtime-fix.js", "single-open-storekit-probe");
 requireMarker("v1/paywall-runtime-fix.js", "ensurePaywallSurface");
 forbidMarker("v1/paywall-runtime-fix.js", "bridge()?.setInterfaceStyle?.(");
 requireMarker("v1/paywall-runtime-fix.css", "--gp-system-top");
@@ -52,17 +58,21 @@ requireMarker("ios/App/App/GilliePurchasesPlugin.swift", "loadAvailableProducts"
 
 fs.mkdirSync(out, { recursive: true });
 const payload = {
-  schemaVersion: 5,
+  schemaVersion: 6,
   allowedProductionRefs: ALLOWED_PRODUCTION_REFS,
   sourceBranch: branch,
   sourceCommit: commit,
   generatedAt: new Date().toISOString(),
   commerceEngine: "purchase-flow-v3-production-branch",
+  checkoutEngine: "purchase-director-v1-authoritative",
+  checkoutOwnership: "capture-phase-single-owner-v1",
   pricingEngine: "store-pricing-v2-retryable",
+  pricingCheckoutPolicy: "display-only-never-disable-v1",
   nativeStoreKitLoader: "combined-plus-per-product-retry-v1",
   entitlementSyncEngine: "entitlement-sync-v1-always-on",
   productIds: ["gillie.plus.monthly", "gillie.plus.yearly"],
   paywallRuntimeEngine: "paywall-runtime-fix-v1",
+  paywallProbeMode: "single-open-storekit-probe",
   paywallChromeMode: "css-only-system-chrome-v2",
   paywallSurfaceGuard: "ensurePaywallSurface-v1",
   themeAccessEngine: "theme-access-v1-basic-free",
