@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const ENGINE = "store-pricing-v1";
+  const ENGINE = "store-pricing-v2-retryable";
   const PRODUCT_IDS = Object.freeze({
     monthly: "gillie.plus.monthly",
     yearly: "gillie.plus.yearly",
@@ -39,12 +39,15 @@
     return output;
   }
 
-  window.GillieStorePricing = Object.freeze({
+  const publicApi = {
     engine: ENGINE,
     productIds: PRODUCT_IDS,
     normalizeProducts,
     cadenceFor,
-  });
+    load: async () => new Map(),
+    snapshot: () => ({ state: "uninstalled", products: [], error: "" }),
+  };
+  window.GillieStorePricing = publicApi;
 
   window.GillieV1?.register("store-pricing", ({ qs, qsa, getState, track, announce }) => {
     const overlay = qs("#plus-overlay");
@@ -55,6 +58,7 @@
     let loadPromise = null;
     let products = new Map();
     let lastError = "";
+    let lastNativeResponse = null;
 
     const bridge = () => window.Capacitor?.Plugins?.GilliePurchases || null;
     const isPremium = () => Boolean(getState?.()?.premium);
@@ -69,6 +73,9 @@
     function setSelectedPlan(key) {
       if (!PRODUCT_IDS[key]) return;
       try { selectedPlusPlan = key; } catch (_) {}
+      qsa("#plus-plans [data-plus-plan]", overlay).forEach((button) => {
+        button.classList.toggle("on", button.dataset.plusPlan === key);
+      });
     }
 
     function selectedProduct() {
@@ -113,20 +120,23 @@
         const key = button.dataset.plusPlan;
         const product = products.get(PRODUCT_IDS[key]);
         const price = qs(".price", button);
+
         if (loadState === "loading") {
           if (price) price.textContent = "Loading Apple price…";
           button.disabled = true;
           button.setAttribute("aria-disabled", "true");
           return;
         }
-        if (loadState !== "ready" || !product) {
-          if (price) price.textContent = "Unavailable";
-          button.disabled = true;
-          button.setAttribute("aria-disabled", "true");
-          return;
-        }
+
+        // Keep plan selection usable after a StoreKit loading failure. The purchase
+        // coordinator performs a fresh native preflight on every CTA tap.
         button.disabled = false;
         button.removeAttribute("aria-disabled");
+        if (!product) {
+          if (price) price.textContent = loadState === "idle" ? "Checking Apple…" : "Apple unavailable";
+          return;
+        }
+
         if (price) {
           price.replaceChildren(document.createTextNode(product.displayPrice));
           if (product.cadence) {
@@ -139,18 +149,20 @@
 
       removeHardcodedSavings();
 
-      if (purchase && !premium) {
-        const ready = loadState === "ready" && Boolean(selected);
-        purchase.disabled = !ready;
-        purchase.setAttribute("aria-disabled", String(!ready));
-        purchase.classList.toggle("phase2-loading", loadState === "loading");
-        purchase.textContent = loadState === "loading"
-          ? "Loading Apple price…"
-          : ready
+      if (purchase && !premium && purchase.dataset.purchaseBusy !== "1") {
+        const loading = loadState === "loading";
+        purchase.disabled = loading;
+        purchase.setAttribute("aria-disabled", String(loading));
+        purchase.classList.toggle("phase2-loading", loading);
+        purchase.textContent = loading
+          ? "Connecting to Apple…"
+          : selected
             ? "Start Gillie Plus"
-            : "Apple price unavailable";
+            : loadState === "error" || loadState === "unavailable"
+              ? "Retry Apple connection"
+              : "Check Apple plans";
       }
-      if (restore) restore.disabled = false;
+      if (restore && restore.dataset.purchaseBusy !== "1") restore.disabled = false;
     }
 
     function scheduleRender() {
@@ -171,8 +183,18 @@
       else if (products.has(PRODUCT_IDS.monthly)) setSelectedPlan("monthly");
     }
 
-    async function loadAppleProducts({ announceFailure = false } = {}) {
-      if (loadState === "ready" && products.size) {
+    function snapshot() {
+      return {
+        state: loadState,
+        products: Array.from(products.keys()),
+        error: lastError,
+        requestedProductIds: Object.values(PRODUCT_IDS),
+        native: lastNativeResponse,
+      };
+    }
+
+    async function loadAppleProducts({ announceFailure = false, force = false } = {}) {
+      if (!force && loadState === "ready" && products.size) {
         rerenderPlans();
         return products;
       }
@@ -181,9 +203,10 @@
       const plugin = bridge();
       if (!plugin?.getProducts) {
         loadState = "unavailable";
-        lastError = "Gillie Plus pricing is available in the iOS App Store build.";
+        lastError = "The native Gillie purchase bridge is missing from this build.";
         scheduleRender();
         if (!overlay.hidden) setLegal(lastError);
+        track("store_pricing_bridge_missing", { engine: ENGINE });
         return products;
       }
 
@@ -193,20 +216,27 @@
       loadPromise = (async () => {
         try {
           const response = await plugin.getProducts();
+          lastNativeResponse = response || null;
           products = normalizeProducts(response);
-          if (!products.size) throw new Error("Apple did not return an available Gillie Plus plan.");
+          if (!products.size) {
+            const requested = Array.isArray(response?.requestedProductIds)
+              ? response.requestedProductIds.join(", ")
+              : Object.values(PRODUCT_IDS).join(", ");
+            throw new Error(`Apple returned no purchasable plans for ${requested}.`);
+          }
           loadState = "ready";
           chooseAvailablePlan();
           rerenderPlans();
           track("store_pricing_ready", { count: products.size, engine: ENGINE });
           return products;
         } catch (error) {
+          products = new Map();
           loadState = "error";
-          lastError = "Apple prices are temporarily unavailable. Restore purchases is still available.";
+          lastError = String(error?.message || "Apple plans could not be loaded.").slice(0, 220);
           scheduleRender();
           if (!overlay.hidden || announceFailure) setLegal(lastError);
           if (announceFailure) announce?.(lastError);
-          track("store_pricing_failed", { message: String(error?.message || error).slice(0, 80), engine: ENGINE });
+          track("store_pricing_failed", { message: lastError.slice(0, 120), engine: ENGINE });
           return products;
         } finally {
           loadPromise = null;
@@ -215,11 +245,14 @@
       return loadPromise;
     }
 
+    publicApi.load = loadAppleProducts;
+    publicApi.snapshot = snapshot;
+
     const originalOpenPlus = typeof openPlus === "function" ? openPlus : null;
     if (originalOpenPlus && !originalOpenPlus.__v1StorePricing) {
       const storeSafeOpenPlus = function storeSafeOpenPlus(...args) {
         const result = originalOpenPlus.apply(this, args);
-        loadAppleProducts();
+        loadAppleProducts({ force: loadState === "error" });
         scheduleRender();
         return result;
       };
@@ -232,22 +265,19 @@
       if (!target) return;
 
       if (target.matches("#plus-open,#set-plus,[data-act='plus'],#ship-premium-teaser")) {
-        loadAppleProducts();
+        loadAppleProducts({ force: loadState === "error" });
         scheduleRender();
       }
 
       if (target.matches("[data-plus-plan]")) {
-        setTimeout(() => {
-          chooseAvailablePlan();
-          renderPlanState();
-        }, 20);
+        setSelectedPlan(target.dataset.plusPlan);
+        setTimeout(renderPlanState, 20);
       }
 
+      // Never consume the CTA event. The purchase-flow module owns the purchase
+      // attempt and runs its own native product preflight before opening Apple.
       if (target.matches("#plus-purchase") && !isPremium() && !selectedProduct()) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        setLegal(loadState === "loading" ? "Loading Apple prices…" : (lastError || "Apple price is not available yet."));
-        loadAppleProducts({ announceFailure: true });
+        loadAppleProducts({ announceFailure: false, force: true });
       }
     }, true);
 
