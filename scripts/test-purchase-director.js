@@ -7,16 +7,18 @@ const root = path.resolve(__dirname, "..");
 const source = fs.readFileSync(path.join(root, "v1", "purchase-director.js"), "utf8");
 
 for (const marker of [
-  "purchase-director-v1-authoritative",
+  "purchase-director-v2-direct-native",
+  "selected-product-direct-to-storekit-v1",
   "stopImmediatePropagation",
-  "PRODUCT_LOOKUP_TIMEOUT",
-  "native.getProducts()",
-  "native.purchase({ productId: product.id })",
+  "native.purchase({ productId })",
+  "pricing/product-list lookup is display-only",
   "GillieEntitlementSync.apply",
   "GilliePurchaseDirector",
 ]) {
   assert(source.includes(marker), `Purchase director is missing: ${marker}`);
 }
+assert(!source.includes("await availablePlan("), "Checkout must not wait for pricing preflight");
+assert(!source.includes("native.getProducts()"), "Checkout director must not perform a product-list lookup");
 new Function(source);
 
 class FakeClassList {
@@ -24,7 +26,6 @@ class FakeClassList {
   toggle(name, force) { if (force) this.values.add(name); else this.values.delete(name); }
   add(name) { this.values.add(name); }
   remove(name) { this.values.delete(name); }
-  contains(name) { return this.values.has(name); }
 }
 
 class FakeElement {
@@ -72,7 +73,6 @@ const selectorMap = new Map([
 ]);
 
 const listeners = new Map();
-let productCalls = 0;
 let purchaseCalls = 0;
 let applied = 0;
 let purchasedProduct = "";
@@ -93,16 +93,6 @@ const document = {
 };
 
 const native = {
-  getProducts: async () => {
-    productCalls += 1;
-    return {
-      products: [
-        { id: "gillie.plus.monthly", displayPrice: "$3.99" },
-        { id: "gillie.plus.yearly", displayPrice: "$29.99" },
-      ],
-      bundleId: "com.lavish9999.gillie",
-    };
-  },
   purchase: async ({ productId }) => {
     purchaseCalls += 1;
     purchasedProduct = productId;
@@ -142,18 +132,17 @@ vm.runInContext(source, context, { filename: "v1/purchase-director.js" });
 
 assert(context.window.GilliePurchaseDirector, "Purchase director API must be installed");
 assert.strictEqual(purchase.disabled, false, "Purchase CTA must remain tappable");
-assert.strictEqual(purchase.dataset.purchaseDirector, "purchase-director-v1-authoritative");
+assert.strictEqual(purchase.dataset.purchaseDirector, "purchase-director-v2-direct-native");
 assert(listeners.has("click:true"), "Purchase director must own checkout in capture phase");
 
 (async () => {
   await context.window.GilliePurchaseDirector.purchase();
-  assert.strictEqual(productCalls, 1, "One tap must perform exactly one product lookup");
-  assert.strictEqual(purchaseCalls, 1, "One tap must perform exactly one Apple purchase call");
-  assert.strictEqual(purchasedProduct, "gillie.plus.yearly", "Selected yearly product must reach StoreKit");
+  assert.strictEqual(purchaseCalls, 1, "One tap must perform exactly one native Apple purchase call");
+  assert.strictEqual(purchasedProduct, "gillie.plus.yearly", "Selected yearly product must reach StoreKit directly");
   assert.strictEqual(applied, 1, "Verified entitlement must be applied exactly once");
   assert.strictEqual(overlay.hidden, true, "Paywall must close after verified entitlement");
   assert.strictEqual(purchase.disabled, false, "CTA must be restored after checkout");
-  console.log("Purchase director test passed: one tap, one product lookup, one StoreKit purchase, and one verified entitlement application.");
+  console.log("Purchase director test passed: pricing was bypassed, one selected product reached native StoreKit, and one verified entitlement was applied.");
 })().catch((error) => {
   console.error(error);
   process.exitCode = 1;
