@@ -42,12 +42,32 @@ const bootMarkup = `<!-- ================= SINGLE LAUNCH HANDOFF ===============
 if (!oldMarkupPattern.test(html)) throw new Error("Original splash markup was not found exactly once.");
 html = html.replace(oldMarkupPattern, bootMarkup);
 
-for (const forbidden of ["splash-orb", "Grow clean", "splashRise", "splashFloat"]) {
+const oldBootFunction = `function playSplash() {
+  const splash = $("#splash");
+  if (!splash) return;
+  setTimeout(() => splash.classList.add("hide"), REDUCED_MOTION ? 350 : 1450);
+  setTimeout(() => splash.remove(), REDUCED_MOTION ? 900 : 2150);
+}`;
+const safeBootFunction = `function playSplash() {
+  const splash = $("#splash");
+  if (!splash) return;
+  // The animated launch module replaces this bootstrap node. Only remove it as
+  // a safety fallback if that module fails to mount, preventing a Home-screen flash.
+  setTimeout(() => {
+    if (!splash.isConnected || !splash.classList.contains("gillie-launch-bootstrap")) return;
+    splash.remove();
+    document.documentElement.classList.remove("gillie-boot-pending");
+  }, 4000);
+}`;
+if (!html.includes(oldBootFunction)) throw new Error("Original playSplash timing block was not found exactly once.");
+html = html.replace(oldBootFunction, safeBootFunction);
+
+for (const forbidden of ["splash-orb", "Grow clean", "splashRise", "splashFloat", "REDUCED_MOTION ? 350 : 1450"]) {
   if (html.includes(forbidden)) throw new Error(`Legacy first splash still exists after launch handoff: ${forbidden}`);
 }
-for (const required of ["gillie-boot-pending", "gillie-launch-bootstrap", "SINGLE LAUNCH HANDOFF", "#EAF7F3"]) {
+for (const required of ["gillie-boot-pending", "gillie-launch-bootstrap", "SINGLE LAUNCH HANDOFF", "#EAF7F3", "preventing a Home-screen flash", "4000"]) {
   if (!html.includes(required)) throw new Error(`Single launch handoff is missing: ${required}`);
 }
 
 fs.writeFileSync(indexPath, html, "utf8");
-console.log("Prepared one seamless launch: native background hands directly to the animated Gillie intro with no legacy splash.");
+console.log("Prepared one seamless launch: native background hands directly to the animated Gillie intro with no legacy splash or Home-screen flash.");
