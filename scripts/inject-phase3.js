@@ -216,7 +216,7 @@ for (const [source, marker] of [
   [v1ReefDashboard, "claimDailyBonus"],
   [v1Coach, "What do you need right now?"],
   [v1Backup, 'format: "gillie-backup"'],
-  [v1StorePricing, 'ENGINE = "store-pricing-v1"'],
+  [v1StorePricing, 'ENGINE = "store-pricing-v2-retryable"'],
   [v1StorePricing, "Loading Apple price"],
   [v1Accessibility, 'ENGINE = "accessibility-v1"'],
   [v1Accessibility, "normalizeViewportContent"],
