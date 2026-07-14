@@ -54,4 +54,17 @@ if (provenance.includes('branch !== "native-ios-launch"')) {
   throw new Error("Build provenance still rejects synchronized main builds.");
 }
 
-console.log("Build pipeline test passed: release injectors run in order and synchronized production refs require exact commerce/theme code.");
+const codemagic = fs.readFileSync(path.join(root, "codemagic.yaml"), "utf8");
+for (const marker of [
+  "Codemagic source ref:",
+  "purchase-flow-v3-production-branch",
+  "store-pricing-v2-retryable",
+  "theme-engine-v2-multitank-level-rewards",
+  "theme-paint-v1",
+  "build-source.json",
+  "Verify final App Store IPA",
+]) {
+  if (!codemagic.includes(marker)) throw new Error(`Codemagic signed-IPA verification is missing: ${marker}`);
+}
+
+console.log("Build pipeline test passed: synchronized production refs are accepted and exact Plus/theme code is verified before and after IPA signing.");
