@@ -68,8 +68,14 @@ for (const marker of [
   'const ALLOWED_PRODUCTION_REFS = ["main", "native-ios-launch"]',
   "purchase-flow-v3-production-branch",
   "store-pricing-v2-retryable",
+  "entitlement-sync-v1-always-on",
+  "theme-access-v1-basic-free",
   "theme-engine-v2-multitank-level-rewards",
   "theme-paint-v1",
+  "launch-handoff-v1-single-intro",
+  "entitlementSyncEngine",
+  "themeAccessEngine",
+  "launchHandoffEngine",
   "allowedProductionRefs: ALLOWED_PRODUCTION_REFS",
 ]) {
   if (!provenance.includes(marker)) throw new Error(`Build provenance is missing: ${marker}`);
@@ -82,6 +88,16 @@ const launchScreen = fs.readFileSync(path.join(root, "ios/App/App/Base.lproj/Lau
 if (launchScreen.includes('image="Splash"')) throw new Error("Native launch screen still displays the legacy image splash.");
 if (!launchScreen.includes('red="0.9176470588"')) throw new Error("Native launch screen does not match the animated intro background.");
 
+const releaseValidator = fs.readFileSync(path.join(root, "scripts/validate-release-critical.js"), "utf8");
+for (const marker of [
+  'run(process.execPath, ["scripts/test-entitlement-sync.js"])',
+  'run(process.execPath, ["scripts/test-theme-access.js"])',
+  "working core tank themes",
+  "one fluid intro",
+]) {
+  if (!releaseValidator.includes(marker)) throw new Error(`Focused release validation is missing: ${marker}`);
+}
+
 const codemagic = fs.readFileSync(path.join(root, "codemagic.yaml"), "utf8");
 for (const marker of [
   "Codemagic source ref:",
@@ -91,8 +107,9 @@ for (const marker of [
   "theme-paint-v1",
   "build-source.json",
   "Verify final App Store IPA",
+  'node scripts/verify-final-web-assets.js "$app_path/public"',
 ]) {
   if (!codemagic.includes(marker)) throw new Error(`Codemagic signed-IPA verification is missing: ${marker}`);
 }
 
-console.log("Build pipeline test passed: one seamless launch, synchronized production refs, Plus entitlement sync, working core themes, and exact signed-IPA verification are required.");
+console.log("Build pipeline test passed: one seamless launch, synchronized production refs, boot-time Plus restoration, working core themes, and exact signed-IPA verification are required.");
