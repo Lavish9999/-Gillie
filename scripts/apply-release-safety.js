@@ -20,6 +20,12 @@ function replaceExactlyOnce(source, pattern, replacement, label, requiredMarkers
   return source.replace(pattern, replacement);
 }
 
+function replaceStringExactlyOnce(source, before, after, label) {
+  const matches = source.split(before).length - 1;
+  if (matches !== 1) throw new Error(`${label} expected exactly one source marker, found ${matches}.`);
+  return source.replace(before, after);
+}
+
 function hardenEraseEverything(html) {
   const pattern = /onConfirm\s*:\s*\(\)\s*=>\s*\{\s*localStorage\.removeItem\(\s*CONFIG\.storageKey\s*\)\s*;\s*location\.reload\(\)\s*;\s*\}/;
   const replacement = `onConfirm: async () => {
@@ -45,6 +51,28 @@ function hardenStartupRecovery(commerce) {
     "Startup recovery reset",
     ["Start fresh? This permanently deletes Gillie progress stored on this device."],
   );
+}
+
+function hardenUserTextRendering(html) {
+  html = replaceStringExactlyOnce(
+    html,
+    '<div class="t">${b.name}</div><div class="s">${skinOf(b.skin).name}</div>',
+    '<div class="t">${escapeHTML(b.name)}</div><div class="s">${escapeHTML(skinOf(b.skin).name)}</div>',
+    "Buddy card text escaping",
+  );
+  html = replaceStringExactlyOnce(
+    html,
+    '<div class="row"><div class="gn">${state.goal.name}</div>',
+    '<div class="row"><div class="gn">${escapeHTML(state.goal.name)}</div>',
+    "Savings goal text escaping",
+  );
+  html = replaceStringExactlyOnce(
+    html,
+    '${state.reasons.join(" · ")}',
+    '${state.reasons.map(escapeHTML).join(" · ")}',
+    "SOS reasons text escaping",
+  );
+  return html;
 }
 
 function run() {
@@ -89,16 +117,32 @@ function run() {
   }
 
   html = hardenEraseEverything(html);
+  html = hardenUserTextRendering(html);
   commerce = hardenStartupRecovery(commerce);
 
   for (const forbidden of ["fonts.googleapis.com", "fonts.gstatic.com", "Dopamine signaling is rebalancing", "localStorage.removeItem(CONFIG.storageKey)"]) {
     if (html.includes(forbidden)) throw new Error(`Generated native bundle still contains forbidden release marker: ${forbidden}`);
   }
+  for (const forbidden of [
+    '<div class="t">${b.name}</div>',
+    '<div class="row"><div class="gn">${state.goal.name}</div>',
+    '${state.reasons.join(" · ")}',
+  ]) {
+    if (html.includes(forbidden)) throw new Error(`Generated native bundle still contains unsafe user-text rendering: ${forbidden}`);
+  }
   for (const forbidden of ["Know the hard moment before it arrives", "Know when cravings are most likely to hit"]) {
     if (paywall.includes(forbidden)) throw new Error(`Generated paywall still contains an overly certain wellness claim: ${forbidden}`);
   }
   if (commerce.includes('localStorage.removeItem("gillie_v1")')) throw new Error("Startup recovery still performs a partial reset.");
-  for (const required of ["clearDiagnostics", "localStorage.clear()", "experiences vary", "general wellness information, not medical advice"]) {
+  for (const required of [
+    "clearDiagnostics",
+    "localStorage.clear()",
+    "experiences vary",
+    "general wellness information, not medical advice",
+    "escapeHTML(b.name)",
+    "escapeHTML(state.goal.name)",
+    "state.reasons.map(escapeHTML).join",
+  ]) {
     if (!html.includes(required)) throw new Error(`Generated native bundle is missing release marker: ${required}`);
   }
   for (const required of ["clearDiagnostics", "localStorage.clear()", "local diagnostics stored on this device"]) {
@@ -111,7 +155,7 @@ function run() {
   fs.writeFileSync(indexPath, html, "utf8");
   fs.writeFileSync(commercePath, commerce, "utf8");
   fs.writeFileSync(paywallPath, paywall, "utf8");
-  console.log("Applied release safety pass: no remote fonts, softer wellness and paywall copy, and complete local diagnostic erase.");
+  console.log("Applied release safety pass: no remote fonts, safer wellness copy, escaped user text, and complete local diagnostic erase.");
 }
 
 if (require.main === module) run();
@@ -119,5 +163,7 @@ if (require.main === module) run();
 module.exports = {
   hardenEraseEverything,
   hardenStartupRecovery,
+  hardenUserTextRendering,
   replaceExactlyOnce,
+  replaceStringExactlyOnce,
 };
