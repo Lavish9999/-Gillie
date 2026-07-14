@@ -180,6 +180,7 @@ workflows:
           test -f "$app_path/public/v1/accessibility.js"
           test -f "$app_path/public/v1/sos-support.js"
           test -f "$app_path/public/v1/welcome-recovery.js"
+          test -f "$app_path/public/v1/purchase-flow.js"
           test -f "$app_path/public/v1/support-recovery.css"
           grep -q 'store-pricing-v1' "$app_path/public/v1/store-pricing.js"
           grep -q 'Loading Apple price' "$app_path/public/v1/store-pricing.js"
@@ -191,6 +192,9 @@ workflows:
           grep -q '1-800-QUIT-NOW' "$app_path/public/v1/sos-support.js"
           grep -q 'welcome-recovery-v1' "$app_path/public/v1/welcome-recovery.js"
           grep -q 'recoverWelcomeBundle' "$app_path/public/v1/welcome-recovery.js"
+          grep -q 'purchase-flow-v1' "$app_path/public/v1/purchase-flow.js"
+          grep -q 'entitlementChanged' "$app_path/public/v1/purchase-flow.js"
+          grep -q 'Apple is still processing this purchase' "$app_path/public/v1/purchase-flow.js"
           grep -q 'id="toast" role="status" aria-live="polite" aria-atomic="true"' "$app_path/public/index.html"
 
           if grep -R -qE 'fonts\.googleapis\.com|fonts\.gstatic\.com' "$app_path/public"; then
