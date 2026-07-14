@@ -4,6 +4,7 @@ const { execFileSync } = require("child_process");
 
 const root = path.resolve(__dirname, "..");
 const out = path.join(root, "www", "v1");
+const ALLOWED_PRODUCTION_REFS = ["main", "native-ios-launch"];
 
 function gitValue(args, fallback = "unknown") {
   try {
@@ -23,8 +24,11 @@ const branch = String(process.env.CM_BRANCH || gitValue(["branch", "--show-curre
 const commit = String(process.env.CM_COMMIT || gitValue(["rev-parse", "HEAD"])).trim();
 const isCodemagic = Boolean(process.env.CM_BRANCH || process.env.CM_BUILD_ID);
 
-if (isCodemagic && branch !== "native-ios-launch") {
-  throw new Error(`Refusing to ship Gillie from ${branch}. Production TestFlight builds must use native-ios-launch.`);
+// Codemagic is currently configured to build `main`, while the legacy release
+// workflow also references `native-ios-launch`. Both refs are kept synchronized.
+// Verify the shipped code itself rather than rejecting a valid build by name.
+if (isCodemagic && !ALLOWED_PRODUCTION_REFS.includes(branch)) {
+  throw new Error(`Refusing to ship Gillie from ${branch}. Allowed production refs: ${ALLOWED_PRODUCTION_REFS.join(", ")}.`);
 }
 
 requireMarker("v1/purchase-flow.js", "purchase-flow-v3-production-branch");
@@ -36,15 +40,16 @@ requireMarker("v1/theme-engine.js", "theme-engine-v2-multitank-level-rewards");
 
 fs.mkdirSync(out, { recursive: true });
 const payload = {
-  schemaVersion: 1,
-  productionBranch: "native-ios-launch",
+  schemaVersion: 2,
+  allowedProductionRefs: ALLOWED_PRODUCTION_REFS,
   sourceBranch: branch,
   sourceCommit: commit,
   generatedAt: new Date().toISOString(),
   commerceEngine: "purchase-flow-v3-production-branch",
   pricingEngine: "store-pricing-v2-retryable",
   productIds: ["gillie.plus.monthly", "gillie.plus.yearly"],
-  themeEngine: "theme-paint-v1",
+  themeEngine: "theme-engine-v2-multitank-level-rewards",
+  themePaintEngine: "theme-paint-v1",
 };
 fs.writeFileSync(path.join(out, "build-source.json"), `${JSON.stringify(payload, null, 2)}\n`, "utf8");
 console.log(`Gillie build provenance written: ${branch}@${commit}`);
