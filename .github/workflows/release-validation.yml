@@ -18,6 +18,11 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v4
 
+      - name: Verify generated web safety first
+        run: |
+          npm run prepare:cap
+          node scripts/verify-final-web-assets.js www
+
       - name: Set up Node 22
         uses: actions/setup-node@v4
         with:
