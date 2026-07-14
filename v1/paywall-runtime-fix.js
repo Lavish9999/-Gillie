@@ -1,4 +1,4 @@
-/* Gillie V1 Paywall Runtime Fix — safe header chrome and live StoreKit readiness. */
+/* Gillie V1 Paywall Runtime Fix — CSS-only safe header chrome and live StoreKit readiness. */
 (() => {
   "use strict";
 
@@ -6,30 +6,56 @@
   window.__gilliePaywallRuntimeFixInstalled = true;
 
   const ENGINE = "paywall-runtime-fix-v1";
+  const SYSTEM_CHROME_MODE = "css-only-system-chrome-v2";
   const EXPECTED_IDS = Object.freeze(["gillie.plus.monthly", "gillie.plus.yearly"]);
   let probeToken = 0;
   let observer = null;
-  let chromeActive = false;
 
   const $ = (selector, root = document) => root?.querySelector?.(selector) || null;
   const bridge = () => window.Capacitor?.Plugins?.GilliePurchases || null;
 
   function track(name, properties = {}) {
-    try { bridge()?.trackEvent?.({ name, properties: { engine: ENGINE, ...properties } }); }
+    try { bridge()?.trackEvent?.({ name, properties: { engine: ENGINE, chromeMode: SYSTEM_CHROME_MODE, ...properties } }); }
     catch (_) {}
   }
 
-  function setNativeChrome(paywallVisible) {
-    const next = Boolean(paywallVisible);
-    if (next === chromeActive) return;
-    chromeActive = next;
-    document.documentElement?.classList?.toggle("gillie-plus-system-chrome", next);
-    try {
-      bridge()?.setInterfaceStyle?.({
-        lightStatusBar: next,
-        surface: next ? "plus" : "app",
-      });
-    } catch (_) {}
+  function setSystemChrome(paywallVisible) {
+    const active = Boolean(paywallVisible);
+    document.documentElement?.classList?.toggle("gillie-plus-system-chrome", active);
+    const overlay = $("#plus-overlay");
+    if (overlay) overlay.dataset.systemChrome = active ? SYSTEM_CHROME_MODE : "";
+
+    // Deliberately CSS-only. Calling the former native setInterfaceStyle bridge
+    // changed the Capacitor root-view background and covered the entire WebView.
+    // The light safe-area strip in paywall-runtime-fix.css keeps TestFlight and
+    // status-bar text readable without mutating the native window or view.
+  }
+
+  function ensurePaywallSurface(reason = "surface-check") {
+    const overlay = $("#plus-overlay");
+    if (!overlay || overlay.hidden) return false;
+
+    const sheet = $("#plus-overlay > .sheet") || $(".sheet", overlay);
+    if (!sheet) {
+      track("paywall_surface_missing", { reason, part: "sheet" });
+      return false;
+    }
+
+    overlay.style.setProperty("visibility", "visible", "important");
+    overlay.style.setProperty("opacity", "1", "important");
+    sheet.style.setProperty("visibility", "visible", "important");
+    sheet.style.setProperty("opacity", "1", "important");
+
+    const content = $(".gp-paywall-scroll", sheet) || $(".plus-tank-hero", sheet) || $("#plus-title", sheet);
+    if (content) {
+      content.style?.setProperty?.("visibility", "visible", "important");
+      content.style?.setProperty?.("opacity", "1", "important");
+      sheet.dataset.paywallSurfaceReady = "true";
+      return true;
+    }
+
+    track("paywall_surface_missing", { reason, part: "content" });
+    return false;
   }
 
   function ensureHealthRow() {
@@ -142,9 +168,11 @@
     const overlay = $("#plus-overlay");
     if (!overlay) return false;
     const visible = !overlay.hidden;
-    setNativeChrome(visible);
+    setSystemChrome(visible);
     if (visible) {
+      ensurePaywallSurface(reason);
       ensureHealthRow();
+      setTimeout(() => ensurePaywallSurface(`${reason}:settled`), 180);
       setTimeout(() => probeStoreKit(reason), 40);
     } else {
       probeToken += 1;
@@ -161,7 +189,7 @@
     observer.observe(overlay, { attributes: true, attributeFilter: ["hidden", "class"] });
 
     document.addEventListener("click", (event) => {
-      const target = event.target?.closest?.("#plus-open,#set-plus,[data-act='plus'],#ship-premium-teaser,#plus-purchase,#plus-restore,.gp-close");
+      const target = event.target?.closest?.("#plus-open,#set-plus,[data-act='plus'],#ship-premium-teaser,#plus-purchase,#plus-restore,.gp-close,#plus-soft-close");
       if (!target) return;
       if (target.matches("#plus-purchase,#plus-restore")) setTimeout(() => probeStoreKit(target.id), 80);
       else setTimeout(() => syncOverlay("paywall-control"), 20);
@@ -176,20 +204,19 @@
     document.addEventListener("visibilitychange", () => {
       if (!document.hidden && !overlay.hidden) setTimeout(() => syncOverlay("foreground"), 60);
     });
-    window.addEventListener("pagehide", () => {
-      if (chromeActive) setNativeChrome(false);
-    });
+    window.addEventListener("pagehide", () => setSystemChrome(false));
 
     window.GilliePaywallRuntimeFix = Object.freeze({
       engine: ENGINE,
+      chromeMode: SYSTEM_CHROME_MODE,
       probe: probeStoreKit,
       sync: syncOverlay,
+      ensureSurface: ensurePaywallSurface,
     });
 
-    // Critical: the paywall runtime must have zero native or visual side effects
-    // during app boot. It activates only when the paywall is actually visible.
+    // Critical: zero native window/view mutation during boot or paywall display.
     if (!overlay.hidden) syncOverlay("install-visible");
-    track("paywall_runtime_fix_loaded", { startupSideEffects: false });
+    track("paywall_runtime_fix_loaded", { startupSideEffects: false, nativeViewMutation: false });
     return true;
   }
 
