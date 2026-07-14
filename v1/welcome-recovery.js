@@ -38,14 +38,14 @@
         overlay.hidden = true;
         overlay.innerHTML = `
           <div class="sheet">
-            <button type="button" class="sheet-close" data-welcome-recovery-close aria-label="Close restored benefits">×</button>
+            <button type="button" class="sheet-close" data-welcome-recovery-close data-dialog-close aria-label="Close restored benefits">×</button>
             <div class="confirm-icon" aria-hidden="true">✦</div>
             <div class="eyebrow">GILLIE PLUS RESTORED</div>
             <h2>Your welcome benefits are back.</h2>
             <p class="sub" data-welcome-recovery-copy></p>
             <div class="sheet-actions">
               <button type="button" class="btn" data-welcome-recovery-reef>Explore the Reef</button>
-              <button type="button" class="btn ghost" data-welcome-recovery-close>Not now</button>
+              <button type="button" class="btn ghost" data-welcome-recovery-close data-dialog-close>Not now</button>
             </div>
           </div>`;
         document.body.appendChild(overlay);
