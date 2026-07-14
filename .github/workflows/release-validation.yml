@@ -20,12 +20,20 @@ jobs:
 
       - name: Generate and inspect final web assets
         run: |
-          npm run prepare:cap
           set +e
-          node scripts/verify-final-web-assets.js www > final-web-verification.log 2>&1
-          verification_code=$?
+          npm run prepare:cap > prepare-cap.log 2>&1
+          prepare_code=$?
+          if [ "$prepare_code" = "0" ]; then
+            node scripts/verify-final-web-assets.js www > final-web-verification.log 2>&1
+            verification_code=$?
+          else
+            printf 'Final web verification did not run because prepare:cap failed.\n' > final-web-verification.log
+            verification_code=99
+          fi
           set -e
+          echo "$prepare_code" > prepare-cap.exit
           echo "$verification_code" > final-web-verification.exit
+          cat prepare-cap.log
           cat final-web-verification.log
 
       - name: Upload generated web verification evidence
@@ -34,6 +42,8 @@ jobs:
         with:
           name: final-web-verification
           path: |
+            prepare-cap.log
+            prepare-cap.exit
             final-web-verification.log
             final-web-verification.exit
             www
@@ -41,7 +51,9 @@ jobs:
 
       - name: Enforce generated web verification
         run: |
+          cat prepare-cap.log
           cat final-web-verification.log
+          test "$(cat prepare-cap.exit)" = "0"
           test "$(cat final-web-verification.exit)" = "0"
 
       - name: Set up Node 22
