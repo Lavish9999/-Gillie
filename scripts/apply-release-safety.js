@@ -75,6 +75,56 @@ function hardenUserTextRendering(html) {
   return html;
 }
 
+function hardenAccessibilityMarkup(html) {
+  html = replaceStringExactlyOnce(
+    html,
+    '<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">',
+    '<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">',
+    "Scalable viewport",
+  );
+  html = replaceStringExactlyOnce(
+    html,
+    '<div id="toast"><span class="em">🌊</span><span id="toast-msg"></span></div>',
+    '<div id="toast" role="status" aria-live="polite" aria-atomic="true"><span class="em" aria-hidden="true">🌊</span><span id="toast-msg"></span></div>',
+    "Accessible toast",
+  );
+  return html;
+}
+
+function hardenStorePricing(html, paywall) {
+  html = replaceStringExactlyOnce(
+    html,
+    'yearly: { id: "gillie.plus.yearly", name: "Yearly", price: "$29.99", cadence: "/ year", note: "Best value for staying locked in.", badge: "Save 37%" }',
+    'yearly: { id: "gillie.plus.yearly", name: "Yearly", price: "Loading Apple price…", cadence: "", note: "Annual billing", badge: "" }',
+    "Yearly StoreKit placeholder",
+  );
+  html = replaceStringExactlyOnce(
+    html,
+    'monthly: { id: "gillie.plus.monthly", name: "Monthly", price: "$3.99", cadence: "/ month", note: "Full Plus access. Cancel anytime." }',
+    'monthly: { id: "gillie.plus.monthly", name: "Monthly", price: "Loading Apple price…", cadence: "", note: "Monthly billing" }',
+    "Monthly StoreKit placeholder",
+  );
+  paywall = replaceStringExactlyOnce(
+    paywall,
+    'const nameHtml = `Yearly <span class="badge">Save 37%</span>`;',
+    'const nameHtml = "Yearly";',
+    "Hardcoded yearly savings removal",
+  );
+  paywall = replaceStringExactlyOnce(
+    paywall,
+    'if (note && note.textContent !== "Best value") note.textContent = "Best value";',
+    'if (note && note.textContent !== "Annual billing") note.textContent = "Annual billing";',
+    "Yearly billing note",
+  );
+  paywall = replaceStringExactlyOnce(
+    paywall,
+    'if (note && note.textContent !== "Flexible") note.textContent = "Flexible";',
+    'if (note && note.textContent !== "Monthly billing") note.textContent = "Monthly billing";',
+    "Monthly billing note",
+  );
+  return { html, paywall };
+}
+
 function run() {
   for (const [file, label] of [[indexPath, "www/index.html"], [commercePath, "www/phase1-commerce.js"], [paywallPath, "www/phase5-paywall.js"]]) {
     if (!fs.existsSync(file)) throw new Error(`Missing generated ${label} for release safety pass.`);
@@ -118,10 +168,23 @@ function run() {
 
   html = hardenEraseEverything(html);
   html = hardenUserTextRendering(html);
+  html = hardenAccessibilityMarkup(html);
+  ({ html, paywall } = hardenStorePricing(html, paywall));
   commerce = hardenStartupRecovery(commerce);
 
-  for (const forbidden of ["fonts.googleapis.com", "fonts.gstatic.com", "Dopamine signaling is rebalancing", "localStorage.removeItem(CONFIG.storageKey)"]) {
-    if (html.includes(forbidden)) throw new Error(`Generated native bundle still contains forbidden release marker: ${forbidden}`);
+  for (const forbidden of [
+    "fonts.googleapis.com",
+    "fonts.gstatic.com",
+    "Dopamine signaling is rebalancing",
+    "localStorage.removeItem(CONFIG.storageKey)",
+    "user-scalable=no",
+    "$3.99",
+    "$29.99",
+    "Save 37%",
+  ]) {
+    if (html.includes(forbidden) || paywall.includes(forbidden)) {
+      throw new Error(`Generated native bundle still contains forbidden release marker: ${forbidden}`);
+    }
   }
   for (const forbidden of [
     '<div class="t">${b.name}</div>',
@@ -142,27 +205,39 @@ function run() {
     "escapeHTML(b.name)",
     "escapeHTML(state.goal.name)",
     "state.reasons.map(escapeHTML).join",
+    'role="status" aria-live="polite" aria-atomic="true"',
+    "Loading Apple price…",
+    "Annual billing",
+    "Monthly billing",
   ]) {
     if (!html.includes(required)) throw new Error(`Generated native bundle is missing release marker: ${required}`);
   }
   for (const required of ["clearDiagnostics", "localStorage.clear()", "local diagnostics stored on this device"]) {
     if (!commerce.includes(required)) throw new Error(`Generated startup recovery is missing release marker: ${required}`);
   }
-  for (const required of ["Spot the times cravings may be more likely", "See when cravings may be more likely"]) {
-    if (!paywall.includes(required)) throw new Error(`Generated paywall is missing safer launch copy: ${required}`);
+  for (const required of [
+    "Spot the times cravings may be more likely",
+    "See when cravings may be more likely",
+    'const nameHtml = "Yearly"',
+    "Annual billing",
+    "Monthly billing",
+  ]) {
+    if (!paywall.includes(required)) throw new Error(`Generated paywall is missing safer launch behavior: ${required}`);
   }
 
   fs.writeFileSync(indexPath, html, "utf8");
   fs.writeFileSync(commercePath, commerce, "utf8");
   fs.writeFileSync(paywallPath, paywall, "utf8");
-  console.log("Applied release safety pass: no remote fonts, safer wellness copy, escaped user text, and complete local diagnostic erase.");
+  console.log("Applied release safety pass: scalable text, Apple-authoritative pricing, no remote fonts, safer wellness copy, escaped user text, and complete local diagnostic erase.");
 }
 
 if (require.main === module) run();
 
 module.exports = {
+  hardenAccessibilityMarkup,
   hardenEraseEverything,
   hardenStartupRecovery,
+  hardenStorePricing,
   hardenUserTextRendering,
   replaceExactlyOnce,
   replaceStringExactlyOnce,
