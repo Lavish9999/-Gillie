@@ -1,0 +1,93 @@
+/* Gillie V1 Paywall Runtime Fix — safe system chrome and visible StoreKit state. */
+
+#plus-overlay.gp-paywall-overlay{
+  --gp-system-top:max(env(safe-area-inset-top),56px);
+  --gp-system-left:max(env(safe-area-inset-left),0px);
+  --gp-system-right:max(env(safe-area-inset-right),0px);
+}
+
+#plus-overlay.gp-paywall-overlay .gp-paywall-scroll{
+  scroll-padding-top:calc(var(--gp-system-top) + 20px)!important;
+}
+
+#plus-overlay.gp-paywall-overlay .gp-hero-card{
+  min-height:292px!important;
+  padding-top:calc(var(--gp-system-top) + 28px)!important;
+  padding-left:calc(22px + var(--gp-system-left))!important;
+  padding-right:calc(18px + var(--gp-system-right))!important;
+}
+
+#plus-overlay.gp-paywall-overlay .gp-close{
+  top:calc(var(--gp-system-top) + 8px)!important;
+  right:calc(14px + var(--gp-system-right))!important;
+}
+
+#plus-overlay.gp-paywall-overlay .gp-status-banner{
+  top:calc(var(--gp-system-top) + 58px)!important;
+}
+
+#plus-overlay.gp-paywall-overlay .gp-kicker{
+  position:relative!important;
+  z-index:2!important;
+  color:#f5cf72!important;
+  text-shadow:0 1px 12px rgba(0,25,22,.35)!important;
+}
+
+#plus-overlay.gp-paywall-overlay .gp-title{
+  max-width:270px!important;
+  text-shadow:0 3px 24px rgba(0,27,24,.24)!important;
+}
+
+#plus-overlay.gp-paywall-overlay .gp-store-health{
+  display:flex;
+  align-items:flex-start;
+  gap:9px;
+  margin:0 0 12px;
+  padding:10px 11px;
+  border:1px solid rgba(22,91,75,.1);
+  border-radius:13px;
+  color:#55746b;
+  background:#eaf2ef;
+  font-size:10.5px;
+  line-height:1.35;
+  font-weight:650;
+}
+
+#plus-overlay.gp-paywall-overlay .gp-store-health::before{
+  content:"";
+  flex:0 0 auto;
+  width:8px;
+  height:8px;
+  margin-top:3px;
+  border-radius:50%;
+  background:#8aa29b;
+  box-shadow:0 0 0 4px rgba(138,162,155,.12);
+}
+
+#plus-overlay.gp-paywall-overlay .gp-store-health.ready{
+  color:#245f50;
+  background:#e6f3ee;
+}
+#plus-overlay.gp-paywall-overlay .gp-store-health.ready::before{background:#2f9c77;box-shadow:0 0 0 4px rgba(47,156,119,.12)}
+
+#plus-overlay.gp-paywall-overlay .gp-store-health.error{
+  color:#7a3942;
+  background:#f8eaed;
+  border-color:rgba(122,57,66,.12);
+}
+#plus-overlay.gp-paywall-overlay .gp-store-health.error::before{background:#b55363;box-shadow:0 0 0 4px rgba(181,83,99,.12)}
+
+@media (orientation:landscape) and (max-height:560px){
+  #plus-overlay.gp-paywall-overlay{--gp-system-top:max(env(safe-area-inset-top),50px)}
+  #plus-overlay.gp-paywall-overlay .gp-hero-card{
+    min-height:250px!important;
+    padding-top:calc(var(--gp-system-top) + 18px)!important;
+    grid-template-columns:minmax(0,1fr) 170px!important;
+  }
+  #plus-overlay.gp-paywall-overlay .gp-title{
+    max-width:430px!important;
+    font-size:clamp(31px,6vw,48px)!important;
+    line-height:.98!important;
+  }
+  #plus-overlay.gp-paywall-overlay .gp-subtitle{max-width:420px!important}
+}

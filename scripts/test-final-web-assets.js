@@ -7,13 +7,13 @@ const { scanFinalWebAssets } = require("./verify-final-web-assets");
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), "gillie-final-web-assets-"));
 
-const safeIndex = `<!doctype html><html class="gillie-boot-pending"><head><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"></head><body><!-- SINGLE LAUNCH HANDOFF --><script data-gillie-v1-entitlement-sync="true"></script><script data-gillie-v1-theme-access="true"></script><script data-gillie-v1-launch-handoff="true"></script><main>Gillie</main></body></html>`;
+const safeIndex = `<!doctype html><html class="gillie-boot-pending"><head><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"><link data-gillie-v1-paywall-runtime-fix-styles="true"></head><body><!-- SINGLE LAUNCH HANDOFF --><script data-gillie-v1-entitlement-sync="true"></script><script data-gillie-v1-theme-access="true"></script><script data-gillie-v1-launch-handoff="true"></script><script data-gillie-v1-paywall-runtime-fix="true"></script><main>Gillie</main></body></html>`;
 
 function writeProductionContract(target, sourceBranch = "main") {
   fs.mkdirSync(path.join(target, "v1"), { recursive: true });
   fs.writeFileSync(path.join(target, "index.html"), safeIndex);
   fs.writeFileSync(path.join(target, "v1", "build-source.json"), JSON.stringify({
-    schemaVersion: 2,
+    schemaVersion: 4,
     allowedProductionRefs: ["main", "native-ios-launch"],
     sourceBranch,
     sourceCommit: "abc123",
@@ -26,6 +26,8 @@ function writeProductionContract(target, sourceBranch = "main") {
   fs.writeFileSync(path.join(target, "v1", "theme-paint.js"), 'const a = "theme-paint-v1";');
   fs.writeFileSync(path.join(target, "v1", "launch-experience.js"), 'const a = "launch-experience-v1";');
   fs.writeFileSync(path.join(target, "v1", "launch-handoff.js"), 'const a = "launch-handoff-v1-single-intro";');
+  fs.writeFileSync(path.join(target, "v1", "paywall-runtime-fix.js"), 'const a = "paywall-runtime-fix-v1 setInterfaceStyle Apple billing connected";');
+  fs.writeFileSync(path.join(target, "v1", "paywall-runtime-fix.css"), ':root{--gp-system-top:56px}.gp-store-health{display:block}');
 }
 
 try {
@@ -34,7 +36,7 @@ try {
   fs.writeFileSync(path.join(safe, "image.png"), Buffer.from("binary metadata $3.99 is ignored because this is not executable text"));
 
   const safeResult = scanFinalWebAssets(safe);
-  assert.strictEqual(safeResult.filesChecked, 10, "Only supported text assets and complete shipping contracts should be scanned");
+  assert.strictEqual(safeResult.filesChecked, 12, "Only supported text assets and complete shipping contracts should be scanned");
   assert.strictEqual(safeResult.provenance.sourceBranch, "main");
 
   const nativeReleaseRef = path.join(root, "native-ref");
@@ -79,7 +81,7 @@ try {
   const incompleteRefs = path.join(root, "incomplete-refs");
   writeProductionContract(incompleteRefs);
   fs.writeFileSync(path.join(incompleteRefs, "v1", "build-source.json"), JSON.stringify({
-    schemaVersion: 2,
+    schemaVersion: 4,
     allowedProductionRefs: ["main"],
     sourceBranch: "main",
     sourceCommit: "abc123",
@@ -99,7 +101,7 @@ try {
     "The signed web bundle must never contain the original splash before the animated intro",
   );
 
-  console.log("Final web asset verifier test passed: Plus entitlement sync, working core themes, one launch, synchronized production refs, and release-content rules are enforced.");
+  console.log("Final web asset verifier test passed: safe Plus header, live StoreKit readiness, entitlement sync, working themes, one launch, synchronized refs, and release-content rules are enforced.");
 } finally {
   fs.rmSync(root, { recursive: true, force: true });
 }

@@ -15,6 +15,7 @@ public class GilliePurchasesPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "restorePurchases", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "claimPlusWelcomeBundle", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "manageSubscriptions", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "setInterfaceStyle", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "haptic", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "requestReview", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "trackEvent", returnType: CAPPluginReturnPromise),
@@ -67,7 +68,7 @@ public class GilliePurchasesPlugin: CAPPlugin, CAPBridgedPlugin {
     @objc func getProducts(_ call: CAPPluginCall) {
         Task {
             do {
-                let products = try await Product.products(for: productIDs)
+                let products = try await loadAvailableProducts()
                 let output: [[String: Any]] = products.map { product in
                     var item: [String: Any] = [
                         "id": product.id,
@@ -81,8 +82,19 @@ public class GilliePurchasesPlugin: CAPPlugin, CAPBridgedPlugin {
                     }
                     return item
                 }
-                recordEvent(name: "store_products_loaded_native", properties: ["count": output.count])
-                call.resolve(["products": output])
+                let returnedIDs = products.map(\.id)
+                let missingIDs = productIDs.filter { !returnedIDs.contains($0) }
+                recordEvent(name: "store_products_loaded_native", properties: [
+                    "count": output.count,
+                    "missing": missingIDs.joined(separator: ",")
+                ])
+                call.resolve([
+                    "products": output,
+                    "requestedProductIds": productIDs,
+                    "returnedProductIds": returnedIDs,
+                    "missingProductIds": missingIDs,
+                    "bundleId": Bundle.main.bundleIdentifier ?? "unknown"
+                ])
             } catch {
                 recordEvent(name: "store_products_failed_native", properties: ["error": error.localizedDescription])
                 call.reject("Gillie Plus products could not be loaded: \(error.localizedDescription)")
@@ -98,10 +110,15 @@ public class GilliePurchasesPlugin: CAPPlugin, CAPBridgedPlugin {
 
         Task {
             do {
-                let products = try await Product.products(for: productIDs)
+                let products = try await loadAvailableProducts()
                 guard let product = products.first(where: { $0.id == productID }) else {
-                    recordEvent(name: "purchase_product_missing", properties: ["productId": productID, "returned": products.count])
-                    call.reject("The selected Gillie Plus plan is not available in this storefront.")
+                    let returnedIDs = products.map(\.id).joined(separator: ",")
+                    recordEvent(name: "purchase_product_missing", properties: [
+                        "productId": productID,
+                        "returned": products.count,
+                        "returnedIds": returnedIDs
+                    ])
+                    call.reject("Apple did not return the selected Gillie Plus plan for this storefront. Requested \(productID); returned \(returnedIDs.isEmpty ? "none" : returnedIDs).")
                     return
                 }
 
@@ -200,6 +217,25 @@ public class GilliePurchasesPlugin: CAPPlugin, CAPBridgedPlugin {
         }
     }
 
+    @objc func setInterfaceStyle(_ call: CAPPluginCall) {
+        let lightStatusBar = call.getBool("lightStatusBar") ?? false
+        DispatchQueue.main.async {
+            UIApplication.shared.statusBarStyle = lightStatusBar ? .lightContent : .darkContent
+            let background = lightStatusBar
+                ? UIColor(red: 10 / 255, green: 66 / 255, blue: 59 / 255, alpha: 1)
+                : UIColor(red: 234 / 255, green: 247 / 255, blue: 243 / 255, alpha: 1)
+            UIApplication.shared.connectedScenes
+                .compactMap { $0 as? UIWindowScene }
+                .flatMap(\.windows)
+                .forEach { window in
+                    window.backgroundColor = background
+                    window.rootViewController?.view.backgroundColor = background
+                }
+            self.recordEvent(name: "interface_style_changed_native", properties: ["lightStatusBar": lightStatusBar])
+            call.resolve(["lightStatusBar": lightStatusBar])
+        }
+    }
+
     @objc func haptic(_ call: CAPPluginCall) {
         let style = call.getString("style") ?? "light"
         DispatchQueue.main.async {
@@ -281,6 +317,45 @@ public class GilliePurchasesPlugin: CAPPlugin, CAPBridgedPlugin {
         defaults.removeObject(forKey: eventLogKey)
         defaults.removeObject(forKey: metricLogKey)
         call.resolve(["cleared": true])
+    }
+
+    private func loadAvailableProducts() async throws -> [Product] {
+        var productsByID: [String: Product] = [:]
+        var lastError: Error?
+
+        for attempt in 1...3 {
+            do {
+                let batch = try await Product.products(for: productIDs)
+                batch.forEach { productsByID[$0.id] = $0 }
+
+                let missingAfterBatch = productIDs.filter { productsByID[$0] == nil }
+                for productID in missingAfterBatch {
+                    let single = try await Product.products(for: [productID])
+                    single.forEach { productsByID[$0.id] = $0 }
+                }
+
+                let missing = productIDs.filter { productsByID[$0] == nil }
+                recordEvent(name: "store_products_attempt_native", properties: [
+                    "attempt": attempt,
+                    "count": productsByID.count,
+                    "missing": missing.joined(separator: ",")
+                ])
+                if missing.isEmpty { break }
+            } catch {
+                lastError = error
+                recordEvent(name: "store_products_attempt_failed_native", properties: [
+                    "attempt": attempt,
+                    "error": error.localizedDescription
+                ])
+            }
+
+            if attempt < 3 {
+                try? await Task<Never, Never>.sleep(nanoseconds: UInt64(attempt) * 350_000_000)
+            }
+        }
+
+        if productsByID.isEmpty, let lastError { throw lastError }
+        return productIDs.compactMap { productsByID[$0] }
     }
 
     private func currentEntitlementStatus() async -> [String: Any] {
