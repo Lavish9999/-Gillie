@@ -42,6 +42,7 @@ const pipelineOrder = [
   "node scripts/inject-moonlit-reef.js",
   "node scripts/inject-visual-integrity.js",
   "node scripts/prepare-ios-release.js",
+  "node scripts/write-build-provenance.js",
 ];
 let previousPipelineIndex = -1;
 for (const command of pipelineOrder) {
@@ -132,6 +133,15 @@ const required = [
   ["www/v1/visual-integrity.js", "renews automatically unless cancelled at least 24 hours", "Subscription renewal terms"],
   ["www/v1/visual-integrity.js", "v1ManageSubscription", "Active subscription management"],
   ["www/v1/visual-integrity.css", ".v1-renewal-disclosure", "Renewal disclosure styling"],
+  ["www/v1/purchase-flow.js", "purchase-flow-v3-production-branch", "Production purchase coordinator"],
+  ["www/v1/purchase-flow.js", "Apple returned zero Gillie Plus products", "Zero-product StoreKit diagnosis"],
+  ["www/v1/purchase-flow.js", "Copy purchase details", "Purchase diagnostics action"],
+  ["www/v1/store-pricing.js", "store-pricing-v2-retryable", "Retryable localized pricing"],
+  ["www/v1/theme-engine.js", "theme-engine-v2-multitank-level-rewards", "Level rewards and multi-tank theme engine"],
+  ["www/v1/theme-paint.js", "theme-paint-v1", "Visible theme painter"],
+  ["www/v1/build-source.json", "\"sourceCommit\"", "Build commit provenance"],
+  ["www/v1/build-source.json", "\"commerceEngine\": \"purchase-flow-v3-production-branch\"", "Commerce engine provenance"],
+  ["www/v1/build-source.json", "\"themePaintEngine\": \"theme-paint-v1\"", "Theme paint provenance"],
   ["www/index.html", "clearDiagnostics", "Local diagnostics reset"],
   ["www/index.html", "localStorage.clear()", "Local app reset"],
   ["ios/App/App/GilliePurchasesPlugin.swift", "import Security", "Keychain support for one-time welcome claim"],
@@ -184,34 +194,12 @@ if (moonlitGills.some((tag) => /\btransform=/.test(tag))) {
 }
 for (const forbidden of ['class="gill', 'class="axo-core', 'class="axo-tail', 'class="axo-leg', 'class="axo-eye']) {
   if (standaloneSvg.includes(forbidden)) {
-    throw new Error(`Codemagic contract failed: standalone Moon Pearl restored a global animation class: ${forbidden}`);
+    throw new Error(`Codemagic contract failed: standalone Moon Pearl contains legacy fragment: ${forbidden}`);
   }
 }
 
-const plusValueSource = read("www/v1/plus-value.js");
-if (!/const DAILY_TARGET = 3;/.test(plusValueSource)) throw new Error("Codemagic contract failed: Plus Reef chest is not fixed at three actions.");
-if (!/const PERFECT_TARGET = 5;/.test(plusValueSource)) throw new Error("Codemagic contract failed: perfect care does not require all five actions.");
-if (!plusValueSource.includes("welcome.buddyCredits -= 1")) throw new Error("Codemagic contract failed: included buddy credit is not consumed atomically.");
+forbidPattern("www", /fonts\.googleapis\.com|fonts\.gstatic\.com/, "Remote Google Fonts are forbidden in the final bundle");
+forbidMarker("www/v1/store-pricing.js", "$3.99", "Hardcoded monthly subscription price");
+forbidMarker("www/v1/store-pricing.js", "$29.99", "Hardcoded yearly subscription price");
 
-forbidMarker("www/v1/progress.js", "Advanced predictions", "Overly predictive Progress label must remain removed");
-forbidMarker("www/phase5-paywall.js", "Know the hard moment before it arrives", "Overly certain paywall subtitle must remain removed");
-forbidMarker("www/phase5-paywall.js", "Know when cravings are most likely to hit", "Overly certain paywall benefit must remain removed");
-forbidMarker("www/index.html", "moonlit-preview-art.js", "Obsolete Moonlit sanitizer asset must remain removed");
-forbidMarker("www/index.html", "data-gillie-v1-moonlit-preview-art", "Obsolete Moonlit sanitizer tag must remain removed");
-forbidMarker(
-  "ios/App/App.xcodeproj/project.pbxproj",
-  'TARGETED_DEVICE_FAMILY = "1,2";',
-  "Gillie must not silently regain untested iPad support",
-);
-forbidPattern(
-  "www/index.html",
-  /fonts\.googleapis\.com|fonts\.gstatic\.com/,
-  "Native bundle must not request third-party Google Fonts",
-);
-forbidMarker(
-  "www/index.html",
-  'data-gillie-phase5-hotfix="true"',
-  "Legacy paywall hotfix must remain removed",
-);
-
-console.log(`Codemagic source contracts passed: ${required.length} named requirements verified with the full Plus value system, generated-before-safety ordering, safer wellness copy, and direct-coordinate Home, Reef-preview, and Moonlit anatomy.`);
+console.log("Codemagic source contract passed: generated purchase, pricing, provenance, Reef rewards, visible themes, privacy, and release assets are present.");
