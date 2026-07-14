@@ -9,6 +9,8 @@ const pipeline = String(packageJson.scripts?.["prepare:cap"] || "");
 const requiredOrder = [
   "node scripts/prepare-capacitor-web.js",
   "node scripts/inject-phase3.js",
+  "node scripts/harden-phase3-pricing.js",
+  "node scripts/inject-support-recovery.js",
   "node scripts/apply-release-safety.js",
   "node scripts/inject-reef-layout-fixes.js",
   "node scripts/inject-moonlit-reef.js",
@@ -31,4 +33,9 @@ if (!safetySource.includes('path.join(root, "www", "phase5-paywall.js")')) {
   throw new Error("Release safety no longer validates the generated Phase 5 paywall.");
 }
 
-console.log("Build pipeline test passed: Phase 5 is generated before release safety and all later injectors run afterward.");
+const pricingHardener = fs.readFileSync(path.join(root, "scripts/harden-phase3-pricing.js"), "utf8");
+for (const marker of ["hardenPhase3Pricing", "Annual billing", "Monthly billing"]) {
+  if (!pricingHardener.includes(marker)) throw new Error(`Phase 3 pricing hardener is missing: ${marker}`);
+}
+
+console.log("Build pipeline test passed: Phase 3 pricing is hardened before release safety and all later injectors run in order.");
