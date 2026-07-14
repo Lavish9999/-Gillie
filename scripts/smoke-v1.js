@@ -24,11 +24,13 @@ const reefDashboard = read("v1/reef-dashboard.js");
 const reefDashboardStyles = read("v1/reef-dashboard.css");
 const coach = read("v1/coach.js");
 const backup = read("v1/backup.js");
+const storePricing = read("v1/store-pricing.js");
+const accessibility = read("v1/accessibility.js");
 const visualIntegrity = read("v1/visual-integrity.js");
 const paywall = read("phase5-paywall.js");
 const styles = read("v1/v1.css");
 
-for (const asset of ["core", "onboarding", "sos", "progress", "reef", "reef-dashboard", "coach", "backup"]) {
+for (const asset of ["core", "onboarding", "sos", "progress", "reef", "reef-dashboard", "coach", "backup", "store-pricing", "accessibility"]) {
   requireMarker(html, `data-gillie-v1-${asset}=\"true\"`, "Generated index.html");
 }
 requireMarker(html, 'data-gillie-v1-styles="true"', "Generated index.html");
@@ -91,6 +93,15 @@ requireMarker(reefDashboardStyles, ".v1-reef-vault", "Reef premium vault styles"
 requireMarker(coach, "What do you need right now?", "Focused Coach flow");
 requireMarker(backup, 'format: "gillie-backup"', "Backup export contract");
 requireMarker(backup, "restore-pending-apple", "Entitlement-safe restore");
+requireMarker(storePricing, 'ENGINE = "store-pricing-v1"', "StoreKit pricing authority");
+requireMarker(storePricing, "normalizeProducts", "StoreKit product normalization");
+requireMarker(storePricing, "Apple prices are temporarily unavailable", "StoreKit failure state");
+requireMarker(storePricing, "Restore purchases is still available", "Restore remains available");
+requireMarker(accessibility, 'ENGINE = "accessibility-v1"', "Accessibility module");
+requireMarker(accessibility, "normalizeViewportContent", "Scalable viewport contract");
+requireMarker(accessibility, 'toast.setAttribute("aria-live", "polite")', "Toast announcement contract");
+requireMarker(accessibility, 'overlay.setAttribute("aria-modal", "true")', "Dialog accessibility contract");
+requireMarker(accessibility, "focusInitial", "Dialog focus management");
 requireMarker(styles, "Gillie V1 canonical screen styles", "V1 styles");
 requireMarker(styles, "Canonical tab isolation", "V1 tab isolation styles");
 requireMarker(styles, '#main > .view[data-v1-active="true"]:not([hidden])', "V1 active view layout");
@@ -107,7 +118,7 @@ requireMarker(styles, "body.v1-reef-preview-open #main .view", "Reef nested view
 requireMarker(styles, "pointer-events:none!important", "Reef background pointer isolation");
 requireMarker(styles, "#phase2-tank-preview .phase2-preview-sheet", "Reef contained sheet scrolling");
 
-const canonicalJs = [core, onboarding, sos, progress, reef, reefDashboard, coach, backup].join("\n");
+const canonicalJs = [core, onboarding, sos, progress, reef, reefDashboard, coach, backup, storePricing, accessibility].join("\n");
 if (canonicalJs.includes("new MutationObserver")) {
   throw new Error("Canonical V1 modules must not add MutationObserver patch loops.");
 }
@@ -119,8 +130,14 @@ for (const forbidden of ["Advanced predictions", "Know the hard moment before it
     throw new Error(`Overly certain launch copy returned: ${forbidden}`);
   }
 }
+for (const forbidden of ["user-scalable=no", "$3.99", "$29.99", "Save 37%"] ) {
+  if (html.includes(forbidden) || paywall.includes(forbidden)) {
+    throw new Error(`Generated bundle still contains forbidden accessibility or hardcoded pricing marker: ${forbidden}`);
+  }
+}
+requireMarker(html, 'id="toast" role="status" aria-live="polite" aria-atomic="true"', "Generated toast announcement");
 if (html.includes("data-gillie-phase5-hotfix")) {
   throw new Error("Legacy paywall hotfix returned to the generated bundle.");
 }
 
-console.log("Gillie V1 smoke checks passed: strict tab isolation, safer wellness copy, canonical Reef rendering, swipe dismissal, progression, daily care, and premium collection value are present.");
+console.log("Gillie V1 smoke checks passed: strict tab isolation, StoreKit-authoritative pricing, accessible dialogs, safer wellness copy, canonical Reef rendering, swipe dismissal, progression, daily care, and premium collection value are present.");
