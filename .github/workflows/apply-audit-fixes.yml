@@ -1,0 +1,46 @@
+name: Apply Gillie full-audit fixes
+
+on:
+  push:
+    branches:
+      - fix/full-audit-errors-2026-07-14
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-validate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out audit branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Decode and apply fixes
+        run: |
+          base64 -d audit-fixes.patch.gz.b64 | gzip -d > /tmp/audit-fixes.patch
+          git apply --check --recount /tmp/audit-fixes.patch
+          git apply --recount /tmp/audit-fixes.patch
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Validate exact release bundle
+        run: npm run validate:ship
+
+      - name: Commit validated fixes
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add v1/launch-experience.js v1/launch-experience.css ios/App/App/GilliePurchasesPlugin.swift scripts/prepare-ios-release.js
+          git commit -m 'Fix all Gillie audit findings [audit-fixes-applied]'
+          git push origin HEAD:fix/full-audit-errors-2026-07-14
