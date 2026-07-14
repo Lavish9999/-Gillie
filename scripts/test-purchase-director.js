@@ -11,7 +11,7 @@ for (const marker of [
   "selected-product-direct-to-storekit-v1",
   "stopImmediatePropagation",
   "native.purchase({ productId: product.id })",
-  "pricing/product-list lookup is display-only",
+  "Checkout intentionally does not call native.getProducts()",
   "GillieEntitlementSync.apply",
   "GilliePurchaseDirector",
 ]) {
