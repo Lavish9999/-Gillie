@@ -15,6 +15,13 @@ function requireMarker(relative, marker, label = marker) {
   }
 }
 
+function forbidMarker(relative, marker, label = marker) {
+  const source = read(relative);
+  if (source.includes(marker)) {
+    throw new Error(`Codemagic release contract failed: ${label}\nFile: ${relative}\nForbidden: ${marker}`);
+  }
+}
+
 const requiredFiles = [
   "www/index.html",
   "www/v1/build-source.json",
@@ -44,7 +51,8 @@ const contracts = [
   ["www/v1/purchase-flow.js", "entitlementChanged", "entitlement listener"],
   ["www/v1/store-pricing.js", "store-pricing-v2-retryable", "retryable Apple pricing"],
   ["www/v1/paywall-runtime-fix.js", "paywall-runtime-fix-v1", "safe Plus runtime"],
-  ["www/v1/paywall-runtime-fix.js", "setInterfaceStyle", "dark paywall status-bar switch"],
+  ["www/v1/paywall-runtime-fix.js", "css-only-system-chrome-v2", "CSS-only TestFlight/status-bar treatment"],
+  ["www/v1/paywall-runtime-fix.js", "ensurePaywallSurface", "visible paywall surface guard"],
   ["www/v1/paywall-runtime-fix.js", "Apple billing connected", "visible StoreKit readiness"],
   ["www/v1/paywall-runtime-fix.css", "--gp-system-top", "TestFlight/status-bar safe area"],
   ["www/v1/paywall-runtime-fix.css", ".gp-store-health", "StoreKit readiness status styling"],
@@ -57,12 +65,13 @@ const contracts = [
   ["www/v1/build-source.json", '"commerceEngine": "purchase-flow-v3-production-branch"', "commerce provenance"],
   ["www/v1/build-source.json", '"nativeStoreKitLoader": "combined-plus-per-product-retry-v1"', "native StoreKit loader provenance"],
   ["www/v1/build-source.json", '"paywallRuntimeEngine": "paywall-runtime-fix-v1"', "paywall runtime provenance"],
+  ["www/v1/build-source.json", '"paywallChromeMode": "css-only-system-chrome-v2"', "CSS-only paywall chrome provenance"],
+  ["www/v1/build-source.json", '"paywallSurfaceGuard": "ensurePaywallSurface-v1"', "paywall surface guard provenance"],
   ["www/v1/build-source.json", '"themePaintEngine": "theme-paint-v1"', "theme provenance"],
   ["ios/App/App/GilliePurchasesPlugin.swift", 'private let productIDs = ["gillie.plus.monthly", "gillie.plus.yearly"]', "native subscription IDs"],
   ["ios/App/App/GilliePurchasesPlugin.swift", 'CAPPluginMethod(name: "getProducts"', "native products method"],
   ["ios/App/App/GilliePurchasesPlugin.swift", 'CAPPluginMethod(name: "purchase"', "native purchase method"],
   ["ios/App/App/GilliePurchasesPlugin.swift", 'CAPPluginMethod(name: "restorePurchases"', "native restore method"],
-  ["ios/App/App/GilliePurchasesPlugin.swift", 'CAPPluginMethod(name: "setInterfaceStyle"', "native system-chrome method"],
   ["ios/App/App/GilliePurchasesPlugin.swift", "loadAvailableProducts", "retried StoreKit loader"],
   ["ios/App/App/GilliePurchasesPlugin.swift", "Product.products(for: productIDs)", "StoreKit batch product lookup"],
   ["ios/App/App/GilliePurchasesPlugin.swift", "Product.products(for: [productID])", "StoreKit per-product fallback"],
@@ -72,6 +81,7 @@ const contracts = [
   ["ios/App/App.xcodeproj/project.pbxproj", "TARGETED_DEVICE_FAMILY = 1;", "iPhone-only target"],
 ];
 contracts.forEach(([file, marker, label]) => requireMarker(file, marker, label));
+forbidMarker("www/v1/paywall-runtime-fix.js", "bridge()?.setInterfaceStyle?.(", "native root-view mutation that covers the WebView");
 
 for (const relative of [
   "www/v1/purchase-flow.js",
@@ -89,4 +99,4 @@ if (!/^[0-9a-f]{7,40}$/i.test(String(provenance.sourceCommit || ""))) {
   throw new Error("Codemagic source provenance does not contain a valid commit SHA.");
 }
 
-console.log(`Codemagic release contract passed for ${provenance.sourceBranch}@${provenance.sourceCommit}: safe Plus header chrome, resilient StoreKit products, entitlement restore, Reef rewards, and tank themes are present.`);
+console.log(`Codemagic release contract passed for ${provenance.sourceBranch}@${provenance.sourceCommit}: visible CSS-only Plus paywall, resilient StoreKit products, entitlement restore, Reef rewards, and tank themes are present.`);
