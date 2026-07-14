@@ -20,6 +20,8 @@ const FORBIDDEN_PATTERNS = [
   { label: "hardcoded subscription savings claim", pattern: /Save 37%/i },
 ];
 
+const EXPECTED_PRODUCTION_REFS = ["main", "native-ios-launch"];
+
 function walkTextFiles(root) {
   const files = [];
   const queue = [root];
@@ -63,14 +65,20 @@ function requireFinalContract(root) {
   }
 
   const provenance = JSON.parse(fs.readFileSync(path.join(root, "v1", "build-source.json"), "utf8"));
-  if (provenance.productionBranch !== "native-ios-launch") {
-    throw new Error("Final web bundle does not identify native-ios-launch as the production branch.");
+  const allowedRefs = Array.isArray(provenance.allowedProductionRefs) ? provenance.allowedProductionRefs : [];
+  for (const expected of EXPECTED_PRODUCTION_REFS) {
+    if (!allowedRefs.includes(expected)) {
+      throw new Error(`Final web bundle production refs are incomplete; missing ${expected}.`);
+    }
   }
   if (!provenance.sourceBranch || !provenance.sourceCommit) {
     throw new Error("Final web bundle is missing source branch or commit provenance.");
   }
-  if (process.env.CM_BRANCH && provenance.sourceBranch !== "native-ios-launch") {
-    throw new Error(`Codemagic is packaging ${provenance.sourceBranch}; production requires native-ios-launch.`);
+  if (!allowedRefs.includes(provenance.sourceBranch)) {
+    throw new Error(`Final web bundle came from unapproved source ref: ${provenance.sourceBranch}.`);
+  }
+  if (process.env.CM_BRANCH && process.env.CM_BRANCH !== provenance.sourceBranch) {
+    throw new Error(`Codemagic branch ${process.env.CM_BRANCH} does not match bundled provenance ${provenance.sourceBranch}.`);
   }
 
   const contracts = [
@@ -88,6 +96,7 @@ function requireFinalContract(root) {
 
   new Function(fs.readFileSync(path.join(root, "v1", "purchase-flow.js"), "utf8"));
   new Function(fs.readFileSync(path.join(root, "v1", "store-pricing.js"), "utf8"));
+  new Function(fs.readFileSync(path.join(root, "v1", "theme-engine.js"), "utf8"));
   new Function(fs.readFileSync(path.join(root, "v1", "theme-paint.js"), "utf8"));
   return provenance;
 }
@@ -146,6 +155,7 @@ if (require.main === module) {
 }
 
 module.exports = {
+  EXPECTED_PRODUCTION_REFS,
   FORBIDDEN_PATTERNS,
   TEXT_EXTENSIONS,
   requireFinalContract,
