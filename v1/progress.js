@@ -6,6 +6,19 @@
     const view = qs("#view-progress");
     if (!view) return;
 
+    function safeHTML(value) {
+      try {
+        if (typeof escapeHTML === "function") return escapeHTML(value);
+      } catch (_) {}
+      return String(value ?? "").replace(/[&<>"']/g, (character) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+      }[character]));
+    }
+
     function topTrigger(cravings) {
       const counts = {};
       cravings.forEach((entry) => {
@@ -64,6 +77,7 @@
             <button type="button" data-v1-progress="sos">Open SOS</button>
           </div>`;
       } else {
+        const commonTrigger = common ? safeHTML(common[0]) : "";
         summary.className = "v1-basic-insights";
         summary.innerHTML = `
           <div class="v1-progress-heading"><span class="v1-kicker">Your patterns</span><small>Always free</small></div>
@@ -72,7 +86,7 @@
             <div><b>${cleanCheckins}/${checkins.length}</b><span>clean check-ins</span></div>
             <div><b>${resisted}</b><span>urges made it through</span></div>
           </div>
-          <p>${common ? `<strong>${common[0]}</strong> is your most logged trigger so far.` : "Log a trigger after SOS and Gillie will begin showing what repeats."}</p>`;
+          <p>${common ? `<strong>${commonTrigger}</strong> is your most logged trigger so far.` : "Log a trigger after SOS and Gillie will begin showing what repeats."}</p>`;
       }
 
       const legacyHeading = sectionHeading("Your insights");
