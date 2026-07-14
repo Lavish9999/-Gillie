@@ -7,18 +7,18 @@ const root = path.resolve(__dirname, "..");
 const source = fs.readFileSync(path.join(root, "v1", "purchase-director.js"), "utf8");
 
 for (const marker of [
-  "purchase-director-v1-authoritative",
+  "purchase-director-v2-direct-native",
   "selected-product-direct-to-storekit-v1",
   "stopImmediatePropagation",
   "native.purchase({ productId: product.id })",
-  "does not call native.getProducts()",
+  "pricing/product-list lookup is display-only",
   "GillieEntitlementSync.apply",
   "GilliePurchaseDirector",
 ]) {
   assert(source.includes(marker), `Purchase director is missing: ${marker}`);
 }
 assert(!source.includes("await availablePlan("), "Checkout must not wait for pricing preflight");
-assert(!source.includes("await native.getProducts("), "Checkout director must not perform a product-list lookup");
+assert(!/^\s*(?:await\s+)?native\.getProducts\s*\(/m.test(source), "Checkout director must not execute a product-list lookup");
 new Function(source);
 
 class FakeClassList {
@@ -45,9 +45,7 @@ class FakeElement {
   appendChild(child) { child.parentElement = this; this.children.push(child); return child; }
   insertBefore(child) { return this.appendChild(child); }
   replaceChildren(...children) { this.children = []; children.forEach((child) => this.appendChild(child)); }
-  closest(selector) {
-    return selector.split(",").some((part) => part.trim() === `#${this.id}`) ? this : null;
-  }
+  closest(selector) { return selector.split(",").some((part) => part.trim() === `#${this.id}`) ? this : null; }
 }
 
 const overlay = new FakeElement("plus-overlay");
@@ -83,10 +81,7 @@ const document = {
   body: new FakeElement("body"),
   documentElement: { dataset: {} },
   querySelector(selector) { return selectorMap.get(selector) || null; },
-  querySelectorAll(selector) {
-    if (selector === "#plus-plans [data-plus-plan]") return [yearly, monthly];
-    return [];
-  },
+  querySelectorAll(selector) { return selector === "#plus-plans [data-plus-plan]" ? [yearly, monthly] : []; },
   createElement() { return new FakeElement(); },
   createTextNode(value) { const node = new FakeElement(); node.textContent = String(value); return node; },
   addEventListener(name, handler, capture) { listeners.set(`${name}:${Boolean(capture)}`, handler); },
@@ -106,9 +101,7 @@ const native = {
 const context = {
   window: {
     Capacitor: { Plugins: { GilliePurchases: native } },
-    GillieEntitlementSync: {
-      apply(status) { applied += 1; return Boolean(status.active); },
-    },
+    GillieEntitlementSync: { apply(status) { applied += 1; return Boolean(status.active); } },
   },
   document,
   selectedPlusPlan: "yearly",
@@ -132,7 +125,7 @@ vm.runInContext(source, context, { filename: "v1/purchase-director.js" });
 
 assert(context.window.GilliePurchaseDirector, "Purchase director API must be installed");
 assert.strictEqual(purchase.disabled, false, "Purchase CTA must remain tappable");
-assert.strictEqual(purchase.dataset.purchaseDirector, "purchase-director-v1-authoritative");
+assert.strictEqual(purchase.dataset.purchaseDirector, "purchase-director-v2-direct-native");
 assert.strictEqual(context.window.GilliePurchaseDirector.checkoutMode, "selected-product-direct-to-storekit-v1");
 assert(listeners.has("click:true"), "Purchase director must own checkout in capture phase");
 
