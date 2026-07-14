@@ -9,10 +9,11 @@ const assets = [
   "v1/sos-support.js",
   "v1/welcome-recovery.js",
   "v1/purchase-flow.js",
+  "v1/theme-engine.js",
 ];
 
 if (!fs.existsSync(indexPath)) {
-  throw new Error("SOS support, welcome recovery, and purchase-flow injection requires www/index.html.");
+  throw new Error("SOS support, welcome recovery, purchase-flow, and theme-engine injection requires www/index.html.");
 }
 
 for (const asset of assets) {
@@ -24,15 +25,21 @@ for (const asset of assets) {
 }
 
 let html = fs.readFileSync(indexPath, "utf8");
-const marker = "<!-- Gillie SOS support, Plus recovery, and purchase flow -->";
+const marker = "<!-- Gillie SOS support, Plus recovery, purchase flow, and theme engine -->";
+const purchaseMarker = "<!-- Gillie SOS support, Plus recovery, and purchase flow -->";
 const legacyMarker = "<!-- Gillie SOS support and Plus welcome recovery -->";
 const injection = `${marker}
 <link rel="stylesheet" href="./v1/support-recovery.css" data-gillie-v1-support-recovery-styles="true">
 <script src="./v1/sos-support.js" defer data-gillie-v1-sos-support="true"></script>
 <script src="./v1/welcome-recovery.js" defer data-gillie-v1-welcome-recovery="true"></script>
-<script src="./v1/purchase-flow.js" defer data-gillie-v1-purchase-flow="true"></script>`;
+<script src="./v1/purchase-flow.js" defer data-gillie-v1-purchase-flow="true"></script>
+<script src="./v1/theme-engine.js" defer data-gillie-v1-theme-engine="true"></script>`;
 
-if (html.includes(legacyMarker) && !html.includes(marker)) {
+if (html.includes(purchaseMarker) && !html.includes(marker)) {
+  const purchasePattern = /<!-- Gillie SOS support, Plus recovery, and purchase flow -->[\s\S]*?<script src="\.\/v1\/purchase-flow\.js" defer data-gillie-v1-purchase-flow="true"><\/script>/;
+  if (!purchasePattern.test(html)) throw new Error("Purchase-flow injection marker changed.");
+  html = html.replace(purchasePattern, injection);
+} else if (html.includes(legacyMarker) && !html.includes(marker)) {
   const legacyPattern = /<!-- Gillie SOS support and Plus welcome recovery -->[\s\S]*?<script src="\.\/v1\/welcome-recovery\.js" defer data-gillie-v1-welcome-recovery="true"><\/script>/;
   if (!legacyPattern.test(html)) throw new Error("Legacy support/recovery injection marker changed.");
   html = html.replace(legacyPattern, injection);
@@ -47,6 +54,7 @@ for (const markerText of [
   'data-gillie-v1-sos-support="true"',
   'data-gillie-v1-welcome-recovery="true"',
   'data-gillie-v1-purchase-flow="true"',
+  'data-gillie-v1-theme-engine="true"',
 ]) {
   if (!html.includes(markerText)) throw new Error(`Generated index is missing support/recovery marker: ${markerText}`);
 }
@@ -54,6 +62,7 @@ for (const markerText of [
 const sos = fs.readFileSync(path.join(out, "v1", "sos-support.js"), "utf8");
 const recovery = fs.readFileSync(path.join(out, "v1", "welcome-recovery.js"), "utf8");
 const purchaseFlow = fs.readFileSync(path.join(out, "v1", "purchase-flow.js"), "utf8");
+const themeEngine = fs.readFileSync(path.join(out, "v1", "theme-engine.js"), "utf8");
 for (const required of ["1-800-QUIT-NOW", "QUITNOW to 333888", "smokefree.gov", "Message someone I trust"]) {
   if (!sos.includes(required)) throw new Error(`Generated SOS support module is missing marker: ${required}`);
 }
@@ -69,6 +78,15 @@ for (const required of [
 ]) {
   if (!purchaseFlow.includes(required)) throw new Error(`Generated purchase-flow module is missing marker: ${required}`);
 }
+for (const required of [
+  "theme-engine-v1",
+  "#theme-row [data-theme]",
+  "current.theme = theme.id",
+  "gillie:theme-applied",
+  "GillieThemeEngine",
+]) {
+  if (!themeEngine.includes(required)) throw new Error(`Generated theme-engine module is missing marker: ${required}`);
+}
 
 fs.writeFileSync(indexPath, html, "utf8");
-console.log("Injected human SOS support, one-time Plus welcome recovery, and resilient Apple purchase handling.");
+console.log("Injected human SOS support, one-time Plus welcome recovery, resilient Apple purchase handling, and reliable Reef theme selection.");
