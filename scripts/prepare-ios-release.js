@@ -110,11 +110,16 @@ for (const marker of [
   "GilliePurchases?.clearDiagnostics",
   "localStorage.clear()",
   "progress, preferences, and local diagnostics",
+  "GillieWelcomeRecoveryPlugin",
+  'jsName = "GillieWelcomeRecovery"',
+  'CAPPluginMethod(name: "recoverWelcomeBundle"',
+  "gillie.plus.welcome.installID",
+  "recoveryUsed",
 ]) {
-  if (!bridge.includes(marker)) throw new Error(`Native startup recovery reset is missing release marker: ${marker}`);
+  if (!bridge.includes(marker)) throw new Error(`Native release bridge is missing marker: ${marker}`);
 }
 if (bridge.includes("localStorage.removeItem('gillie_v1')")) {
   throw new Error("Native startup recovery still performs a partial Gillie reset.");
 }
 
-console.log("Prepared iOS release project: privacy manifest embedded, V1 scoped to iPhone, and every local reset path is complete.");
+console.log("Prepared iOS release project: privacy manifest embedded, V1 scoped to iPhone, resets complete, and welcome recovery registered.");
