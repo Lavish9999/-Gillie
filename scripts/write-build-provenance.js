@@ -24,9 +24,9 @@ const branch = String(process.env.CM_BRANCH || gitValue(["branch", "--show-curre
 const commit = String(process.env.CM_COMMIT || gitValue(["rev-parse", "HEAD"])).trim();
 const isCodemagic = Boolean(process.env.CM_BRANCH || process.env.CM_BUILD_ID);
 
-// Codemagic is currently configured to build `main`, while the legacy release
-// workflow also references `native-ios-launch`. Both refs are kept synchronized.
-// Verify the shipped code itself rather than rejecting a valid build by name.
+// Codemagic currently builds `main`, while the legacy release workflow also
+// references `native-ios-launch`. Both refs are intentionally synchronized.
+// Validate the actual shipped engines rather than rejecting identical code by ref name.
 if (isCodemagic && !ALLOWED_PRODUCTION_REFS.includes(branch)) {
   throw new Error(`Refusing to ship Gillie from ${branch}. Allowed production refs: ${ALLOWED_PRODUCTION_REFS.join(", ")}.`);
 }
