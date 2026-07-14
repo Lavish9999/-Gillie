@@ -7,21 +7,34 @@ const { scanFinalWebAssets } = require("./verify-final-web-assets");
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), "gillie-final-web-assets-"));
 
+function writeProductionContract(target) {
+  fs.mkdirSync(path.join(target, "v1"), { recursive: true });
+  fs.writeFileSync(path.join(target, "v1", "build-source.json"), JSON.stringify({
+    productionBranch: "native-ios-launch",
+    sourceBranch: "native-ios-launch",
+    sourceCommit: "abc123",
+  }));
+  fs.writeFileSync(path.join(target, "v1", "purchase-flow.js"), 'const a = "purchase-flow-v3-production-branch Apple returned zero Gillie Plus products Copy purchase details";');
+  fs.writeFileSync(path.join(target, "v1", "store-pricing.js"), 'const a = "store-pricing-v2-retryable Loading Apple price…";');
+  fs.writeFileSync(path.join(target, "v1", "theme-engine.js"), 'const a = "theme-engine-v2-multitank-level-rewards";');
+  fs.writeFileSync(path.join(target, "v1", "theme-paint.js"), 'const a = "theme-paint-v1";');
+}
+
 try {
   const safe = path.join(root, "safe");
-  fs.mkdirSync(path.join(safe, "v1"), { recursive: true });
+  writeProductionContract(safe);
   fs.writeFileSync(
     path.join(safe, "index.html"),
     '<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"><main>Gillie</main>',
   );
-  fs.writeFileSync(path.join(safe, "v1", "store-pricing.js"), 'const price = "Loading Apple price…";');
   fs.writeFileSync(path.join(safe, "image.png"), Buffer.from("binary metadata $3.99 is ignored because this is not executable text"));
 
   const safeResult = scanFinalWebAssets(safe);
-  assert.strictEqual(safeResult.filesChecked, 2, "Only supported text assets should be scanned");
+  assert.strictEqual(safeResult.filesChecked, 6, "Only supported text assets and shipping provenance should be scanned");
+  assert.strictEqual(safeResult.provenance.sourceBranch, "native-ios-launch");
 
   const zoom = path.join(root, "zoom");
-  fs.mkdirSync(zoom, { recursive: true });
+  writeProductionContract(zoom);
   fs.writeFileSync(path.join(zoom, "index.html"), '<meta name="viewport" content="width=device-width,user-scalable=no">');
   assert.throws(
     () => scanFinalWebAssets(zoom),
@@ -30,7 +43,7 @@ try {
   );
 
   const price = path.join(root, "price");
-  fs.mkdirSync(price, { recursive: true });
+  writeProductionContract(price);
   fs.writeFileSync(path.join(price, "paywall.js"), 'button.textContent = "$29.99";');
   assert.throws(
     () => scanFinalWebAssets(price),
@@ -39,7 +52,7 @@ try {
   );
 
   const savings = path.join(root, "savings");
-  fs.mkdirSync(savings, { recursive: true });
+  writeProductionContract(savings);
   fs.writeFileSync(path.join(savings, "paywall.html"), "<span>Save 37%</span>");
   assert.throws(
     () => scanFinalWebAssets(savings),
@@ -47,7 +60,20 @@ try {
     "Hardcoded savings claims must fail with an exact file location",
   );
 
-  console.log("Final web asset verifier test passed: text violations are located and binary false positives are ignored.");
+  const wrongBranch = path.join(root, "wrong-branch");
+  writeProductionContract(wrongBranch);
+  fs.writeFileSync(path.join(wrongBranch, "v1", "build-source.json"), JSON.stringify({
+    productionBranch: "main",
+    sourceBranch: "main",
+    sourceCommit: "wrong",
+  }));
+  assert.throws(
+    () => scanFinalWebAssets(wrongBranch),
+    /does not identify native-ios-launch as the production branch/,
+    "A final bundle from the wrong production branch must be rejected",
+  );
+
+  console.log("Final web asset verifier test passed: production provenance, commerce/theme engines, text violations, and binary exclusions are enforced.");
 } finally {
   fs.rmSync(root, { recursive: true, force: true });
 }
