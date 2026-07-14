@@ -83,7 +83,7 @@ for (const marker of [
 }
 for (const marker of [
   "launch-handoff-v1-single-intro",
-  '#splash.gillie-launch-intro',
+  'classList?.contains("gillie-launch-intro")',
   'classList.remove("gillie-boot-pending")',
   "launch_handoff_released",
 ]) {
