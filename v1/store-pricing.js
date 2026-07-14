@@ -1,8 +1,9 @@
-/* Gillie V1 Store Pricing — localized Apple prices with retryable loading. */
+/* Gillie V1 Store Pricing — localized Apple prices without owning or disabling checkout. */
 (() => {
   "use strict";
 
   const ENGINE = "store-pricing-v2-retryable";
+  const CHECKOUT_OWNER = "purchase-director-v1-authoritative";
   const PRODUCT_IDS = Object.freeze({
     monthly: "gillie.plus.monthly",
     yearly: "gillie.plus.yearly",
@@ -33,6 +34,7 @@
 
   const publicApi = {
     engine: ENGINE,
+    checkoutOwner: CHECKOUT_OWNER,
     productIds: PRODUCT_IDS,
     normalizeProducts,
     cadenceFor,
@@ -45,6 +47,7 @@
     const overlay = qs("#plus-overlay");
     if (!overlay || overlay.dataset.v1StorePricing === ENGINE) return;
     overlay.dataset.v1StorePricing = ENGINE;
+    overlay.dataset.checkoutOwner = CHECKOUT_OWNER;
 
     let loadState = "idle";
     let loadPromise = null;
@@ -67,6 +70,8 @@
       try { selectedPlusPlan = key; } catch (_) {}
       qsa("#plus-plans [data-plus-plan]", overlay).forEach((button) => {
         button.classList.toggle("on", button.dataset.plusPlan === key);
+        button.disabled = false;
+        button.setAttribute("aria-disabled", "false");
       });
     }
 
@@ -97,11 +102,10 @@
       qsa("#plus-plans [data-plus-plan]", overlay).forEach((button) => {
         const product = products.get(PRODUCT_IDS[button.dataset.plusPlan]);
         const price = qs(".price", button);
-        const loading = loadState === "loading";
-        button.disabled = loading;
-        button.setAttribute("aria-disabled", String(loading));
+        button.disabled = false;
+        button.setAttribute("aria-disabled", "false");
         if (!price) return;
-        if (loading) {
+        if (loadState === "loading") {
           price.textContent = "Loading Apple price…";
           return;
         }
@@ -119,19 +123,23 @@
 
       qsa('[data-plus-plan="yearly"] .badge', overlay).forEach((badge) => badge.remove());
       if (purchase && !isPremium() && purchase.dataset.purchaseBusy !== "1") {
-        const loading = loadState === "loading";
-        purchase.disabled = loading;
-        purchase.setAttribute("aria-disabled", String(loading));
-        purchase.classList.toggle("phase2-loading", loading);
-        purchase.textContent = loading
-          ? "Connecting to Apple…"
-          : selectedProduct
+        // Pricing is display-only. The authoritative purchase director owns the tap,
+        // busy state, product preflight, Apple sheet, and entitlement confirmation.
+        purchase.disabled = false;
+        purchase.setAttribute("aria-disabled", "false");
+        purchase.classList.remove("phase2-loading");
+        if (purchase.dataset.purchaseDirector !== CHECKOUT_OWNER) {
+          purchase.textContent = selectedProduct
             ? "Start Gillie Plus"
             : loadState === "error" || loadState === "unavailable"
-              ? "Retry Apple connection"
-              : "Check Apple plans";
+              ? "Try Gillie Plus"
+              : "Start Gillie Plus";
+        }
       }
-      if (restore && restore.dataset.purchaseBusy !== "1") restore.disabled = false;
+      if (restore && restore.dataset.purchaseBusy !== "1") {
+        restore.disabled = false;
+        restore.setAttribute("aria-disabled", "false");
+      }
     }
 
     function scheduleRender() {
@@ -157,6 +165,7 @@
         error: lastError,
         requestedProductIds: Object.values(PRODUCT_IDS),
         native: lastNativeResponse,
+        checkoutOwner: CHECKOUT_OWNER,
       };
     }
 
@@ -226,10 +235,8 @@
         selectPlan(target.dataset.plusPlan);
         setTimeout(render, 20);
       }
-      // Do not prevent or stop the Plus CTA event. purchase-flow owns checkout.
-      if (target.matches("#plus-purchase") && !products.has(PRODUCT_IDS[selectedPlanKey()])) {
-        loadAppleProducts({ force: true });
-      }
+      // Never start a second product request from the purchase tap. The purchase
+      // director performs the single bounded preflight immediately before checkout.
     }, true);
 
     loadAppleProducts();
