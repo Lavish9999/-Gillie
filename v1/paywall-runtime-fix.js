@@ -269,3 +269,362 @@
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => boot(), { once: true });
   else boot();
 })();
+
+/* Gillie Settings Runtime — verifies, persists, and completes every control on the You screen. */
+(() => {
+  "use strict";
+
+  if (window.__gillieSettingsRuntimeInstalled) return;
+  window.__gillieSettingsRuntimeInstalled = true;
+
+  const ENGINE = "settings-runtime-v1-functional";
+  const PREFS_KEY = "gillie_phase2_preferences";
+  const TEXT_SCALES = Object.freeze([0.95, 1, 1.1, 1.18]);
+  const QUALITY_IDS = Object.freeze([
+    "phase2-set-sound",
+    "phase2-set-haptics",
+    "phase2-set-motion",
+    "phase2-set-text",
+  ]);
+  const REQUIRED_IDS = Object.freeze([
+    "set-name",
+    "set-skin",
+    "set-cost",
+    ...QUALITY_IDS,
+    "set-plus",
+    "set-reminder-checkin",
+    "set-reminder-craving",
+    "set-integrity",
+    "set-slip",
+    "set-reset",
+  ]);
+  const BASE_NOTIFICATION_IDS = Object.freeze([810001, 810002, 810003, 810004, 810005]);
+  let viewObserver = null;
+  let refreshTimer = 0;
+  let loadedTracked = false;
+
+  const $ = (selector, root = document) => root?.querySelector?.(selector) || null;
+  const purchaseBridge = () => window.Capacitor?.Plugins?.GilliePurchases || null;
+  const notificationBridge = () => window.Capacitor?.Plugins?.LocalNotifications || null;
+
+  function currentState() {
+    try { return typeof state !== "undefined" && state ? state : null; }
+    catch (_) { return null; }
+  }
+
+  function track(name, properties = {}) {
+    try { purchaseBridge()?.trackEvent?.({ name, properties: { engine: ENGINE, ...properties } }); }
+    catch (_) {}
+  }
+
+  function readPreferences() {
+    try {
+      const value = JSON.parse(localStorage.getItem(PREFS_KEY) || "{}");
+      const scale = TEXT_SCALES.find((item) => Math.abs(item - Number(value.textScale)) < 0.01) || 1;
+      return {
+        sound: value.sound !== false,
+        haptics: value.haptics !== false,
+        reducedMotion: Boolean(value.reducedMotion),
+        textScale: scale,
+      };
+    } catch (_) {
+      return { sound: true, haptics: true, reducedMotion: false, textScale: 1 };
+    }
+  }
+
+  function applyPersistedPreferences() {
+    const prefs = readPreferences();
+    const root = document.documentElement;
+    const percent = `${Math.round(prefs.textScale * 100)}%`;
+    root?.classList?.toggle("phase2-reduced-motion", prefs.reducedMotion);
+    root?.style?.setProperty?.("--phase2-text-scale", String(prefs.textScale));
+    root?.style?.setProperty?.("-webkit-text-size-adjust", percent);
+    root?.style?.setProperty?.("text-size-adjust", percent);
+    document.body?.style?.setProperty?.("-webkit-text-size-adjust", percent);
+    document.body?.style?.setProperty?.("text-size-adjust", percent);
+    if (root) {
+      root.dataset.gillieSound = prefs.sound ? "on" : "off";
+      root.dataset.gillieHaptics = prefs.haptics ? "on" : "off";
+      root.dataset.gillieMotion = prefs.reducedMotion ? "reduced" : "full";
+      root.dataset.gillieTextScale = String(prefs.textScale);
+    }
+    return prefs;
+  }
+
+  function previewSound() {
+    try {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) return;
+      const context = new AudioContextClass();
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      oscillator.type = "sine";
+      oscillator.frequency.setValueAtTime(560, context.currentTime);
+      gain.gain.setValueAtTime(0.0001, context.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.025, context.currentTime + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.09);
+      oscillator.connect(gain).connect(context.destination);
+      oscillator.start();
+      oscillator.stop(context.currentTime + 0.1);
+      setTimeout(() => context.close?.(), 180);
+    } catch (_) {}
+  }
+
+  function syncQualityAccessibility(prefs = readPreferences()) {
+    const values = {
+      "phase2-set-sound": [prefs.sound, prefs.sound ? "Sound effects on" : "Sound effects off"],
+      "phase2-set-haptics": [prefs.haptics, prefs.haptics ? "Haptic feedback on" : "Haptic feedback off"],
+      "phase2-set-motion": [prefs.reducedMotion, prefs.reducedMotion ? "Reduce motion on" : "Reduce motion off"],
+    };
+    Object.entries(values).forEach(([id, [pressed, label]]) => {
+      const button = document.getElementById(id);
+      if (!button) return;
+      button.setAttribute("aria-pressed", String(pressed));
+      button.setAttribute("aria-label", label);
+    });
+    const text = document.getElementById("phase2-set-text");
+    if (text) {
+      const labels = { "0.95": "Compact", "1": "Default", "1.1": "Large", "1.18": "Extra large" };
+      text.setAttribute("aria-label", `Text size ${labels[String(prefs.textScale)] || "Default"}`);
+    }
+  }
+
+  function installQualityHooks() {
+    QUALITY_IDS.forEach((id) => {
+      const button = document.getElementById(id);
+      if (!button || button.dataset.gillieSettingsHook === "1") return;
+      button.dataset.gillieSettingsHook = "1";
+      button.addEventListener("click", () => {
+        setTimeout(() => {
+          const prefs = applyPersistedPreferences();
+          syncQualityAccessibility(prefs);
+          if (id === "phase2-set-sound" && prefs.sound) previewSound();
+          if (id === "phase2-set-haptics" && prefs.haptics) {
+            try { purchaseBridge()?.haptic?.({ style: "success" }); } catch (_) {}
+          }
+          track("settings_quality_changed", { setting: id.replace("phase2-set-", ""), enabled: id === "phase2-set-text" ? true : Boolean(id === "phase2-set-motion" ? prefs.reducedMotion : prefs[id === "phase2-set-sound" ? "sound" : "haptics"]), textScale: prefs.textScale });
+        }, 0);
+      });
+    });
+  }
+
+  function installCostControl() {
+    const openButton = document.getElementById("set-cost");
+    const saveButton = document.getElementById("ce-save");
+    if (openButton && openButton.dataset.gillieCostHook !== "1") {
+      openButton.dataset.gillieCostHook = "1";
+      openButton.addEventListener("click", () => {
+        setTimeout(() => {
+          let profile = null;
+          try { profile = typeof activeSubstance === "function" ? activeSubstance() : null; } catch (_) {}
+          const uses = document.getElementById("ce-puffs");
+          if (!uses) return;
+          const puffBased = profile?.useLabel === "puffs";
+          uses.min = puffBased ? "10" : "1";
+          uses.step = puffBased ? "10" : "1";
+        }, 0);
+      });
+    }
+    if (!saveButton || saveButton.dataset.gillieCostSave === "1") return;
+    saveButton.dataset.gillieCostSave = "1";
+    saveButton.onclick = () => {
+      const current = currentState();
+      if (!current?.cost) return;
+      let profile = null;
+      try { profile = typeof activeSubstance === "function" ? activeSubstance() : null; } catch (_) {}
+      const minUses = profile?.useLabel === "puffs" ? 10 : 1;
+      const units = Number.parseFloat(document.getElementById("ce-units")?.value || "");
+      const cost = Number.parseFloat(document.getElementById("ce-cost")?.value || "");
+      const uses = Number.parseInt(document.getElementById("ce-puffs")?.value || "", 10);
+      current.cost.unitsPerWeek = Number.isFinite(units) ? Math.max(0.1, units) : current.cost.unitsPerWeek;
+      current.cost.costPerUnit = Number.isFinite(cost) ? Math.max(0.5, cost) : current.cost.costPerUnit;
+      current.cost.puffsPerDay = Number.isFinite(uses) ? Math.max(minUses, uses) : current.cost.puffsPerDay;
+      try { if (typeof save === "function") save(); } catch (_) {}
+      const overlay = document.getElementById("cost-overlay");
+      if (overlay) overlay.hidden = true;
+      try { if (typeof renderAll === "function") renderAll(); } catch (_) {}
+      track("settings_cost_saved", { minUses, substance: String(current.cost.substance || "unknown") });
+    };
+  }
+
+  async function manageActiveSubscription() {
+    try {
+      if (purchaseBridge()?.manageSubscriptions) await purchaseBridge().manageSubscriptions();
+      else window.location.href = "https://apps.apple.com/account/subscriptions";
+    } catch (_) {
+      window.location.href = "https://apps.apple.com/account/subscriptions";
+    }
+    track("settings_manage_subscription_opened");
+  }
+
+  function installPlusControl() {
+    const button = document.getElementById("set-plus");
+    if (!button || button.dataset.gilliePlusSettings === "1") return;
+    const original = button.onclick;
+    button.dataset.gilliePlusSettings = "1";
+    button.onclick = (event) => {
+      if (currentState()?.premium) {
+        event?.preventDefault?.();
+        void manageActiveSubscription();
+        return;
+      }
+      if (typeof original === "function") original.call(button, event);
+      else {
+        try { if (typeof openPlus === "function") openPlus(); } catch (_) {}
+      }
+    };
+  }
+
+  function allNotificationIds() {
+    const ids = [...BASE_NOTIFICATION_IDS];
+    try {
+      if (typeof MILESTONES !== "undefined" && Array.isArray(MILESTONES)) {
+        MILESTONES.forEach((_, index) => ids.push(811000 + index));
+      }
+    } catch (_) {}
+    return [...new Set(ids)];
+  }
+
+  async function cancelAllGillieNotifications() {
+    const plugin = notificationBridge();
+    if (!plugin) return;
+    try {
+      await plugin.cancel?.({ notifications: allNotificationIds().map((id) => ({ id })) });
+    } catch (_) {}
+    try { await plugin.removeAllDeliveredNotifications?.(); } catch (_) {}
+  }
+
+  function clearGillieStorage(storage) {
+    if (!storage) return;
+    try {
+      const keys = Array.from({ length: storage.length }, (_, index) => storage.key(index)).filter(Boolean);
+      const appKey = (() => {
+        try { return typeof CONFIG !== "undefined" ? CONFIG.storageKey : "gillie_v1"; }
+        catch (_) { return "gillie_v1"; }
+      })();
+      keys.forEach((key) => {
+        if (key === appKey || /^gillie(?:[._-]|$)/i.test(key)) storage.removeItem(key);
+      });
+    } catch (_) {}
+  }
+
+  async function eraseAllGillieData() {
+    track("settings_erase_started");
+    await cancelAllGillieNotifications();
+    try { await purchaseBridge()?.clearDiagnostics?.(); } catch (_) {}
+    clearGillieStorage(window.localStorage);
+    clearGillieStorage(window.sessionStorage);
+    setTimeout(() => window.location.reload(), 80);
+  }
+
+  function installResetControl() {
+    const button = document.getElementById("set-reset");
+    if (!button || button.dataset.gillieResetSettings === "1") return;
+    button.dataset.gillieResetSettings = "1";
+    button.onclick = () => {
+      const current = currentState();
+      const petName = String(current?.petName || "Gillie").slice(0, 20);
+      const open = typeof openConfirmSheet === "function" ? openConfirmSheet : null;
+      if (!open) {
+        if (window.confirm("Erase all Gillie data and settings from this device? Your Apple subscription will not be cancelled.")) void eraseAllGillieData();
+        return;
+      }
+      open({
+        icon: "!",
+        title: "Erase everything?",
+        copy: `This releases ${petName}, deletes your streak, pearls, check-ins, cravings, shop items, sound/motion/text preferences, and scheduled Gillie notifications. Your Apple subscription is not cancelled. There is no undo.`,
+        actionText: "Erase everything",
+        danger: true,
+        onConfirm: () => { void eraseAllGillieData(); },
+      });
+    };
+  }
+
+  function syncControlAccessibility() {
+    const current = currentState();
+    const plus = document.getElementById("set-plus");
+    const plusValue = document.getElementById("set-plus-v");
+    if (plus) plus.setAttribute("aria-label", current?.premium ? "Gillie Plus active. Manage Apple subscription." : "Gillie Plus free plan. View upgrade options.");
+    if (plusValue) plusValue.textContent = current?.premium ? "Active 👑" : "Free plan";
+
+    const checkin = document.getElementById("set-reminder-checkin");
+    const craving = document.getElementById("set-reminder-craving");
+    if (checkin) checkin.setAttribute("aria-pressed", String(Boolean(current?.reminders?.checkin)));
+    if (craving) craving.setAttribute("aria-pressed", String(Boolean(current?.reminders?.craving)));
+
+    ["set-name", "set-skin", "set-cost", "set-integrity", "set-slip", "set-reset"].forEach((id) => {
+      document.getElementById(id)?.setAttribute("aria-haspopup", "dialog");
+    });
+    syncQualityAccessibility();
+  }
+
+  function audit() {
+    const controls = {};
+    REQUIRED_IDS.forEach((id) => {
+      const node = document.getElementById(id);
+      controls[id] = Boolean(node && (typeof node.onclick === "function" || node.dataset.gillieSettingsHook === "1"));
+    });
+    const ready = Object.values(controls).every(Boolean);
+    const view = document.getElementById("view-you");
+    if (view) {
+      view.dataset.gillieSettingsRuntime = ENGINE;
+      view.dataset.gillieSettingsReady = ready ? "true" : "false";
+    }
+    return {
+      engine: ENGINE,
+      ready,
+      controls,
+      preferences: readPreferences(),
+      nativePurchases: Boolean(purchaseBridge()),
+      nativeNotifications: Boolean(notificationBridge()),
+      productionReminderLayer: Boolean(typeof renderSettings === "function" && renderSettings.__phase1Wrapped),
+    };
+  }
+
+  function refresh() {
+    const prefs = applyPersistedPreferences();
+    installQualityHooks();
+    installCostControl();
+    installPlusControl();
+    installResetControl();
+    syncControlAccessibility();
+    const result = audit();
+    if (!loadedTracked && result.ready) {
+      loadedTracked = true;
+      track("settings_runtime_ready", { controls: REQUIRED_IDS.length, textScale: prefs.textScale });
+    }
+    return result;
+  }
+
+  function scheduleRefresh() {
+    clearTimeout(refreshTimer);
+    refreshTimer = setTimeout(refresh, 20);
+  }
+
+  function installObserver() {
+    const view = document.getElementById("view-you");
+    if (!view || viewObserver) return;
+    viewObserver = new MutationObserver(scheduleRefresh);
+    viewObserver.observe(view, { childList: true, subtree: true });
+  }
+
+  function boot(attempt = 0) {
+    const result = refresh();
+    installObserver();
+    if (!result.ready && attempt < 160) setTimeout(() => boot(attempt + 1), 50);
+  }
+
+  window.GillieSettingsRuntime = Object.freeze({
+    engine: ENGINE,
+    refresh,
+    audit,
+    applyPreferences: applyPersistedPreferences,
+    eraseAllData: eraseAllGillieData,
+    cancelNotifications: cancelAllGillieNotifications,
+  });
+
+  document.addEventListener("gillie:entitlement-updated", scheduleRefresh);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) scheduleRefresh(); });
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => setTimeout(() => boot(), 0), { once: true });
+  else setTimeout(() => boot(), 0);
+})();
