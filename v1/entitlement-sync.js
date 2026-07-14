@@ -44,9 +44,6 @@
     document.dispatchEvent?.(new CustomEvent("gillie:entitlement-updated", {
       detail: { ...normalized, active, syncSource: source },
     }));
-    document.dispatchEvent?.(new CustomEvent("gillie:purchase-flow-settled", {
-      detail: { active, source },
-    }));
 
     requestAnimationFrame?.(() => {
       try { window.GillieThemeAccess?.refresh?.(); } catch (_) {}
@@ -111,8 +108,7 @@
         setTimeout(() => sync("foreground"), 80);
       }
     });
-    document.addEventListener("gillie:purchase-flow-settled", (event) => {
-      if (event?.detail?.source === "entitlement-sync") return;
+    document.addEventListener("gillie:purchase-flow-settled", () => {
       setTimeout(() => sync("purchase-settled"), 180);
     });
 
