@@ -41,6 +41,7 @@ for (const relative of [
   "v1/entitlement-sync.js",
   "v1/theme-access.js",
   "v1/launch-handoff.js",
+  "v1/paywall-runtime-fix.js",
 ]) syntaxCheck(relative);
 requireMarker("scripts/inject-phase3.js", 'ENGINE = "store-pricing-v2-retryable"', "current retryable StoreKit pricing contract");
 forbidMarker("scripts/inject-phase3.js", 'ENGINE = "store-pricing-v1"', "obsolete StoreKit pricing contract");
@@ -48,6 +49,8 @@ requireMarker("scripts/prepare-single-launch.js", "gillie-launch-bootstrap", "si
 requireMarker("v1/entitlement-sync.js", "entitlement-sync-v1-always-on", "always-on Plus entitlement sync");
 requireMarker("v1/theme-access.js", "theme-access-v1-basic-free", "working core theme access");
 requireMarker("v1/launch-handoff.js", "launch-handoff-v1-single-intro", "single animated intro handoff");
+requireMarker("v1/paywall-runtime-fix.js", "paywall-runtime-fix-v1", "safe paywall and live StoreKit runtime");
+requireMarker("v1/paywall-runtime-fix.css", "--gp-system-top", "minimum TestFlight/status-bar safe area");
 
 console.log("Running focused runtime checks for Plus restoration and tank-theme access…");
 run(process.execPath, ["scripts/test-entitlement-sync.js"]);
@@ -64,6 +67,7 @@ for (const relative of [
   "v1/theme-engine.js",
   "v1/theme-paint.js",
   "v1/launch-handoff.js",
+  "v1/paywall-runtime-fix.js",
   "scripts/write-build-provenance.js",
   "scripts/verify-final-web-assets.js",
   "www/v1/purchase-flow.js",
@@ -73,6 +77,7 @@ for (const relative of [
   "www/v1/theme-engine.js",
   "www/v1/theme-paint.js",
   "www/v1/launch-handoff.js",
+  "www/v1/paywall-runtime-fix.js",
 ]) syntaxCheck(relative);
 
 const contracts = [
@@ -95,11 +100,20 @@ const contracts = [
   ["v1/theme-paint.js", "theme-paint-v1", "visible tank painter"],
   ["v1/theme-paint.js", "--gillie-theme-water-top", "direct water painting"],
   ["v1/launch-handoff.js", "launch-handoff-v1-single-intro", "animated intro handoff"],
+  ["v1/paywall-runtime-fix.js", "setInterfaceStyle", "native light status bar on dark Plus screen"],
+  ["v1/paywall-runtime-fix.js", "Apple billing connected", "visible StoreKit readiness"],
+  ["v1/paywall-runtime-fix.js", "Copy details", "visible purchase diagnostics"],
+  ["v1/paywall-runtime-fix.css", "safe-area-inset-top", "paywall header safe area"],
+  ["v1/paywall-runtime-fix.css", ".gp-store-health", "StoreKit status row styles"],
   ["ios/App/App/GilliePurchasesPlugin.swift", 'private let productIDs = ["gillie.plus.monthly", "gillie.plus.yearly"]', "native StoreKit product IDs"],
   ["ios/App/App/GilliePurchasesPlugin.swift", 'CAPPluginMethod(name: "getProducts"', "native product bridge"],
   ["ios/App/App/GilliePurchasesPlugin.swift", 'CAPPluginMethod(name: "purchase"', "native purchase bridge"],
   ["ios/App/App/GilliePurchasesPlugin.swift", 'CAPPluginMethod(name: "restorePurchases"', "native restore bridge"],
+  ["ios/App/App/GilliePurchasesPlugin.swift", 'CAPPluginMethod(name: "setInterfaceStyle"', "native system-chrome bridge"],
+  ["ios/App/App/GilliePurchasesPlugin.swift", "loadAvailableProducts", "retried combined and per-product StoreKit discovery"],
+  ["ios/App/App/GilliePurchasesPlugin.swift", '"requestedProductIds": productIDs', "native product diagnostics"],
   ["ios/App/App/GilliePurchasesPlugin.swift", "Product.products(for: productIDs)", "StoreKit 2 product request"],
+  ["ios/App/App/GilliePurchasesPlugin.swift", "Product.products(for: [productID])", "per-product StoreKit fallback"],
   ["ios/App/App/GilliePurchasesPlugin.swift", "Transaction.currentEntitlements", "verified entitlement lookup"],
   ["www/index.html", 'class="gillie-boot-pending"', "first-paint launch veil"],
   ["www/index.html", "SINGLE LAUNCH HANDOFF", "legacy splash replacement"],
@@ -109,6 +123,8 @@ const contracts = [
   ["www/index.html", 'data-gillie-v1-theme-engine="true"', "generated theme engine injection"],
   ["www/index.html", 'data-gillie-v1-theme-paint="true"', "generated theme painter injection"],
   ["www/index.html", 'data-gillie-v1-launch-handoff="true"', "generated launch handoff injection"],
+  ["www/index.html", 'data-gillie-v1-paywall-runtime-fix="true"', "generated paywall runtime injection"],
+  ["www/index.html", 'data-gillie-v1-paywall-runtime-fix-styles="true"', "generated paywall safe-area styles"],
   ["www/v1/build-source.json", '"sourceCommit"', "generated commit provenance"],
   ["www/v1/build-source.json", '"commerceEngine": "purchase-flow-v3-production-branch"', "generated commerce provenance"],
   ["www/v1/build-source.json", '"themePaintEngine": "theme-paint-v1"', "generated theme provenance"],
@@ -127,6 +143,8 @@ for (const relative of [
   "theme-engine.js",
   "theme-paint.js",
   "launch-handoff.js",
+  "paywall-runtime-fix.js",
+  "paywall-runtime-fix.css",
 ]) {
   const source = read(`v1/${relative}`);
   const generated = read(`www/v1/${relative}`);
@@ -134,4 +152,4 @@ for (const relative of [
 }
 
 run(process.execPath, ["scripts/verify-final-web-assets.js", "www"]);
-console.log("Release-critical validation passed: one fluid intro, always-on Plus entitlement recovery, working core tank themes, StoreKit checkout, and Reef rewards are in the generated app.");
+console.log("Release-critical validation passed: safe Plus header chrome, retried StoreKit plans, live billing status, one fluid intro, entitlement recovery, working themes, and Reef rewards are in the generated app.");
