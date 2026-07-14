@@ -35,21 +35,27 @@ requireMarker("v1/purchase-flow.js", "purchase-flow-v3-production-branch");
 requireMarker("v1/purchase-flow.js", "Apple returned zero Gillie Plus products");
 requireMarker("v1/purchase-flow.js", "Copy purchase details");
 requireMarker("v1/store-pricing.js", "store-pricing-v2-retryable");
+requireMarker("v1/entitlement-sync.js", "entitlement-sync-v1-always-on");
+requireMarker("v1/theme-access.js", "theme-access-v1-basic-free");
 requireMarker("v1/theme-paint.js", "theme-paint-v1");
 requireMarker("v1/theme-engine.js", "theme-engine-v2-multitank-level-rewards");
+requireMarker("v1/launch-handoff.js", "launch-handoff-v1-single-intro");
 
 fs.mkdirSync(out, { recursive: true });
 const payload = {
-  schemaVersion: 2,
+  schemaVersion: 3,
   allowedProductionRefs: ALLOWED_PRODUCTION_REFS,
   sourceBranch: branch,
   sourceCommit: commit,
   generatedAt: new Date().toISOString(),
   commerceEngine: "purchase-flow-v3-production-branch",
   pricingEngine: "store-pricing-v2-retryable",
+  entitlementSyncEngine: "entitlement-sync-v1-always-on",
   productIds: ["gillie.plus.monthly", "gillie.plus.yearly"],
+  themeAccessEngine: "theme-access-v1-basic-free",
   themeEngine: "theme-engine-v2-multitank-level-rewards",
   themePaintEngine: "theme-paint-v1",
+  launchHandoffEngine: "launch-handoff-v1-single-intro",
 };
 fs.writeFileSync(path.join(out, "build-source.json"), `${JSON.stringify(payload, null, 2)}\n`, "utf8");
 console.log(`Gillie build provenance written: ${branch}@${commit}`);
