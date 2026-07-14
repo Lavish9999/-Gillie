@@ -36,6 +36,8 @@ for (const relative of [
   "scripts/prepare-single-launch.js",
   "scripts/inject-phase3.js",
   "scripts/inject-support-recovery.js",
+  "scripts/test-theme-access.js",
+  "scripts/test-entitlement-sync.js",
   "v1/entitlement-sync.js",
   "v1/theme-access.js",
   "v1/launch-handoff.js",
@@ -46,6 +48,10 @@ requireMarker("scripts/prepare-single-launch.js", "gillie-launch-bootstrap", "si
 requireMarker("v1/entitlement-sync.js", "entitlement-sync-v1-always-on", "always-on Plus entitlement sync");
 requireMarker("v1/theme-access.js", "theme-access-v1-basic-free", "working core theme access");
 requireMarker("v1/launch-handoff.js", "launch-handoff-v1-single-intro", "single animated intro handoff");
+
+console.log("Running focused runtime checks for Plus restoration and tank-theme access…");
+run(process.execPath, ["scripts/test-entitlement-sync.js"]);
+run(process.execPath, ["scripts/test-theme-access.js"]);
 
 console.log("Preparing the exact Capacitor web bundle that will be signed…");
 run(process.platform === "win32" ? "npm.cmd" : "npm", ["run", "prepare:cap"]);
@@ -82,7 +88,8 @@ const contracts = [
   ["v1/entitlement-sync.js", "foreground", "Plus entitlement refreshed on foreground"],
   ["v1/entitlement-sync.js", "gillie:entitlement-updated", "entitlement update event"],
   ["v1/theme-access.js", "theme-access-v1-basic-free", "core themes work without Plus"],
-  ["v1/theme-access.js", '["clear", "sunset", "abyss", "sakura"]', "free core theme list"],
+  ["v1/theme-access.js", 'new Set(["clear", "sunset", "abyss", "sakura"])', "free core theme list"],
+  ["v1/theme-access.js", "window.GillieThemeEngine = wrapper", "theme engine blanket fallback adapter"],
   ["v1/theme-engine.js", "theme-engine-v2-multitank-level-rewards", "Reef reward/theme engine"],
   ["v1/theme-engine.js", "reef_level_reward_granted", "one-time level rewards"],
   ["v1/theme-paint.js", "theme-paint-v1", "visible tank painter"],
