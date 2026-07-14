@@ -2,6 +2,7 @@ const assert = require("assert");
 const {
   hardenEraseEverything,
   hardenStartupRecovery,
+  hardenUserTextRendering,
 } = require("./apply-release-safety");
 
 const eraseFixtures = [
@@ -29,7 +30,22 @@ for (const fixture of recoveryFixtures) {
   assert(!result.includes('localStorage.removeItem("gillie_v1")'));
 }
 
+const unsafeUserTextFixture = `
+<div class="t">\${b.name}</div><div class="s">\${skinOf(b.skin).name}</div>
+<div class="row"><div class="gn">\${state.goal.name}</div>
+\${state.reasons.join(" · ")}
+`;
+const safeUserText = hardenUserTextRendering(unsafeUserTextFixture);
+assert(safeUserText.includes("escapeHTML(b.name)"));
+assert(safeUserText.includes("escapeHTML(skinOf(b.skin).name)"));
+assert(safeUserText.includes("escapeHTML(state.goal.name)"));
+assert(safeUserText.includes('state.reasons.map(escapeHTML).join(" · ")'));
+assert(!safeUserText.includes('<div class="t">${b.name}</div>'));
+assert(!safeUserText.includes('<div class="row"><div class="gn">${state.goal.name}</div>'));
+assert(!safeUserText.includes('${state.reasons.join(" · ")}'));
+
 assert.throws(() => hardenEraseEverything("no reset here"), /exactly one matching handler/);
 assert.throws(() => hardenStartupRecovery("no recovery here"), /exactly one matching handler/);
+assert.throws(() => hardenUserTextRendering("missing user text markers"), /exactly one source marker/);
 
-console.log("Release safety transform test passed: reset hardening survives formatting changes and still rejects missing handlers.");
+console.log("Release safety transform test passed: reset hardening and user-text escaping reject unsafe or missing handlers.");
