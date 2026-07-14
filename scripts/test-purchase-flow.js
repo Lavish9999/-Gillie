@@ -61,6 +61,7 @@ class FakeElement {
     this.textContent = "";
     this.className = "";
     this.classList = new FakeClassList();
+    this.style = {};
     this.attributes = new Map();
     this.children = [];
   }
@@ -134,7 +135,7 @@ const context = {
   CustomEvent: class { constructor(name) { this.type = name; } },
   navigator: { clipboard: { writeText: async () => {} } },
   console,
-  setTimeout: (fn) => { fn(); return 1; },
+  setTimeout: () => 1,
   clearTimeout() {},
   Promise,
   Object,
