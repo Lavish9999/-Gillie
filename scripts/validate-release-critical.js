@@ -77,10 +77,16 @@ requireMarker("v1/launch-experience.css", "min-height:44px!important", "44-point
 requireMarker("v1/launch-handoff.js", "launch-handoff-v1-single-intro", "single animated intro handoff");
 requireMarker("v1/paywall-runtime-fix.js", "css-only-system-chrome-v2", "CSS-only TestFlight/status-bar treatment");
 requireMarker("v1/paywall-runtime-fix.js", "ensurePaywallSurface", "visible paywall surface recovery");
+requireMarker("v1/paywall-runtime-fix.js", "settings-runtime-v1-functional", "functional Settings runtime");
+requireMarker("v1/paywall-runtime-fix.js", "-webkit-text-size-adjust", "working global text-size preference");
+requireMarker("v1/paywall-runtime-fix.js", "manageActiveSubscription", "active Plus subscription management");
+requireMarker("v1/paywall-runtime-fix.js", "cancelAllGillieNotifications", "notification cleanup during erase");
+requireMarker("v1/paywall-runtime-fix.js", "clearGillieStorage", "complete local Settings erase");
+requireMarker("v1/paywall-runtime-fix.js", 'profile?.useLabel === "puffs" ? 10 : 1', "substance-aware cost and usage minimum");
 forbidMarker("v1/paywall-runtime-fix.js", "bridge()?.setInterfaceStyle?.(", "native root-view mutation");
 forbidMarker("ios/App/App/GilliePurchasesPlugin.swift", "setInterfaceStyle", "obsolete native interface-style bridge");
 
-console.log("Running focused runtime checks for direct-native checkout, Plus restoration, tank themes, and audit regressions…");
+console.log("Running focused runtime checks for direct-native checkout, Plus restoration, tank themes, Settings integrity, and audit regressions…");
 run(process.execPath, ["scripts/test-purchase-director.js"]);
 run(process.execPath, ["scripts/test-entitlement-sync.js"]);
 run(process.execPath, ["scripts/test-theme-access.js"]);
@@ -121,6 +127,11 @@ const contracts = [
   ["www/v1/launch-handoff.js", "launch-handoff-v1-single-intro", "single intro handoff"],
   ["www/v1/paywall-runtime-fix.js", "css-only-system-chrome-v2", "safe paywall chrome"],
   ["www/v1/paywall-runtime-fix.js", "ensurePaywallSurface", "visible paywall guard"],
+  ["www/v1/paywall-runtime-fix.js", "settings-runtime-v1-functional", "generated functional Settings runtime"],
+  ["www/v1/paywall-runtime-fix.js", "-webkit-text-size-adjust", "generated working text-size preference"],
+  ["www/v1/paywall-runtime-fix.js", "manageActiveSubscription", "generated active Plus management"],
+  ["www/v1/paywall-runtime-fix.js", "cancelAllGillieNotifications", "generated erase notification cleanup"],
+  ["www/v1/paywall-runtime-fix.js", "clearGillieStorage", "generated complete Settings erase"],
   ["ios/App/App/GilliePurchasesPlugin.swift", "purchase_selected_lookup_started_native", "selected-product native lookup"],
   ["ios/App/App/GilliePurchasesPlugin.swift", "purchase_sheet_requested_native", "Apple-sheet request event"],
   ["ios/App/App/GilliePurchasesPlugin.swift", "selected-product-direct-v1", "native direct checkout mode"],
@@ -164,4 +175,4 @@ for (const relative of [
 }
 
 run(process.execPath, ["scripts/verify-final-web-assets.js", "www"]);
-console.log("Release-critical validation passed: checkout bypasses pricing, Swift resolves only the selected plan, the rating request waits for meaningful engagement, slip copy is corrected, compact actions meet 44pt, and the obsolete native interface bridge is absent.");
+console.log("Release-critical validation passed: checkout bypasses pricing, Swift resolves only the selected plan, Settings are functional and fully erasable, text scaling works in WKWebView, notifications clean up correctly, and the audit regressions remain fixed.");
