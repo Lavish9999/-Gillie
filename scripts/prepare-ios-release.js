@@ -103,6 +103,151 @@ if (purchases.includes(clearBefore)) purchases = purchases.replace(clearBefore, 
 if (!purchases.includes("defaults.removeObject(forKey: installIDKey)")) {
   throw new Error("Gillie native diagnostics clear action does not remove the local install identifier.");
 }
+
+const legacyPurchase = `    @objc func purchase(_ call: CAPPluginCall) {
+        guard let productID = call.getString("productId"), productIDs.contains(productID) else {
+            call.reject("Unknown Gillie Plus product ID.")
+            return
+        }
+
+        Task {
+            do {
+                let products = try await loadAvailableProducts()
+                guard let product = products.first(where: { $0.id == productID }) else {
+                    let returnedIDs = products.map(\\.id).joined(separator: ",")
+                    recordEvent(name: "purchase_product_missing", properties: [
+                        "productId": productID,
+                        "returned": products.count,
+                        "returnedIds": returnedIDs
+                    ])
+                    call.reject("Apple did not return the selected Gillie Plus plan for this storefront. Requested \\(productID); returned \\(returnedIDs.isEmpty ? "none" : returnedIDs).")
+                    return
+                }
+
+                let result = try await product.purchase()
+                switch result {
+                case .success(let verification):
+                    let transaction = try checkVerified(verification)
+                    await transaction.finish()
+                    var status = await currentEntitlementStatus()
+                    status["productId"] = transaction.productID
+                    recordEvent(name: "purchase_completed_native", properties: ["productId": transaction.productID])
+                    call.resolve(status)
+                case .userCancelled:
+                    recordEvent(name: "purchase_cancelled_native", properties: ["productId": productID])
+                    call.resolve(["active": false, "verified": true, "source": "storekit2", "cancelled": true])
+                case .pending:
+                    recordEvent(name: "purchase_pending_native", properties: ["productId": productID])
+                    call.resolve(["active": false, "verified": true, "source": "storekit2", "pending": true])
+                @unknown default:
+                    call.reject("Unknown purchase result.")
+                }
+            } catch {
+                recordEvent(name: "purchase_failed_native", properties: ["productId": productID, "error": error.localizedDescription])
+                call.reject("Purchase failed: \\(error.localizedDescription)")
+            }
+        }
+    }`;
+
+const directPurchase = `    @objc func purchase(_ call: CAPPluginCall) {
+        guard let productID = call.getString("productId"), productIDs.contains(productID) else {
+            call.reject("Unknown Gillie Plus product ID.")
+            return
+        }
+
+        guard SKPaymentQueue.canMakePayments() else {
+            recordEvent(name: "purchase_blocked_native", properties: [
+                "productId": productID,
+                "reason": "payments-disabled"
+            ])
+            call.reject("Apple purchases are disabled on this device. Check Screen Time purchase restrictions and the Apple ID signed into Media & Purchases.")
+            return
+        }
+
+        Task {
+            do {
+                recordEvent(name: "purchase_selected_lookup_started_native", properties: ["productId": productID])
+                var selectedProduct: Product?
+                var lastLookupError: Error?
+
+                for attempt in 1...3 {
+                    do {
+                        selectedProduct = try await Product.products(for: [productID]).first(where: { $0.id == productID })
+                        recordEvent(name: "purchase_selected_lookup_attempt_native", properties: [
+                            "productId": productID,
+                            "attempt": attempt,
+                            "found": selectedProduct != nil
+                        ])
+                        if selectedProduct != nil { break }
+                    } catch {
+                        lastLookupError = error
+                        recordEvent(name: "purchase_selected_lookup_failed_native", properties: [
+                            "productId": productID,
+                            "attempt": attempt,
+                            "error": error.localizedDescription
+                        ])
+                    }
+                    if attempt < 3 {
+                        try? await Task<Never, Never>.sleep(nanoseconds: UInt64(attempt) * 300_000_000)
+                    }
+                }
+
+                guard let product = selectedProduct else {
+                    let suffix = lastLookupError.map { " Last Apple error: \\($0.localizedDescription)" } ?? ""
+                    recordEvent(name: "purchase_selected_product_missing_native", properties: [
+                        "productId": productID,
+                        "bundleId": Bundle.main.bundleIdentifier ?? "unknown"
+                    ])
+                    call.reject("Apple could not find \\(productID) for \\(Bundle.main.bundleIdentifier ?? "this app"). The product ID, subscription availability, Paid Apps agreement, tax, banking, and TestFlight build association must all be active.\\(suffix)")
+                    return
+                }
+
+                recordEvent(name: "purchase_sheet_requested_native", properties: [
+                    "productId": product.id,
+                    "displayPrice": product.displayPrice
+                ])
+                let result = try await product.purchase()
+                switch result {
+                case .success(let verification):
+                    let transaction = try checkVerified(verification)
+                    await transaction.finish()
+                    var status = await currentEntitlementStatus()
+                    status["productId"] = transaction.productID
+                    status["checkoutMode"] = "selected-product-direct-v1"
+                    recordEvent(name: "purchase_completed_native", properties: ["productId": transaction.productID])
+                    call.resolve(status)
+                case .userCancelled:
+                    recordEvent(name: "purchase_cancelled_native", properties: ["productId": productID])
+                    call.resolve(["active": false, "verified": true, "source": "storekit2", "cancelled": true, "checkoutMode": "selected-product-direct-v1"])
+                case .pending:
+                    recordEvent(name: "purchase_pending_native", properties: ["productId": productID])
+                    call.resolve(["active": false, "verified": true, "source": "storekit2", "pending": true, "checkoutMode": "selected-product-direct-v1"])
+                @unknown default:
+                    call.reject("Apple returned an unknown purchase result.")
+                }
+            } catch {
+                recordEvent(name: "purchase_failed_native", properties: [
+                    "productId": productID,
+                    "stage": "selected-product-direct-v1",
+                    "error": error.localizedDescription
+                ])
+                call.reject("Apple checkout failed for \\(productID): \\(error.localizedDescription)")
+            }
+        }
+    }`;
+
+if (purchases.includes(legacyPurchase)) {
+  purchases = purchases.replace(legacyPurchase, directPurchase);
+}
+for (const marker of [
+  "purchase_selected_lookup_started_native",
+  "purchase_sheet_requested_native",
+  "selected-product-direct-v1",
+  "SKPaymentQueue.canMakePayments()",
+  "Product.products(for: [productID])",
+]) {
+  if (!purchases.includes(marker)) throw new Error(`Gillie native direct checkout is missing marker: ${marker}`);
+}
 fs.writeFileSync(purchasesPath, purchases, "utf8");
 
 const bridge = fs.readFileSync(bridgePath, "utf8");
@@ -122,4 +267,4 @@ if (bridge.includes("localStorage.removeItem('gillie_v1')")) {
   throw new Error("Native startup recovery still performs a partial Gillie reset.");
 }
 
-console.log("Prepared iOS release project: privacy manifest embedded, V1 scoped to iPhone, resets complete, and welcome recovery registered.");
+console.log("Prepared iOS release project: privacy manifest embedded, V1 scoped to iPhone, selected-product StoreKit checkout generated, resets complete, and welcome recovery registered.");
