@@ -1,4 +1,5 @@
 import Capacitor
+import Security
 import UIKit
 
 @objc(GillieBridgeViewController)
@@ -8,6 +9,7 @@ class GillieBridgeViewController: CAPBridgeViewController {
     override func capacitorDidLoad() {
         super.capacitorDidLoad()
         bridge?.registerPluginInstance(GilliePurchasesPlugin())
+        bridge?.registerPluginInstance(GillieWelcomeRecoveryPlugin())
         scheduleStartupWatchdog()
     }
 
@@ -126,5 +128,211 @@ class GillieBridgeViewController: CAPBridgeViewController {
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
             self?.runStartupRecovery(attempt: attempt + 1)
         }
+    }
+}
+
+@objc(GillieWelcomeRecoveryPlugin)
+public class GillieWelcomeRecoveryPlugin: CAPPlugin, CAPBridgedPlugin {
+    public let identifier = "GillieWelcomeRecoveryPlugin"
+    public let jsName = "GillieWelcomeRecovery"
+    public let pluginMethods: [CAPPluginMethod] = [
+        CAPPluginMethod(name: "recoverWelcomeBundle", returnType: CAPPluginReturnPromise)
+    ]
+
+    private struct RecoveryRecord: Codable {
+        var version: Int
+        var originalInstallId: String
+        var recoveryUsed: Bool
+        var recoveryInstallId: String?
+        var establishedAt: Double
+        var recoveredAt: Double?
+    }
+
+    private let defaults = UserDefaults.standard
+    private let recoveryService = "com.gillie.plus.welcome.recovery"
+    private let recoveryAccount = "bundle.v1"
+    private let originalClaimService = "com.gillie.plus.welcome"
+    private let originalClaimAccount = "bundle.v1"
+    private let originalClaimFallbackKey = "gillie.plus.welcome.claimed.v1"
+    private let welcomeInstallIDKey = "gillie.plus.welcome.installID"
+    private let eventLogKey = "gillie.diagnostics.events"
+
+    @objc func recoverWelcomeBundle(_ call: CAPPluginCall) {
+        let localClaimedAt = max(0, call.getDouble("localClaimedAt") ?? 0)
+        let localBonusPearlsGranted = max(0, call.getInt("localBonusPearlsGranted") ?? 0)
+        let localBuddyCredits = max(0, call.getInt("localBuddyCredits") ?? 0)
+
+        guard hasOriginalWelcomeClaim() else {
+            call.resolve([
+                "recovered": false,
+                "settled": false,
+                "reason": "claim-not-ready"
+            ])
+            return
+        }
+
+        let installID = ensureWelcomeInstallID()
+        let now = Date().timeIntervalSince1970 * 1000
+
+        if var record = readRecoveryRecord() {
+            if record.originalInstallId == installID || record.recoveryInstallId == installID {
+                call.resolve([
+                    "recovered": false,
+                    "settled": true,
+                    "reason": "current-install"
+                ])
+                return
+            }
+
+            guard record.recoveryUsed == false else {
+                call.resolve([
+                    "recovered": false,
+                    "settled": true,
+                    "reason": "recovery-already-used"
+                ])
+                return
+            }
+
+            record.recoveryUsed = true
+            record.recoveryInstallId = installID
+            record.recoveredAt = now
+            guard writeRecoveryRecord(record) else {
+                call.reject("Gillie could not secure the welcome-bundle recovery.")
+                return
+            }
+
+            recordEvent(name: "plus_welcome_recovery_granted_native", properties: ["source": "new-install"])
+            call.resolve([
+                "recovered": true,
+                "settled": true,
+                "bonusPearls": 250,
+                "buddyCredits": 1,
+                "claimedAt": max(localClaimedAt, record.establishedAt),
+                "source": "keychain-recovery"
+            ])
+            return
+        }
+
+        if localBonusPearlsGranted > 0 || localBuddyCredits > 0 {
+            let record = RecoveryRecord(
+                version: 1,
+                originalInstallId: installID,
+                recoveryUsed: false,
+                recoveryInstallId: nil,
+                establishedAt: localClaimedAt > 0 ? localClaimedAt : now,
+                recoveredAt: nil
+            )
+            guard writeRecoveryRecord(record) else {
+                call.reject("Gillie could not secure the welcome-bundle recovery record.")
+                return
+            }
+            recordEvent(name: "plus_welcome_recovery_established_native", properties: ["source": "local-reward-present"])
+            call.resolve([
+                "recovered": false,
+                "settled": true,
+                "reason": "original-install-established"
+            ])
+            return
+        }
+
+        guard localClaimedAt > 0 else {
+            call.resolve([
+                "recovered": false,
+                "settled": false,
+                "reason": "local-claim-not-ready"
+            ])
+            return
+        }
+
+        let migrated = RecoveryRecord(
+            version: 1,
+            originalInstallId: "legacy-existing-claim",
+            recoveryUsed: true,
+            recoveryInstallId: installID,
+            establishedAt: localClaimedAt,
+            recoveredAt: now
+        )
+        guard writeRecoveryRecord(migrated) else {
+            call.reject("Gillie could not secure the migrated welcome-bundle recovery.")
+            return
+        }
+
+        recordEvent(name: "plus_welcome_recovery_granted_native", properties: ["source": "legacy-missing-local-reward"])
+        call.resolve([
+            "recovered": true,
+            "settled": true,
+            "bonusPearls": 250,
+            "buddyCredits": 1,
+            "claimedAt": localClaimedAt,
+            "source": "keychain-recovery"
+        ])
+    }
+
+    private func ensureWelcomeInstallID() -> String {
+        if let existing = defaults.string(forKey: welcomeInstallIDKey), !existing.isEmpty {
+            return existing
+        }
+        let created = UUID().uuidString.lowercased()
+        defaults.set(created, forKey: welcomeInstallIDKey)
+        return created
+    }
+
+    private func hasOriginalWelcomeClaim() -> Bool {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: originalClaimService,
+            kSecAttrAccount as String: originalClaimAccount,
+            kSecMatchLimit as String: kSecMatchLimitOne,
+            kSecReturnData as String: false
+        ]
+        let status = SecItemCopyMatching(query as CFDictionary, nil)
+        if status == errSecSuccess { return true }
+        return defaults.bool(forKey: originalClaimFallbackKey)
+    }
+
+    private func readRecoveryRecord() -> RecoveryRecord? {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: recoveryService,
+            kSecAttrAccount as String: recoveryAccount,
+            kSecMatchLimit as String: kSecMatchLimitOne,
+            kSecReturnData as String: true
+        ]
+        var result: CFTypeRef?
+        guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
+              let data = result as? Data else {
+            return nil
+        }
+        return try? JSONDecoder().decode(RecoveryRecord.self, from: data)
+    }
+
+    private func writeRecoveryRecord(_ record: RecoveryRecord) -> Bool {
+        guard let data = try? JSONEncoder().encode(record) else { return false }
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: recoveryService,
+            kSecAttrAccount as String: recoveryAccount
+        ]
+        let update: [String: Any] = [
+            kSecValueData as String: data,
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+        ]
+
+        let updateStatus = SecItemUpdate(query as CFDictionary, update as CFDictionary)
+        if updateStatus == errSecSuccess { return true }
+        guard updateStatus == errSecItemNotFound else { return false }
+
+        let add = query.merging(update) { _, new in new }
+        return SecItemAdd(add as CFDictionary, nil) == errSecSuccess
+    }
+
+    private func recordEvent(name: String, properties: [String: Any]) {
+        var events = defaults.array(forKey: eventLogKey) as? [[String: Any]] ?? []
+        events.append([
+            "name": name,
+            "properties": properties,
+            "at": Date().timeIntervalSince1970 * 1000
+        ])
+        defaults.set(Array(events.suffix(250)), forKey: eventLogKey)
     }
 }
