@@ -7,11 +7,12 @@ const { scanFinalWebAssets } = require("./verify-final-web-assets");
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), "gillie-final-web-assets-"));
 
-function writeProductionContract(target) {
+function writeProductionContract(target, sourceBranch = "main") {
   fs.mkdirSync(path.join(target, "v1"), { recursive: true });
   fs.writeFileSync(path.join(target, "v1", "build-source.json"), JSON.stringify({
-    productionBranch: "native-ios-launch",
-    sourceBranch: "native-ios-launch",
+    schemaVersion: 2,
+    allowedProductionRefs: ["main", "native-ios-launch"],
+    sourceBranch,
     sourceCommit: "abc123",
   }));
   fs.writeFileSync(path.join(target, "v1", "purchase-flow.js"), 'const a = "purchase-flow-v3-production-branch Apple returned zero Gillie Plus products Copy purchase details";');
@@ -22,7 +23,7 @@ function writeProductionContract(target) {
 
 try {
   const safe = path.join(root, "safe");
-  writeProductionContract(safe);
+  writeProductionContract(safe, "main");
   fs.writeFileSync(
     path.join(safe, "index.html"),
     '<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"><main>Gillie</main>',
@@ -31,7 +32,11 @@ try {
 
   const safeResult = scanFinalWebAssets(safe);
   assert.strictEqual(safeResult.filesChecked, 6, "Only supported text assets and shipping provenance should be scanned");
-  assert.strictEqual(safeResult.provenance.sourceBranch, "native-ios-launch");
+  assert.strictEqual(safeResult.provenance.sourceBranch, "main");
+
+  const legacyReleaseRef = path.join(root, "native-ref");
+  writeProductionContract(legacyReleaseRef, "native-ios-launch");
+  assert.strictEqual(scanFinalWebAssets(legacyReleaseRef).provenance.sourceBranch, "native-ios-launch");
 
   const zoom = path.join(root, "zoom");
   writeProductionContract(zoom);
@@ -61,19 +66,28 @@ try {
   );
 
   const wrongBranch = path.join(root, "wrong-branch");
-  writeProductionContract(wrongBranch);
-  fs.writeFileSync(path.join(wrongBranch, "v1", "build-source.json"), JSON.stringify({
-    productionBranch: "main",
-    sourceBranch: "main",
-    sourceCommit: "wrong",
-  }));
+  writeProductionContract(wrongBranch, "feature/random");
   assert.throws(
     () => scanFinalWebAssets(wrongBranch),
-    /does not identify native-ios-launch as the production branch/,
-    "A final bundle from the wrong production branch must be rejected",
+    /unapproved source ref: feature\/random/,
+    "A final bundle from an unapproved branch must be rejected",
   );
 
-  console.log("Final web asset verifier test passed: production provenance, commerce/theme engines, text violations, and binary exclusions are enforced.");
+  const incompleteRefs = path.join(root, "incomplete-refs");
+  writeProductionContract(incompleteRefs);
+  fs.writeFileSync(path.join(incompleteRefs, "v1", "build-source.json"), JSON.stringify({
+    schemaVersion: 2,
+    allowedProductionRefs: ["main"],
+    sourceBranch: "main",
+    sourceCommit: "abc123",
+  }));
+  assert.throws(
+    () => scanFinalWebAssets(incompleteRefs),
+    /production refs are incomplete; missing native-ios-launch/,
+    "The synchronized production ref contract must remain explicit",
+  );
+
+  console.log("Final web asset verifier test passed: synchronized production refs, exact commerce/theme engines, text violations, and binary exclusions are enforced.");
 } finally {
   fs.rmSync(root, { recursive: true, force: true });
 }
