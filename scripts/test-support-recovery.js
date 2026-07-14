@@ -14,8 +14,10 @@ const injector = read("scripts/inject-support-recovery.js");
 for (const marker of [
   "sos-support-v1",
   "1-800-QUIT-NOW",
-  "tel:+18007848669",
-  "sms:333888",
+  'QUITLINE_PHONE = "+18007848669"',
+  'href="tel:${QUITLINE_PHONE}"',
+  'QUITLINE_TEXT = "333888"',
+  'href="sms:${QUITLINE_TEXT}"',
   "QUITNOW to 333888",
   "smokefree.gov/tools-tips/get-extra-help/speak-to-an-expert",
   "Message someone I trust",
@@ -35,6 +37,7 @@ for (const marker of [
   "plus_welcome_bundle_recovered",
   "This recovery can only happen once on this device",
   "current.plusWelcome.buddyCredits",
+  "data-dialog-close",
 ]) {
   assert(recovery.includes(marker), `Welcome recovery is missing: ${marker}`);
 }
