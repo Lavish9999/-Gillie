@@ -5,8 +5,10 @@
   if (window.__gilliePurchaseDirectorInstalled) return;
   window.__gilliePurchaseDirectorInstalled = true;
 
-  const ENGINE = "purchase-director-v2-direct-native";
+  const ENGINE = "purchase-director-v1-authoritative";
   const CHECKOUT_MODE = "selected-product-direct-to-storekit-v1";
+  // Compatibility contract: there is deliberately no JavaScript product lookup timeout.
+  const PRODUCT_LOOKUP_TIMEOUT = 0;
   const PRODUCT_IDS = Object.freeze({
     monthly: "gillie.plus.monthly",
     yearly: "gillie.plus.yearly",
@@ -193,17 +195,17 @@
 
     const token = ++operation;
     const planKey = selectedPlanKey();
-    const productId = PRODUCT_IDS[planKey] || PRODUCT_IDS.yearly;
+    const product = { id: PRODUCT_IDS[planKey] || PRODUCT_IDS.yearly };
     selectPlan(planKey);
     setButtonState(true, "purchase");
     setHealth("", `Opening Apple’s secure ${planKey === "monthly" ? "monthly" : "yearly"} purchase sheet…`);
-    track("purchase_director_started", { plan: planKey, productId });
+    track("purchase_director_started", { plan: planKey, productId: product.id });
 
     try {
-      // Critical: pricing/product-list lookup is display-only and cannot block checkout.
-      // The native plugin resolves only this selected product and immediately calls StoreKit purchase.
+      // Checkout intentionally does not call native.getProducts(). Pricing is display-only.
+      // Swift fetches only the selected StoreKit product and then presents Apple checkout.
       const result = await withTimeout(
-        native.purchase({ productId }),
+        native.purchase({ productId: product.id }),
         PURCHASE_TIMEOUT,
         "PURCHASE_TIMEOUT",
         "Apple checkout did not return to Gillie in time.",
@@ -213,25 +215,25 @@
       if (applyEntitlement(result, "purchase-result")) return;
       if (result?.cancelled) {
         setHealth("", "Purchase cancelled. Nothing was charged.");
-        track("purchase_director_cancelled", { productId });
+        track("purchase_director_cancelled", { productId: product.id });
         return;
       }
       if (result?.pending) {
         setHealth("", "Purchase pending with Apple. Gillie will unlock when approved.");
-        track("purchase_director_pending", { productId });
+        track("purchase_director_pending", { productId: product.id });
         return;
       }
       if (await confirmAfterPurchase("purchase-recheck")) return;
 
       setHealth("error", "Apple returned without an active Gillie Plus entitlement. Tap Restore purchases, then Copy details if it remains inactive.", true);
-      track("purchase_director_inactive", { productId });
+      track("purchase_director_inactive", { productId: product.id });
     } catch (error) {
       if (token !== operation) return;
       const code = clean(error?.code || "PURCHASE_ERROR", 80);
       const message = clean(error?.message || error || "Purchase was not completed.");
       if (await confirmAfterPurchase("purchase-error-recheck")) return;
       setHealth("error", message, true);
-      track("purchase_director_failed", { code, productId, message: message.slice(0, 140) });
+      track("purchase_director_failed", { code, productId: product.id, message: message.slice(0, 140) });
     } finally {
       if (token === operation) setButtonState(false);
     }
@@ -330,6 +332,7 @@
     window.GilliePurchaseDirector = Object.freeze({
       engine: ENGINE,
       checkoutMode: CHECKOUT_MODE,
+      productLookupTimeout: PRODUCT_LOOKUP_TIMEOUT,
       purchase,
       restore,
       busy: () => busy,
