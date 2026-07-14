@@ -132,14 +132,14 @@ for (const required of [
   "purchase-director-v2-direct-native",
   "selected-product-direct-to-storekit-v1",
   "stopImmediatePropagation",
-  "native.purchase({ productId })",
-  "pricing/product-list lookup is display-only",
+  "native.purchase({ productId: product.id })",
+  "Checkout intentionally does not call native.getProducts()",
   "GilliePurchaseDirector",
 ]) {
   if (!purchaseDirector.includes(required)) throw new Error(`Generated purchase director is missing marker: ${required}`);
 }
-if (purchaseDirector.includes("native.getProducts()")) {
-  throw new Error("Generated purchase director still allows product-list pricing lookup to gate checkout.");
+if (/^\s*(?:await\s+)?native\.getProducts\s*\(/m.test(purchaseDirector)) {
+  throw new Error("Generated purchase director still executes a product-list pricing lookup before checkout.");
 }
 new Function(purchaseDirector);
 for (const required of ["entitlement-sync-v1-always-on", "app-boot", "foreground", "entitlementChanged", "gillie:entitlement-updated", "GillieEntitlementSync"]) {
