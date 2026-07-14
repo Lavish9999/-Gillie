@@ -166,8 +166,11 @@ for (const required of ["launch-handoff-v1-single-intro", "gillie-boot-pending",
   if (!launchHandoff.includes(required)) throw new Error(`Generated launch handoff is missing marker: ${required}`);
 }
 new Function(launchHandoff);
-for (const required of ["paywall-runtime-fix-v1", "setInterfaceStyle", "Apple billing connected", "Copy details", "GilliePaywallRuntimeFix"]) {
+for (const required of ["paywall-runtime-fix-v1", "css-only-system-chrome-v2", "Apple billing connected", "Copy details", "ensurePaywallSurface", "GilliePaywallRuntimeFix"]) {
   if (!paywallRuntime.includes(required)) throw new Error(`Generated paywall runtime is missing marker: ${required}`);
+}
+if (paywallRuntime.includes("bridge()?.setInterfaceStyle?.(")) {
+  throw new Error("Generated paywall runtime still calls the native interface-style bridge that covers the Capacitor WebView.");
 }
 new Function(paywallRuntime);
 for (const required of [".gillie-launch-intro", ".gillie-rating-overlay", "gillieLaunchSwimIn", "prefers-reduced-motion"]) {
@@ -178,4 +181,4 @@ for (const required of ["--gp-system-top", ".gp-store-health", "safe-area-inset-
 }
 
 fs.writeFileSync(indexPath, html, "utf8");
-console.log("Injected one animated launch, safe Gillie Plus system chrome, live StoreKit readiness, entitlement sync, working themes, and Reef rewards.");
+console.log("Injected one animated launch, CSS-only safe Plus chrome, visible StoreKit readiness, entitlement sync, working themes, and Reef rewards.");

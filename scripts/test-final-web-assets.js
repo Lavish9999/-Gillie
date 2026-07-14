@@ -13,10 +13,12 @@ function writeProductionContract(target, sourceBranch = "main") {
   fs.mkdirSync(path.join(target, "v1"), { recursive: true });
   fs.writeFileSync(path.join(target, "index.html"), safeIndex);
   fs.writeFileSync(path.join(target, "v1", "build-source.json"), JSON.stringify({
-    schemaVersion: 4,
+    schemaVersion: 5,
     allowedProductionRefs: ["main", "native-ios-launch"],
     sourceBranch,
     sourceCommit: "abc123",
+    paywallChromeMode: "css-only-system-chrome-v2",
+    paywallSurfaceGuard: "ensurePaywallSurface-v1",
   }));
   fs.writeFileSync(path.join(target, "v1", "purchase-flow.js"), 'const a = "purchase-flow-v3-production-branch Apple returned zero Gillie Plus products Copy purchase details";');
   fs.writeFileSync(path.join(target, "v1", "store-pricing.js"), 'const a = "store-pricing-v2-retryable Loading Apple price…";');
@@ -26,7 +28,7 @@ function writeProductionContract(target, sourceBranch = "main") {
   fs.writeFileSync(path.join(target, "v1", "theme-paint.js"), 'const a = "theme-paint-v1";');
   fs.writeFileSync(path.join(target, "v1", "launch-experience.js"), 'const a = "launch-experience-v1";');
   fs.writeFileSync(path.join(target, "v1", "launch-handoff.js"), 'const a = "launch-handoff-v1-single-intro";');
-  fs.writeFileSync(path.join(target, "v1", "paywall-runtime-fix.js"), 'const a = "paywall-runtime-fix-v1 setInterfaceStyle Apple billing connected";');
+  fs.writeFileSync(path.join(target, "v1", "paywall-runtime-fix.js"), 'const a = "paywall-runtime-fix-v1 css-only-system-chrome-v2 ensurePaywallSurface Apple billing connected";');
   fs.writeFileSync(path.join(target, "v1", "paywall-runtime-fix.css"), ':root{--gp-system-top:56px}.gp-store-health{display:block}');
 }
 
@@ -42,6 +44,15 @@ try {
   const nativeReleaseRef = path.join(root, "native-ref");
   writeProductionContract(nativeReleaseRef, "native-ios-launch");
   assert.strictEqual(scanFinalWebAssets(nativeReleaseRef).provenance.sourceBranch, "native-ios-launch");
+
+  const nativeCover = path.join(root, "native-cover");
+  writeProductionContract(nativeCover);
+  fs.writeFileSync(path.join(nativeCover, "v1", "paywall-runtime-fix.js"), 'bridge()?.setInterfaceStyle?.({ lightStatusBar: true }); const a = "paywall-runtime-fix-v1 css-only-system-chrome-v2 ensurePaywallSurface Apple billing connected";');
+  assert.throws(
+    () => scanFinalWebAssets(nativeCover),
+    /covers the Capacitor WebView/,
+    "The signed bundle must reject the native call that blanked both startup and Plus",
+  );
 
   const zoom = path.join(root, "zoom");
   writeProductionContract(zoom);
@@ -81,10 +92,12 @@ try {
   const incompleteRefs = path.join(root, "incomplete-refs");
   writeProductionContract(incompleteRefs);
   fs.writeFileSync(path.join(incompleteRefs, "v1", "build-source.json"), JSON.stringify({
-    schemaVersion: 4,
+    schemaVersion: 5,
     allowedProductionRefs: ["main"],
     sourceBranch: "main",
     sourceCommit: "abc123",
+    paywallChromeMode: "css-only-system-chrome-v2",
+    paywallSurfaceGuard: "ensurePaywallSurface-v1",
   }));
   assert.throws(
     () => scanFinalWebAssets(incompleteRefs),
@@ -101,7 +114,7 @@ try {
     "The signed web bundle must never contain the original splash before the animated intro",
   );
 
-  console.log("Final web asset verifier test passed: safe Plus header, live StoreKit readiness, entitlement sync, working themes, one launch, synchronized refs, and release-content rules are enforced.");
+  console.log("Final web asset verifier test passed: CSS-only Plus chrome, visible paywall surface, live StoreKit readiness, entitlement sync, working themes, one launch, synchronized refs, and release-content rules are enforced.");
 } finally {
   fs.rmSync(root, { recursive: true, force: true });
 }

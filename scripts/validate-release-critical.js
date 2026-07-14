@@ -50,6 +50,9 @@ requireMarker("v1/entitlement-sync.js", "entitlement-sync-v1-always-on", "always
 requireMarker("v1/theme-access.js", "theme-access-v1-basic-free", "working core theme access");
 requireMarker("v1/launch-handoff.js", "launch-handoff-v1-single-intro", "single animated intro handoff");
 requireMarker("v1/paywall-runtime-fix.js", "paywall-runtime-fix-v1", "safe paywall and live StoreKit runtime");
+requireMarker("v1/paywall-runtime-fix.js", "css-only-system-chrome-v2", "CSS-only TestFlight/status-bar treatment");
+requireMarker("v1/paywall-runtime-fix.js", "ensurePaywallSurface", "visible paywall surface recovery");
+forbidMarker("v1/paywall-runtime-fix.js", "bridge()?.setInterfaceStyle?.(", "native root-view mutation that covers the Capacitor WebView");
 requireMarker("v1/paywall-runtime-fix.css", "--gp-system-top", "minimum TestFlight/status-bar safe area");
 
 console.log("Running focused runtime checks for Plus restoration and tank-theme access…");
@@ -100,7 +103,8 @@ const contracts = [
   ["v1/theme-paint.js", "theme-paint-v1", "visible tank painter"],
   ["v1/theme-paint.js", "--gillie-theme-water-top", "direct water painting"],
   ["v1/launch-handoff.js", "launch-handoff-v1-single-intro", "animated intro handoff"],
-  ["v1/paywall-runtime-fix.js", "setInterfaceStyle", "native light status bar on dark Plus screen"],
+  ["v1/paywall-runtime-fix.js", "css-only-system-chrome-v2", "CSS-only safe-area treatment"],
+  ["v1/paywall-runtime-fix.js", "ensurePaywallSurface", "visible paywall surface repair"],
   ["v1/paywall-runtime-fix.js", "Apple billing connected", "visible StoreKit readiness"],
   ["v1/paywall-runtime-fix.js", "Copy details", "visible purchase diagnostics"],
   ["v1/paywall-runtime-fix.css", "safe-area-inset-top", "paywall header safe area"],
@@ -109,7 +113,6 @@ const contracts = [
   ["ios/App/App/GilliePurchasesPlugin.swift", 'CAPPluginMethod(name: "getProducts"', "native product bridge"],
   ["ios/App/App/GilliePurchasesPlugin.swift", 'CAPPluginMethod(name: "purchase"', "native purchase bridge"],
   ["ios/App/App/GilliePurchasesPlugin.swift", 'CAPPluginMethod(name: "restorePurchases"', "native restore bridge"],
-  ["ios/App/App/GilliePurchasesPlugin.swift", 'CAPPluginMethod(name: "setInterfaceStyle"', "native system-chrome bridge"],
   ["ios/App/App/GilliePurchasesPlugin.swift", "loadAvailableProducts", "retried combined and per-product StoreKit discovery"],
   ["ios/App/App/GilliePurchasesPlugin.swift", '"requestedProductIds": productIDs', "native product diagnostics"],
   ["ios/App/App/GilliePurchasesPlugin.swift", "Product.products(for: productIDs)", "StoreKit 2 product request"],
@@ -127,10 +130,12 @@ const contracts = [
   ["www/index.html", 'data-gillie-v1-paywall-runtime-fix-styles="true"', "generated paywall safe-area styles"],
   ["www/v1/build-source.json", '"sourceCommit"', "generated commit provenance"],
   ["www/v1/build-source.json", '"commerceEngine": "purchase-flow-v3-production-branch"', "generated commerce provenance"],
+  ["www/v1/build-source.json", '"paywallChromeMode": "css-only-system-chrome-v2"', "generated paywall chrome provenance"],
   ["www/v1/build-source.json", '"themePaintEngine": "theme-paint-v1"', "generated theme provenance"],
 ];
 
 for (const [relative, marker, label] of contracts) requireMarker(relative, marker, label);
+forbidMarker("www/v1/paywall-runtime-fix.js", "bridge()?.setInterfaceStyle?.(", "generated native root-view mutation");
 forbidMarker("www/index.html", "splash-orb", "legacy web splash artwork");
 forbidMarker("www/index.html", "Grow clean", "legacy web splash subtitle");
 forbidMarker("ios/App/App/Base.lproj/LaunchScreen.storyboard", 'image="Splash"', "legacy native image splash");
@@ -152,4 +157,4 @@ for (const relative of [
 }
 
 run(process.execPath, ["scripts/verify-final-web-assets.js", "www"]);
-console.log("Release-critical validation passed: safe Plus header chrome, retried StoreKit plans, live billing status, one fluid intro, entitlement recovery, working themes, and Reef rewards are in the generated app.");
+console.log("Release-critical validation passed: CSS-only safe Plus header, visible paywall surface, retried StoreKit plans, one fluid intro, entitlement recovery, working themes, and Reef rewards are in the generated app.");

@@ -107,14 +107,22 @@ function requireFinalContract(root) {
     ["v1/launch-experience.js", "launch-experience-v1"],
     ["v1/launch-handoff.js", "launch-handoff-v1-single-intro"],
     ["v1/paywall-runtime-fix.js", "paywall-runtime-fix-v1"],
-    ["v1/paywall-runtime-fix.js", "setInterfaceStyle"],
+    ["v1/paywall-runtime-fix.js", "css-only-system-chrome-v2"],
+    ["v1/paywall-runtime-fix.js", "ensurePaywallSurface"],
     ["v1/paywall-runtime-fix.js", "Apple billing connected"],
     ["v1/paywall-runtime-fix.css", "--gp-system-top"],
     ["v1/paywall-runtime-fix.css", ".gp-store-health"],
+    ["v1/build-source.json", '"paywallChromeMode": "css-only-system-chrome-v2"'],
+    ["v1/build-source.json", '"paywallSurfaceGuard": "ensurePaywallSurface-v1"'],
   ];
   for (const [relative, marker] of contracts) {
     const source = fs.readFileSync(path.join(root, relative), "utf8");
     if (!source.includes(marker)) throw new Error(`Final web bundle contract missing from ${relative}: ${marker}`);
+  }
+
+  const paywallRuntime = fs.readFileSync(path.join(root, "v1", "paywall-runtime-fix.js"), "utf8");
+  if (paywallRuntime.includes("bridge()?.setInterfaceStyle?.(")) {
+    throw new Error("Final web bundle still calls the native interface-style bridge that covers the Capacitor WebView.");
   }
 
   const index = fs.readFileSync(path.join(root, "index.html"), "utf8");
