@@ -39,12 +39,14 @@ for (const relative of [
   "scripts/test-theme-access.js",
   "scripts/test-entitlement-sync.js",
   "scripts/test-purchase-director.js",
+  "scripts/test-launch-experience.js",
   "scripts/write-build-provenance.js",
   "scripts/verify-final-web-assets.js",
   "v1/store-pricing.js",
   "v1/purchase-director.js",
   "v1/entitlement-sync.js",
   "v1/theme-access.js",
+  "v1/launch-experience.js",
   "v1/launch-handoff.js",
   "v1/paywall-runtime-fix.js",
 ]) syntaxCheck(relative);
@@ -66,15 +68,23 @@ requireMarker("v1/store-pricing.js", "store-pricing-v2-retryable", "localized Ap
 forbidMarker("v1/store-pricing.js", "purchase.disabled = loading", "pricing must never disable checkout");
 requireMarker("v1/entitlement-sync.js", "entitlement-sync-v1-always-on", "always-on Plus entitlement sync");
 requireMarker("v1/theme-access.js", "theme-access-v1-basic-free", "working core theme access");
+requireMarker("v1/launch-experience.js", "function ratingEligibility()", "meaningful-engagement rating gate");
+requireMarker("v1/launch-experience.js", 'reason: "first_craving_win"', "rating after a resisted craving");
+requireMarker("v1/launch-experience.js", 'reason: "three_checkins"', "rating after three check-ins");
+requireMarker("v1/launch-experience.js", 'reason: "three_clean_days"', "rating after three clean days");
+requireMarker("v1/launch-experience.js", "function installSlipCopyGuard()", "slip-copy grammar guard");
+requireMarker("v1/launch-experience.css", "min-height:44px!important", "44-point compact action targets");
 requireMarker("v1/launch-handoff.js", "launch-handoff-v1-single-intro", "single animated intro handoff");
 requireMarker("v1/paywall-runtime-fix.js", "css-only-system-chrome-v2", "CSS-only TestFlight/status-bar treatment");
 requireMarker("v1/paywall-runtime-fix.js", "ensurePaywallSurface", "visible paywall surface recovery");
 forbidMarker("v1/paywall-runtime-fix.js", "bridge()?.setInterfaceStyle?.(", "native root-view mutation");
+forbidMarker("ios/App/App/GilliePurchasesPlugin.swift", "setInterfaceStyle", "obsolete native interface-style bridge");
 
-console.log("Running focused runtime checks for direct-native checkout, Plus restoration, and tank themes…");
+console.log("Running focused runtime checks for direct-native checkout, Plus restoration, tank themes, and audit regressions…");
 run(process.execPath, ["scripts/test-purchase-director.js"]);
 run(process.execPath, ["scripts/test-entitlement-sync.js"]);
 run(process.execPath, ["scripts/test-theme-access.js"]);
+run(process.execPath, ["scripts/test-launch-experience.js"]);
 
 console.log("Preparing the exact Capacitor and iOS bundle that will be signed…");
 run(process.platform === "win32" ? "npm.cmd" : "npm", ["run", "prepare:cap"]);
@@ -87,6 +97,7 @@ for (const relative of [
   "www/v1/theme-access.js",
   "www/v1/theme-engine.js",
   "www/v1/theme-paint.js",
+  "www/v1/launch-experience.js",
   "www/v1/launch-handoff.js",
   "www/v1/paywall-runtime-fix.js",
 ]) syntaxCheck(relative);
@@ -104,6 +115,9 @@ const contracts = [
   ["www/v1/theme-access.js", "theme-access-v1-basic-free", "core theme access"],
   ["www/v1/theme-engine.js", "theme-engine-v2-multitank-level-rewards", "Reef rewards and themes"],
   ["www/v1/theme-paint.js", "theme-paint-v1", "visible tank painter"],
+  ["www/v1/launch-experience.js", "function ratingEligibility()", "generated meaningful-engagement rating gate"],
+  ["www/v1/launch-experience.js", "function installSlipCopyGuard()", "generated slip-copy grammar guard"],
+  ["www/v1/launch-experience.css", "min-height:44px!important", "generated 44-point touch targets"],
   ["www/v1/launch-handoff.js", "launch-handoff-v1-single-intro", "single intro handoff"],
   ["www/v1/paywall-runtime-fix.js", "css-only-system-chrome-v2", "safe paywall chrome"],
   ["www/v1/paywall-runtime-fix.js", "ensurePaywallSurface", "visible paywall guard"],
@@ -125,6 +139,7 @@ for (const [relative, marker, label] of contracts) requireMarker(relative, marke
 forbidMarker("www/v1/purchase-director.js", "await availablePlan(", "generated JavaScript product preflight");
 forbidMarker("www/v1/store-pricing.js", "purchase.disabled = loading", "generated pricing cannot disable checkout");
 forbidMarker("www/v1/paywall-runtime-fix.js", "bridge()?.setInterfaceStyle?.(", "generated native root-view mutation");
+forbidMarker("ios/App/App/GilliePurchasesPlugin.swift", "setInterfaceStyle", "generated obsolete native interface bridge");
 forbidMarker("www/index.html", "splash-orb", "legacy web splash artwork");
 forbidMarker("www/index.html", "Grow clean", "legacy web splash subtitle");
 forbidMarker("ios/App/App/Base.lproj/LaunchScreen.storyboard", 'image="Splash"', "legacy native image splash");
@@ -137,6 +152,8 @@ for (const relative of [
   "theme-access.js",
   "theme-engine.js",
   "theme-paint.js",
+  "launch-experience.js",
+  "launch-experience.css",
   "launch-handoff.js",
   "paywall-runtime-fix.js",
   "paywall-runtime-fix.css",
@@ -147,4 +164,4 @@ for (const relative of [
 }
 
 run(process.execPath, ["scripts/verify-final-web-assets.js", "www"]);
-console.log("Release-critical validation passed: checkout bypasses pricing, Swift resolves only the selected plan, Apple-sheet diagnostics are present, and Plus/theme/startup assets are in the signed bundle.");
+console.log("Release-critical validation passed: checkout bypasses pricing, Swift resolves only the selected plan, the rating request waits for meaningful engagement, slip copy is corrected, compact actions meet 44pt, and the obsolete native interface bridge is absent.");
