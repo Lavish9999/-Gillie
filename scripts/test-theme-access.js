@@ -39,6 +39,7 @@ const state = { premium: false, theme: "clear", petName: "Gillie" };
 let saves = 0;
 let paints = 0;
 let delegatedTheme = null;
+const scheduled = [];
 
 const originalEngine = {
   active: () => ({ id: "clear", name: "Clearwater", premium: false }),
@@ -68,7 +69,7 @@ const context = {
   renderThemes: () => {},
   toast: () => {},
   requestAnimationFrame: (callback) => callback(),
-  setTimeout: (callback) => { callback(); return 1; },
+  setTimeout: (callback, delay) => { scheduled.push({ callback, delay }); return scheduled.length; },
   CustomEvent: class { constructor(name, options) { this.type = name; this.detail = options?.detail; } },
   console,
   Set,
@@ -82,6 +83,7 @@ context.window.document = document;
 
 vm.createContext(context);
 vm.runInContext(source, context, { filename: "v1/theme-access.js" });
+for (const task of scheduled.splice(0)) task.callback();
 
 assert(context.window.GillieThemeAccess, "Theme access API should install");
 for (const id of ["clear", "sunset", "abyss", "sakura"]) {
