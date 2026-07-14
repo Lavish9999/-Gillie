@@ -77,6 +77,7 @@
     try { if (typeof renderThemes === "function") renderThemes(); } catch (_) {}
     updateButtons(id);
     try { adaptedEngine?.apply?.(`theme-access:${options.reason || "select"}`); } catch (_) {}
+    updateButtons(id);
     repaint(`theme-access:${options.reason || "select"}`);
 
     if (options.announceSelection !== false) {
@@ -130,6 +131,7 @@
   document.addEventListener?.("click", handleThemeClick, true);
   document.addEventListener?.("gillie:theme-applied", () => {
     installEngineAdapter();
+    updateButtons(String(currentState()?.theme || "clear"));
     repaint("theme-engine-applied");
   });
   if (document.readyState === "loading") {
@@ -150,6 +152,7 @@
     refresh: () => {
       unlockBasicThemes();
       installEngineAdapter();
+      updateButtons(String(currentState()?.theme || "clear"));
       repaint("theme-access-refresh");
     },
     isFree: (themeId) => BASIC_THEME_IDS.has(String(themeId || "")),
