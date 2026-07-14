@@ -28,8 +28,17 @@ workflows:
       - name: Validate ship-quality source
         script: |
           set -euo pipefail
+          echo "Codemagic source ref: ${CM_BRANCH:-unknown}"
+          echo "Codemagic source commit: ${CM_COMMIT:-unknown}"
           npm run validate:ship
           node scripts/validate-codemagic-source.js
+          test -f www/v1/build-source.json
+          grep -q 'purchase-flow-v3-production-branch' www/v1/purchase-flow.js
+          grep -q 'store-pricing-v2-retryable' www/v1/store-pricing.js
+          grep -q 'theme-engine-v2-multitank-level-rewards' www/v1/theme-engine.js
+          grep -q 'theme-paint-v1' www/v1/theme-paint.js
+          grep -q '"sourceCommit"' www/v1/build-source.json
+          cat www/v1/build-source.json
 
       - name: Sync Capacitor iOS
         script: |
@@ -184,12 +193,13 @@ workflows:
           test -f "$app_path/public/v1/welcome-recovery.js"
           test -f "$app_path/public/v1/purchase-flow.js"
           test -f "$app_path/public/v1/theme-engine.js"
+          test -f "$app_path/public/v1/theme-paint.js"
+          test -f "$app_path/public/v1/build-source.json"
           test -f "$app_path/public/v1/launch-experience.js"
           test -f "$app_path/public/v1/launch-experience.css"
           test -f "$app_path/public/v1/support-recovery.css"
-          grep -q 'store-pricing-v1' "$app_path/public/v1/store-pricing.js"
+          grep -q 'store-pricing-v2-retryable' "$app_path/public/v1/store-pricing.js"
           grep -q 'Loading Apple price' "$app_path/public/v1/store-pricing.js"
-          grep -q 'Restore purchases is still available' "$app_path/public/v1/store-pricing.js"
           grep -q 'accessibility-v1' "$app_path/public/v1/accessibility.js"
           grep -q 'normalizeViewportContent' "$app_path/public/v1/accessibility.js"
           grep -q 'aria-modal' "$app_path/public/v1/accessibility.js"
@@ -197,13 +207,18 @@ workflows:
           grep -q '1-800-QUIT-NOW' "$app_path/public/v1/sos-support.js"
           grep -q 'welcome-recovery-v1' "$app_path/public/v1/welcome-recovery.js"
           grep -q 'recoverWelcomeBundle' "$app_path/public/v1/welcome-recovery.js"
-          grep -q 'purchase-flow-v1' "$app_path/public/v1/purchase-flow.js"
+          grep -q 'purchase-flow-v3-production-branch' "$app_path/public/v1/purchase-flow.js"
+          grep -q 'Apple returned zero Gillie Plus products' "$app_path/public/v1/purchase-flow.js"
+          grep -q 'Copy purchase details' "$app_path/public/v1/purchase-flow.js"
           grep -q 'entitlementChanged' "$app_path/public/v1/purchase-flow.js"
-          grep -q 'Apple is still processing this purchase' "$app_path/public/v1/purchase-flow.js"
-          grep -q 'theme-engine-v1' "$app_path/public/v1/theme-engine.js"
-          grep -Fq '#theme-row [data-theme]' "$app_path/public/v1/theme-engine.js"
+          grep -q 'theme-engine-v2-multitank-level-rewards' "$app_path/public/v1/theme-engine.js"
           grep -q 'gillie:theme-applied' "$app_path/public/v1/theme-engine.js"
           grep -q 'GillieThemeEngine' "$app_path/public/v1/theme-engine.js"
+          grep -q 'theme-paint-v1' "$app_path/public/v1/theme-paint.js"
+          grep -q 'gillie:theme-painted' "$app_path/public/v1/theme-paint.js"
+          grep -q '"sourceCommit"' "$app_path/public/v1/build-source.json"
+          grep -q '"commerceEngine": "purchase-flow-v3-production-branch"' "$app_path/public/v1/build-source.json"
+          grep -q '"themePaintEngine": "theme-paint-v1"' "$app_path/public/v1/build-source.json"
           grep -q 'launch-experience-v1' "$app_path/public/v1/launch-experience.js"
           grep -q 'Stay clean · Keep the water clear' "$app_path/public/v1/launch-experience.js"
           grep -q 'first_setup_rating_prompt_shown' "$app_path/public/v1/launch-experience.js"
