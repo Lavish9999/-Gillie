@@ -13,6 +13,7 @@ const html = read("index.html");
 const sos = read("v1/sos-support.js");
 const recovery = read("v1/welcome-recovery.js");
 const purchaseFlow = read("v1/purchase-flow.js");
+const themeEngine = read("v1/theme-engine.js");
 const styles = read("v1/support-recovery.css");
 
 for (const marker of [
@@ -20,6 +21,7 @@ for (const marker of [
   'data-gillie-v1-sos-support="true"',
   'data-gillie-v1-welcome-recovery="true"',
   'data-gillie-v1-purchase-flow="true"',
+  'data-gillie-v1-theme-engine="true"',
 ]) {
   if (!html.includes(marker)) throw new Error(`Generated index is missing marker: ${marker}`);
 }
@@ -38,6 +40,15 @@ for (const marker of [
 ]) {
   if (!purchaseFlow.includes(marker)) throw new Error(`Generated purchase flow is missing: ${marker}`);
 }
+for (const marker of [
+  "theme-engine-v1",
+  "#theme-row [data-theme]",
+  "current.theme = theme.id",
+  "gillie:theme-applied",
+  "GillieThemeEngine",
+]) {
+  if (!themeEngine.includes(marker)) throw new Error(`Generated theme engine is missing: ${marker}`);
+}
 if (!styles.includes(".v1-sos-support-sheet")) throw new Error("Generated support styles are missing.");
 
-console.log("Generated SOS support, welcome recovery, and resilient purchase-flow smoke checks passed.");
+console.log("Generated SOS support, welcome recovery, resilient purchase flow, and Reef theme-engine smoke checks passed.");
