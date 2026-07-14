@@ -61,8 +61,8 @@
         CONFIG.plus.kicker = "Your personal quit plan";
         CONFIG.plus.subtitle = "Get one practical move for the moments most likely to break your streak.";
         CONFIG.plus.cta = "Start Gillie Plus";
-        if (CONFIG.plus.products?.yearly) CONFIG.plus.products.yearly.note = "Best value · Save 37%";
-        if (CONFIG.plus.products?.monthly) CONFIG.plus.products.monthly.note = "Flexible monthly access · Cancel anytime";
+        if (CONFIG.plus.products?.yearly) CONFIG.plus.products.yearly.note = "Annual billing";
+        if (CONFIG.plus.products?.monthly) CONFIG.plus.products.monthly.note = "Monthly billing";
       }
 
       try { if (typeof renderAll === "function") renderAll(); } catch (_) {}
@@ -76,8 +76,8 @@
     const unit = String(product?.periodUnit || "").toLowerCase();
     const value = Number(product?.periodValue || 1);
     if (!unit) return "";
-    if (value === 1) return `/${unit}`;
-    return `/${value} ${unit}s`;
+    if (value === 1) return `/ ${unit}`;
+    return `/ ${value} ${unit}s`;
   }
 
   function applyVisiblePaywallPrices() {
@@ -88,7 +88,14 @@
       if (!plan || !button) continue;
       const price = $(".price", button);
       const note = $(".note", button);
-      if (price) price.innerHTML = `${plan.price}<small>${plan.cadence || ""}</small>`;
+      if (price) {
+        price.replaceChildren(document.createTextNode(plan.price || "Loading Apple price…"));
+        if (plan.cadence) {
+          const small = document.createElement("small");
+          small.textContent = plan.cadence;
+          price.appendChild(small);
+        }
+      }
       if (note) note.textContent = plan.note || "";
     }
   }
@@ -112,8 +119,8 @@
         Object.values(CONFIG.plus?.products || {}).forEach((plan) => {
           const product = products.find((item) => item.id === plan.id);
           if (!product?.displayPrice) return;
-          plan.price = product.displayPrice;
-          plan.cadence = periodLabel(product) || plan.cadence;
+          plan.price = String(product.displayPrice).slice(0, 64);
+          plan.cadence = periodLabel(product) || "";
           matched += 1;
         });
 
