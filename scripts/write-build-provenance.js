@@ -26,11 +26,24 @@ function forbidMarker(relative, marker) {
   if (source.includes(marker)) throw new Error(`Production build contains forbidden marker in ${relative}: ${marker}`);
 }
 
-const branch = String(process.env.CM_BRANCH || gitValue(["branch", "--show-current"])).trim();
-const commit = String(process.env.CM_COMMIT || gitValue(["rev-parse", "HEAD"])).trim();
-const isCodemagic = Boolean(process.env.CM_BRANCH || process.env.CM_BUILD_ID);
+const branch = String(
+  process.env.CM_BRANCH ||
+  process.env.GITHUB_BASE_REF ||
+  process.env.GITHUB_REF_NAME ||
+  gitValue(["branch", "--show-current"]),
+).trim();
+const commit = String(
+  process.env.CM_COMMIT ||
+  process.env.GITHUB_SHA ||
+  gitValue(["rev-parse", "HEAD"]),
+).trim();
+const isReleaseCI = Boolean(
+  process.env.CM_BRANCH ||
+  process.env.CM_BUILD_ID ||
+  process.env.GITHUB_ACTIONS,
+);
 
-if (isCodemagic && !ALLOWED_PRODUCTION_REFS.includes(branch)) {
+if (isReleaseCI && !ALLOWED_PRODUCTION_REFS.includes(branch)) {
   throw new Error(`Refusing to ship Gillie from ${branch}. Allowed production refs: ${ALLOWED_PRODUCTION_REFS.join(", ")}.`);
 }
 
