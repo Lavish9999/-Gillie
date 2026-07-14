@@ -39,6 +39,10 @@ for (const marker of ["welcome-recovery-v1", "recoverWelcomeBundle", "plus_welco
 }
 for (const marker of [
   "purchase-flow-v1",
+  "purchase-flow-v3-production-branch",
+  "STORE_PRODUCTS_EMPTY",
+  "Apple returned zero Gillie Plus products",
+  "Copy purchase details",
   "entitlementChanged",
   "Opening Apple…",
   "Confirming your Apple subscription",
@@ -46,6 +50,7 @@ for (const marker of [
 ]) {
   if (!purchaseFlow.includes(marker)) throw new Error(`Generated purchase flow is missing: ${marker}`);
 }
+new Function(purchaseFlow);
 for (const marker of [
   "theme-engine-v1",
   "#theme-row [data-theme]",
@@ -82,4 +87,4 @@ for (const marker of [".gillie-launch-intro", ".gillie-rating-overlay", "gillieL
 }
 if (!supportStyles.includes(".v1-sos-support-sheet")) throw new Error("Generated support styles are missing.");
 
-console.log("Generated launch, support, purchase, Reef theme-engine, and direct theme-paint smoke checks passed.");
+console.log("Generated launch, production StoreKit preflight, zero-product diagnostics, Reef theme-engine, and direct theme-paint smoke checks passed.");
