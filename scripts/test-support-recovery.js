@@ -7,6 +7,7 @@ const read = (relative) => fs.readFileSync(path.join(root, relative), "utf8");
 
 const sos = read("v1/sos-support.js");
 const recovery = read("v1/welcome-recovery.js");
+const purchaseFlow = read("v1/purchase-flow.js");
 const styles = read("v1/support-recovery.css");
 const bridge = read("ios/App/App/GillieBridgeViewController.swift");
 const injector = read("scripts/inject-support-recovery.js");
@@ -43,6 +44,18 @@ for (const marker of [
 }
 
 for (const marker of [
+  "purchase-flow-v1",
+  "entitlementChanged",
+  "Confirming your Apple subscription",
+  "Purchase pending with Apple",
+  "Apple is still processing this purchase",
+  "purchase.onclick = handlePurchase",
+  "restore.onclick = handleRestore",
+]) {
+  assert(purchaseFlow.includes(marker), `Purchase flow is missing: ${marker}`);
+}
+
+for (const marker of [
   "GillieWelcomeRecoveryPlugin",
   'jsName = "GillieWelcomeRecovery"',
   'CAPPluginMethod(name: "recoverWelcomeBundle"',
@@ -58,7 +71,9 @@ for (const marker of [
 
 assert(injector.includes("v1/sos-support.js"), "SOS support is not copied into the native bundle");
 assert(injector.includes("v1/welcome-recovery.js"), "Welcome recovery is not copied into the native bundle");
+assert(injector.includes("v1/purchase-flow.js"), "Purchase flow is not copied into the native bundle");
 assert(injector.includes('data-gillie-v1-sos-support="true"'), "SOS support asset tag is missing");
 assert(injector.includes('data-gillie-v1-welcome-recovery="true"'), "Welcome recovery asset tag is missing");
+assert(injector.includes('data-gillie-v1-purchase-flow="true"'), "Purchase-flow asset tag is missing");
 
-console.log("SOS support and Plus welcome recovery source contracts passed.");
+console.log("SOS support, Plus welcome recovery, and resilient purchase-flow source contracts passed.");
