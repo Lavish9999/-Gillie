@@ -53,11 +53,16 @@ function shortLine(source, index) {
 
 function requireFinalContract(root) {
   const requiredFiles = [
+    "index.html",
     "v1/build-source.json",
     "v1/purchase-flow.js",
     "v1/store-pricing.js",
+    "v1/entitlement-sync.js",
+    "v1/theme-access.js",
     "v1/theme-engine.js",
     "v1/theme-paint.js",
+    "v1/launch-experience.js",
+    "v1/launch-handoff.js",
   ];
   for (const relative of requiredFiles) {
     const file = path.join(root, relative);
@@ -67,9 +72,7 @@ function requireFinalContract(root) {
   const provenance = JSON.parse(fs.readFileSync(path.join(root, "v1", "build-source.json"), "utf8"));
   const allowedRefs = Array.isArray(provenance.allowedProductionRefs) ? provenance.allowedProductionRefs : [];
   for (const expected of EXPECTED_PRODUCTION_REFS) {
-    if (!allowedRefs.includes(expected)) {
-      throw new Error(`Final web bundle production refs are incomplete; missing ${expected}.`);
-    }
+    if (!allowedRefs.includes(expected)) throw new Error(`Final web bundle production refs are incomplete; missing ${expected}.`);
   }
   if (!provenance.sourceBranch || !provenance.sourceCommit) {
     throw new Error("Final web bundle is missing source branch or commit provenance.");
@@ -82,22 +85,44 @@ function requireFinalContract(root) {
   }
 
   const contracts = [
+    ["index.html", 'class="gillie-boot-pending"'],
+    ["index.html", "SINGLE LAUNCH HANDOFF"],
+    ["index.html", 'data-gillie-v1-entitlement-sync="true"'],
+    ["index.html", 'data-gillie-v1-theme-access="true"'],
+    ["index.html", 'data-gillie-v1-launch-handoff="true"'],
     ["v1/purchase-flow.js", "purchase-flow-v3-production-branch"],
     ["v1/purchase-flow.js", "Apple returned zero Gillie Plus products"],
     ["v1/purchase-flow.js", "Copy purchase details"],
     ["v1/store-pricing.js", "store-pricing-v2-retryable"],
+    ["v1/entitlement-sync.js", "entitlement-sync-v1-always-on"],
+    ["v1/entitlement-sync.js", "app-boot"],
+    ["v1/entitlement-sync.js", "gillie:entitlement-updated"],
+    ["v1/theme-access.js", "theme-access-v1-basic-free"],
     ["v1/theme-engine.js", "theme-engine-v2-multitank-level-rewards"],
     ["v1/theme-paint.js", "theme-paint-v1"],
+    ["v1/launch-experience.js", "launch-experience-v1"],
+    ["v1/launch-handoff.js", "launch-handoff-v1-single-intro"],
   ];
   for (const [relative, marker] of contracts) {
     const source = fs.readFileSync(path.join(root, relative), "utf8");
     if (!source.includes(marker)) throw new Error(`Final web bundle contract missing from ${relative}: ${marker}`);
   }
 
-  new Function(fs.readFileSync(path.join(root, "v1", "purchase-flow.js"), "utf8"));
-  new Function(fs.readFileSync(path.join(root, "v1", "store-pricing.js"), "utf8"));
-  new Function(fs.readFileSync(path.join(root, "v1", "theme-engine.js"), "utf8"));
-  new Function(fs.readFileSync(path.join(root, "v1", "theme-paint.js"), "utf8"));
+  const index = fs.readFileSync(path.join(root, "index.html"), "utf8");
+  for (const forbidden of ["splash-orb", "Grow clean", "splashRise", "splashFloat"]) {
+    if (index.includes(forbidden)) throw new Error(`Final web bundle still contains the legacy first splash: ${forbidden}`);
+  }
+
+  for (const relative of [
+    "purchase-flow.js",
+    "store-pricing.js",
+    "entitlement-sync.js",
+    "theme-access.js",
+    "theme-engine.js",
+    "theme-paint.js",
+    "launch-experience.js",
+    "launch-handoff.js",
+  ]) new Function(fs.readFileSync(path.join(root, "v1", relative), "utf8"));
   return provenance;
 }
 

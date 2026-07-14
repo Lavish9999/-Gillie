@@ -10,13 +10,16 @@ const assets = [
   "v1/sos-support.js",
   "v1/welcome-recovery.js",
   "v1/purchase-flow.js",
+  "v1/entitlement-sync.js",
+  "v1/theme-access.js",
   "v1/theme-engine.js",
   "v1/theme-paint.js",
   "v1/launch-experience.js",
+  "v1/launch-handoff.js",
 ];
 
 if (!fs.existsSync(indexPath)) {
-  throw new Error("Launch, SOS support, welcome recovery, purchase-flow, theme-engine, and theme-paint injection requires www/index.html.");
+  throw new Error("Launch, SOS support, Plus entitlement sync, theme access, and theme paint injection requires www/index.html.");
 }
 
 for (const asset of assets) {
@@ -38,9 +41,12 @@ const injection = `${marker}
 <script src="./v1/sos-support.js" defer data-gillie-v1-sos-support="true"></script>
 <script src="./v1/welcome-recovery.js" defer data-gillie-v1-welcome-recovery="true"></script>
 <script src="./v1/purchase-flow.js" defer data-gillie-v1-purchase-flow="true"></script>
+<script src="./v1/entitlement-sync.js" defer data-gillie-v1-entitlement-sync="true"></script>
+<script src="./v1/theme-access.js" defer data-gillie-v1-theme-access="true"></script>
 <script src="./v1/theme-engine.js" defer data-gillie-v1-theme-engine="true"></script>
 <script src="./v1/theme-paint.js" defer data-gillie-v1-theme-paint="true"></script>
-<script src="./v1/launch-experience.js" defer data-gillie-v1-launch-experience="true"></script>`;
+<script src="./v1/launch-experience.js" defer data-gillie-v1-launch-experience="true"></script>
+<script src="./v1/launch-handoff.js" defer data-gillie-v1-launch-handoff="true"></script>`;
 
 if (html.includes(themeMarker) && !html.includes(marker)) {
   const themePattern = /<!-- Gillie SOS support, Plus recovery, purchase flow, and theme engine -->[\s\S]*?<script src="\.\/v1\/theme-engine\.js" defer data-gillie-v1-theme-engine="true"><\/script>/;
@@ -58,11 +64,10 @@ if (html.includes(themeMarker) && !html.includes(marker)) {
   if (!html.includes("</body>")) throw new Error("Cannot inject launch/support assets: missing </body>.");
   html = html.replace("</body>", `${injection}
 </body>`);
-} else if (!html.includes('data-gillie-v1-theme-paint="true"')) {
-  const engineTag = '<script src="./v1/theme-engine.js" defer data-gillie-v1-theme-engine="true"></script>';
-  if (!html.includes(engineTag)) throw new Error("Cannot add theme paint after theme engine: engine tag missing.");
-  html = html.replace(engineTag, `${engineTag}
-<script src="./v1/theme-paint.js" defer data-gillie-v1-theme-paint="true"></script>`);
+} else {
+  const blockPattern = /<!-- Gillie launch, SOS support, Plus recovery, purchase flow, and theme engine -->[\s\S]*?(?=\n<\/body>)/;
+  if (!blockPattern.test(html)) throw new Error("Current launch/support injection block changed.");
+  html = html.replace(blockPattern, injection);
 }
 
 for (const markerText of [
@@ -71,9 +76,12 @@ for (const markerText of [
   'data-gillie-v1-sos-support="true"',
   'data-gillie-v1-welcome-recovery="true"',
   'data-gillie-v1-purchase-flow="true"',
+  'data-gillie-v1-entitlement-sync="true"',
+  'data-gillie-v1-theme-access="true"',
   'data-gillie-v1-theme-engine="true"',
   'data-gillie-v1-theme-paint="true"',
   'data-gillie-v1-launch-experience="true"',
+  'data-gillie-v1-launch-handoff="true"',
 ]) {
   if (!html.includes(markerText)) throw new Error(`Generated index is missing launch/support marker: ${markerText}`);
 }
@@ -81,9 +89,12 @@ for (const markerText of [
 const sos = fs.readFileSync(path.join(out, "v1", "sos-support.js"), "utf8");
 const recovery = fs.readFileSync(path.join(out, "v1", "welcome-recovery.js"), "utf8");
 const purchaseFlow = fs.readFileSync(path.join(out, "v1", "purchase-flow.js"), "utf8");
+const entitlementSync = fs.readFileSync(path.join(out, "v1", "entitlement-sync.js"), "utf8");
+const themeAccess = fs.readFileSync(path.join(out, "v1", "theme-access.js"), "utf8");
 const themeEngine = fs.readFileSync(path.join(out, "v1", "theme-engine.js"), "utf8");
 const themePaint = fs.readFileSync(path.join(out, "v1", "theme-paint.js"), "utf8");
 const launchExperience = fs.readFileSync(path.join(out, "v1", "launch-experience.js"), "utf8");
+const launchHandoff = fs.readFileSync(path.join(out, "v1", "launch-handoff.js"), "utf8");
 const launchStyles = fs.readFileSync(path.join(out, "v1", "launch-experience.css"), "utf8");
 for (const required of ["1-800-QUIT-NOW", "QUITNOW to 333888", "smokefree.gov", "Message someone I trust"]) {
   if (!sos.includes(required)) throw new Error(`Generated SOS support module is missing marker: ${required}`);
@@ -105,6 +116,14 @@ for (const required of [
   if (!purchaseFlow.includes(required)) throw new Error(`Generated purchase-flow module is missing marker: ${required}`);
 }
 new Function(purchaseFlow);
+for (const required of ["entitlement-sync-v1-always-on", "app-boot", "foreground", "entitlementChanged", "gillie:entitlement-updated", "GillieEntitlementSync"]) {
+  if (!entitlementSync.includes(required)) throw new Error(`Generated entitlement-sync module is missing marker: ${required}`);
+}
+new Function(entitlementSync);
+for (const required of ["theme-access-v1-basic-free", "sunset", "abyss", "sakura", "GillieThemeAccess"]) {
+  if (!themeAccess.includes(required)) throw new Error(`Generated theme-access module is missing marker: ${required}`);
+}
+new Function(themeAccess);
 for (const required of [
   "theme-engine-v1",
   "#theme-row [data-theme]",
@@ -135,9 +154,13 @@ for (const required of [
 ]) {
   if (!launchExperience.includes(required)) throw new Error(`Generated launch experience is missing marker: ${required}`);
 }
+for (const required of ["launch-handoff-v1-single-intro", "gillie-boot-pending", "launch_handoff_released"]) {
+  if (!launchHandoff.includes(required)) throw new Error(`Generated launch handoff is missing marker: ${required}`);
+}
+new Function(launchHandoff);
 for (const required of [".gillie-launch-intro", ".gillie-rating-overlay", "gillieLaunchSwimIn", "prefers-reduced-motion"]) {
   if (!launchStyles.includes(required)) throw new Error(`Generated launch styles are missing marker: ${required}`);
 }
 
 fs.writeFileSync(indexPath, html, "utf8");
-console.log("Injected cinematic launch, first-setup rating invitation, human SOS support, production StoreKit preflight, Plus diagnostics, and visibly painted Reef themes.");
+console.log("Injected one animated launch, always-on Plus entitlement sync, working core themes, StoreKit checkout, and Reef rewards.");
