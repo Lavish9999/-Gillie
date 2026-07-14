@@ -28,8 +28,13 @@ for (const marker of [
   "previousSplash.replaceWith(intro)",
   "Stay clean · Keep the water clear",
   'document.dispatchEvent(new CustomEvent("gillie:launch-intro-complete"',
-  "const wasOnboardedAtBoot = Boolean(currentState()?.onboarded)",
-  "if (wasOnboardedAtBoot || ratingState()) return",
+  "function ratingEligibility()",
+  'reason: "first_craving_win"',
+  'reason: "three_checkins"',
+  'reason: "three_clean_days"',
+  "function installSlipCopyGuard()",
+  '"I didn\'t vape"',
+  "watchForMeaningfulEngagement()",
   "first_setup_rating_prompt_shown",
   "Rate Gillie",
   "Maybe later",
@@ -46,6 +51,9 @@ for (const marker of [
   "gillieLaunchSwimIn",
   ".gillie-rating-overlay",
   ".gillie-rating-card",
+  ".phase2-reef-filters button",
+  "#plus-overlay .gp-close",
+  "min-height:44px!important",
   "@media (prefers-reduced-motion: reduce)",
 ]) {
   if (!styles.includes(marker)) throw new Error(`Launch-experience styles are missing marker: ${marker}`);
@@ -57,8 +65,9 @@ for (const forbidden of [
   "apps.apple.com/app/",
   "if (rating >=",
   "if (stars >=",
+  "watchForFirstSetup(",
 ]) {
-  if (source.includes(forbidden)) throw new Error(`Launch rating flow contains forbidden review-gating behavior: ${forbidden}`);
+  if (source.includes(forbidden)) throw new Error(`Launch rating flow contains forbidden or obsolete behavior: ${forbidden}`);
 }
 
 for (const marker of [
@@ -74,13 +83,14 @@ for (const marker of [
 }
 for (const marker of [
   "launch-handoff-v1-single-intro",
-  '#splash.gillie-launch-intro',
+  'classList?.contains("gillie-launch-intro")',
   'classList.remove("gillie-boot-pending")',
   "launch_handoff_released",
 ]) {
   if (!handoff.includes(marker)) throw new Error(`Launch handoff is missing marker: ${marker}`);
 }
 new Function(handoff);
+new Function(source);
 
 if (launchScreen.includes('image="Splash"')) throw new Error("Native launch screen still renders the original image before the animation.");
 if (!launchScreen.includes('red="0.9176470588"') || !launchScreen.includes('green="0.9686274510"')) {
@@ -107,11 +117,15 @@ for (const marker of [
 ]) {
   if (!native.includes(marker)) throw new Error(`Native review bridge is missing marker: ${marker}`);
 }
+if (native.includes("setInterfaceStyle")) {
+  throw new Error("Obsolete native interface-style bridge remains in the iOS plugin.");
+}
 
-const initialState = source.indexOf("const wasOnboardedAtBoot");
-const watchCall = source.indexOf("watchForFirstSetup(wasOnboardedAtBoot)", initialState);
-if (initialState < 0 || watchCall < initialState) {
-  throw new Error("Launch experience must capture onboarding state before watching for first setup completion.");
+const eligibility = source.indexOf("function ratingEligibility()");
+const scheduler = source.indexOf("function tryScheduleRatingPrompt()", eligibility);
+const watcher = source.indexOf("watchForMeaningfulEngagement()", scheduler);
+if (eligibility < 0 || scheduler < eligibility || watcher < scheduler) {
+  throw new Error("Rating request must be eligibility-gated before the engagement watcher schedules it.");
 }
 
 const rateHandler = source.indexOf('$(".gillie-rating-primary", overlay)?.addEventListener');
@@ -121,4 +135,4 @@ if (rateHandler < 0 || stateWrite < rateHandler || nativeRequest < stateWrite) {
   throw new Error("Rating invitation must persist its one-time state before requesting the native review sheet.");
 }
 
-console.log("Launch tests passed: the native first frame hands directly to one animated intro, the legacy splash is removed, reduced motion and skip remain supported, and the first-setup rating request stays review-safe.");
+console.log("Launch tests passed: Gillie uses one safe intro, waits for meaningful engagement before rating, repairs slip copy, preserves reduced motion, keeps 44pt compact actions, and removes the obsolete native interface bridge.");

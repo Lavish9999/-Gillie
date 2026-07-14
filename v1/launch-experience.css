@@ -352,6 +352,36 @@ body.gillie-rating-open { overflow: hidden !important; }
 .gillie-rating-primary:active,
 .gillie-rating-later:active { transform: scale(.985); }
 
+/* Audit fix: every compact action keeps an iOS-friendly 44pt hit target. */
+.phase2-reef-filters button,
+#view-progress .v1-progress-actions button,
+#view-reef .v1-reef-task-button,
+#view-reef .v1-reef-daily-bonus button,
+#view-reef [data-reef-dashboard-action],
+#view-reef [data-reef-vault-action],
+#view-reef [data-moonlit-preview],
+#view-reef [data-moonlit-equip],
+#view-reef [data-moonlit-close],
+#view-reef [data-moonlit-preview-cta],
+#plus-overlay .gp-close,
+#plus-overlay #plus-restore,
+#plus-overlay .gp-restore-row a {
+  min-height:44px!important;
+}
+
+#plus-overlay .gp-close,
+#view-reef [data-moonlit-close] {
+  min-width:44px!important;
+}
+
+#plus-overlay #plus-restore,
+#plus-overlay .gp-restore-row a {
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  padding-block:10px!important;
+}
+
 @keyframes gillieRatingFloat { 50% { transform: translateY(-5px) rotate(1deg); } }
 @keyframes gillieRatingStar { to { opacity: 1; transform: none; } }
 

@@ -15,7 +15,6 @@ public class GilliePurchasesPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "restorePurchases", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "claimPlusWelcomeBundle", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "manageSubscriptions", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "setInterfaceStyle", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "haptic", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "requestReview", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "trackEvent", returnType: CAPPluginReturnPromise),
@@ -108,20 +107,57 @@ public class GilliePurchasesPlugin: CAPPlugin, CAPBridgedPlugin {
             return
         }
 
+        guard SKPaymentQueue.canMakePayments() else {
+            recordEvent(name: "purchase_blocked_native", properties: [
+                "productId": productID,
+                "reason": "payments-disabled"
+            ])
+            call.reject("Apple purchases are disabled on this device. Check Screen Time purchase restrictions and the Apple ID signed into Media & Purchases.")
+            return
+        }
+
         Task {
             do {
-                let products = try await loadAvailableProducts()
-                guard let product = products.first(where: { $0.id == productID }) else {
-                    let returnedIDs = products.map(\.id).joined(separator: ",")
-                    recordEvent(name: "purchase_product_missing", properties: [
+                recordEvent(name: "purchase_selected_lookup_started_native", properties: ["productId": productID])
+                var selectedProduct: Product?
+                var lastLookupError: Error?
+
+                for attempt in 1...3 {
+                    do {
+                        selectedProduct = try await Product.products(for: [productID]).first(where: { $0.id == productID })
+                        recordEvent(name: "purchase_selected_lookup_attempt_native", properties: [
+                            "productId": productID,
+                            "attempt": attempt,
+                            "found": selectedProduct != nil
+                        ])
+                        if selectedProduct != nil { break }
+                    } catch {
+                        lastLookupError = error
+                        recordEvent(name: "purchase_selected_lookup_failed_native", properties: [
+                            "productId": productID,
+                            "attempt": attempt,
+                            "error": error.localizedDescription
+                        ])
+                    }
+                    if attempt < 3 {
+                        try? await Task<Never, Never>.sleep(nanoseconds: UInt64(attempt) * 300_000_000)
+                    }
+                }
+
+                guard let product = selectedProduct else {
+                    let suffix = lastLookupError.map { " Last Apple error: \($0.localizedDescription)" } ?? ""
+                    recordEvent(name: "purchase_selected_product_missing_native", properties: [
                         "productId": productID,
-                        "returned": products.count,
-                        "returnedIds": returnedIDs
+                        "bundleId": Bundle.main.bundleIdentifier ?? "unknown"
                     ])
-                    call.reject("Apple did not return the selected Gillie Plus plan for this storefront. Requested \(productID); returned \(returnedIDs.isEmpty ? "none" : returnedIDs).")
+                    call.reject("Apple could not find \(productID) for \(Bundle.main.bundleIdentifier ?? "this app"). The product ID, subscription availability, Paid Apps agreement, tax, banking, and TestFlight build association must all be active.\(suffix)")
                     return
                 }
 
+                recordEvent(name: "purchase_sheet_requested_native", properties: [
+                    "productId": product.id,
+                    "displayPrice": product.displayPrice
+                ])
                 let result = try await product.purchase()
                 switch result {
                 case .success(let verification):
@@ -129,20 +165,25 @@ public class GilliePurchasesPlugin: CAPPlugin, CAPBridgedPlugin {
                     await transaction.finish()
                     var status = await currentEntitlementStatus()
                     status["productId"] = transaction.productID
+                    status["checkoutMode"] = "selected-product-direct-v1"
                     recordEvent(name: "purchase_completed_native", properties: ["productId": transaction.productID])
                     call.resolve(status)
                 case .userCancelled:
                     recordEvent(name: "purchase_cancelled_native", properties: ["productId": productID])
-                    call.resolve(["active": false, "verified": true, "source": "storekit2", "cancelled": true])
+                    call.resolve(["active": false, "verified": true, "source": "storekit2", "cancelled": true, "checkoutMode": "selected-product-direct-v1"])
                 case .pending:
                     recordEvent(name: "purchase_pending_native", properties: ["productId": productID])
-                    call.resolve(["active": false, "verified": true, "source": "storekit2", "pending": true])
+                    call.resolve(["active": false, "verified": true, "source": "storekit2", "pending": true, "checkoutMode": "selected-product-direct-v1"])
                 @unknown default:
-                    call.reject("Unknown purchase result.")
+                    call.reject("Apple returned an unknown purchase result.")
                 }
             } catch {
-                recordEvent(name: "purchase_failed_native", properties: ["productId": productID, "error": error.localizedDescription])
-                call.reject("Purchase failed: \(error.localizedDescription)")
+                recordEvent(name: "purchase_failed_native", properties: [
+                    "productId": productID,
+                    "stage": "selected-product-direct-v1",
+                    "error": error.localizedDescription
+                ])
+                call.reject("Apple checkout failed for \(productID): \(error.localizedDescription)")
             }
         }
     }
@@ -214,25 +255,6 @@ public class GilliePurchasesPlugin: CAPPlugin, CAPBridgedPlugin {
                     call.reject("Could not open Apple subscription settings.")
                 }
             }
-        }
-    }
-
-    @objc func setInterfaceStyle(_ call: CAPPluginCall) {
-        let lightStatusBar = call.getBool("lightStatusBar") ?? false
-        DispatchQueue.main.async {
-            UIApplication.shared.statusBarStyle = lightStatusBar ? .lightContent : .darkContent
-            let background = lightStatusBar
-                ? UIColor(red: 10 / 255, green: 66 / 255, blue: 59 / 255, alpha: 1)
-                : UIColor(red: 234 / 255, green: 247 / 255, blue: 243 / 255, alpha: 1)
-            UIApplication.shared.connectedScenes
-                .compactMap { $0 as? UIWindowScene }
-                .flatMap(\.windows)
-                .forEach { window in
-                    window.backgroundColor = background
-                    window.rootViewController?.view.backgroundColor = background
-                }
-            self.recordEvent(name: "interface_style_changed_native", properties: ["lightStatusBar": lightStatusBar])
-            call.resolve(["lightStatusBar": lightStatusBar])
         }
     }
 
@@ -316,6 +338,7 @@ public class GilliePurchasesPlugin: CAPPlugin, CAPBridgedPlugin {
     @objc func clearDiagnostics(_ call: CAPPluginCall) {
         defaults.removeObject(forKey: eventLogKey)
         defaults.removeObject(forKey: metricLogKey)
+        defaults.removeObject(forKey: installIDKey)
         call.resolve(["cleared": true])
     }
 

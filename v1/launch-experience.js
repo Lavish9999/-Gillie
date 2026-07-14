@@ -12,7 +12,10 @@
   const FIRST_DURATION = 3050;
   const RETURN_DURATION = 2150;
   const REDUCED_DURATION = 700;
-  const SETUP_WATCH_LIMIT_MS = 12 * 60 * 1000;
+  const ENGAGEMENT_POLL_MS = 5000;
+  const RATING_PROMPT_DELAY_MS = 3200;
+  const MIN_RATING_CHECKINS = 3;
+  const MIN_RATING_CLEAN_DAYS = 3;
 
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
@@ -26,6 +29,7 @@
   let ratingKeyHandler = null;
   let onboardingObserver = null;
   let onboardingPoll = 0;
+  let slipCopyObserver = null;
 
   function currentState() {
     try { return typeof state !== "undefined" && state ? state : null; } catch (_) { return null; }
@@ -186,6 +190,49 @@
     return onboardingHidden && mainVisible;
   }
 
+  function ratingEligibility() {
+    const current = currentState();
+    if (!current?.onboarded) return null;
+
+    const cravings = Array.isArray(current.cravings) ? current.cravings : [];
+    const resisted = cravings.filter((entry) => entry?.resisted && !entry?.pending).length;
+    if (resisted > 0) return { reason: "first_craving_win", value: resisted };
+
+    const checkins = Array.isArray(current.checkins) ? current.checkins : [];
+    if (checkins.length >= MIN_RATING_CHECKINS) return { reason: "three_checkins", value: checkins.length };
+
+    const quitAt = Number(current.quitAt || 0);
+    const cleanDays = quitAt > 0 ? Math.floor(Math.max(0, Date.now() - quitAt) / 86400000) : 0;
+    if (cleanDays >= MIN_RATING_CLEAN_DAYS) return { reason: "three_clean_days", value: cleanDays };
+
+    return null;
+  }
+
+  function normalizeSlipCancelCopy() {
+    const button = $("#slip-cancel");
+    if (!button) return;
+    const current = String(button.textContent || "");
+    const corrected = current
+      .replace(/\bI didn't vaped\b/gi, "I didn't vape")
+      .replace(/\bI didn't smoked\b/gi, "I didn't smoke")
+      .replace(/\bI didn't used\b/gi, "I didn't use");
+    if (corrected !== current) button.textContent = corrected;
+    button.dataset.gillieSlipCopy = "base-verb-v1";
+  }
+
+  function installSlipCopyGuard() {
+    const button = $("#slip-cancel");
+    if (!button) return;
+    normalizeSlipCancelCopy();
+    slipCopyObserver?.disconnect();
+    slipCopyObserver = new MutationObserver(normalizeSlipCancelCopy);
+    slipCopyObserver.observe(button, { childList: true, characterData: true, subtree: true });
+    document.addEventListener("click", (event) => {
+      if (!event.target?.closest?.("#set-slip,#sos-slipped")) return;
+      [0, 60, 180].forEach((delay) => setTimeout(normalizeSlipCancelCopy, delay));
+    }, true);
+  }
+
   function hasBlockingSheet() {
     const hatch = $("#phase2-hatch-cinematic.phase2-hatch-run");
     const openOverlay = $$(".overlay, [role='dialog']").some((node) => {
@@ -197,20 +244,22 @@
   }
 
   function tryScheduleRatingPrompt() {
-    if (ratingScheduled || ratingState() || !onboardingComplete()) return;
+    const eligibility = ratingEligibility();
+    if (ratingScheduled || ratingState() || !onboardingComplete() || !eligibility) return;
     if (!launchComplete || Date.now() - launchFinishedAt < 650 || hasBlockingSheet()) {
       setTimeout(tryScheduleRatingPrompt, 450);
       return;
     }
     ratingScheduled = true;
     setTimeout(() => {
-      if (hasBlockingSheet()) {
+      const latest = ratingEligibility();
+      if (!latest || hasBlockingSheet()) {
         ratingScheduled = false;
-        tryScheduleRatingPrompt();
+        if (latest) tryScheduleRatingPrompt();
         return;
       }
-      openRatingPrompt();
-    }, 1050);
+      openRatingPrompt(latest.reason);
+    }, RATING_PROMPT_DELAY_MS);
   }
 
   function closeRatingPrompt(reason = "dismissed") {
@@ -266,7 +315,7 @@
     }
   }
 
-  function openRatingPrompt() {
+  function openRatingPrompt(reason = "manual") {
     if (ratingOverlay || ratingState()) return;
     const current = currentState();
     const petName = String(current?.petName || "Gillie").slice(0, 24);
@@ -280,6 +329,7 @@
     overlay.setAttribute("aria-labelledby", "gillie-rating-title");
     overlay.setAttribute("aria-describedby", "gillie-rating-copy");
     overlay.dataset.ratingEngine = ENGINE;
+    overlay.dataset.ratingReason = reason;
     overlay.innerHTML = `<div class="gillie-rating-card">
       <div class="gillie-rating-pet">${ratingPetSvg()}</div>
       <div class="gillie-rating-stars" aria-hidden="true">${Array.from({ length: 5 }, (_, index) => `<span style="--delay:${.1 + index * .08}s">★</span>`).join("")}</div>
@@ -298,13 +348,13 @@
     requestAnimationFrame(() => overlay.classList.add("gillie-rating-show"));
 
     $(".gillie-rating-primary", overlay)?.addEventListener("click", () => {
-      saveRatingState("requested", { source: "first_setup" });
+      saveRatingState("requested", { source: reason });
       safeWrite(LEGACY_REVIEW_KEY, String(Date.now()));
       closeRatingPrompt("rate");
       setTimeout(requestNativeReview, 360);
     });
     $(".gillie-rating-later", overlay)?.addEventListener("click", () => {
-      saveRatingState("later", { source: "first_setup" });
+      saveRatingState("later", { source: reason });
       closeRatingPrompt("later");
     });
     overlay.addEventListener("click", (event) => {
@@ -314,33 +364,35 @@
     });
 
     setTimeout(() => $(".gillie-rating-primary", overlay)?.focus({ preventScroll: true }), 380);
-    track("first_setup_rating_prompt_shown", { petNameLength: petName.length });
+    track("first_setup_rating_prompt_shown", { petNameLength: petName.length, reason });
   }
 
-  function watchForFirstSetup(wasOnboardedAtBoot) {
-    if (wasOnboardedAtBoot || ratingState()) return;
-    const started = Date.now();
+  function watchForMeaningfulEngagement() {
+    if (ratingState()) return;
     const check = () => {
-      if (ratingState() || Date.now() - started > SETUP_WATCH_LIMIT_MS) {
+      normalizeSlipCancelCopy();
+      if (ratingState()) {
         onboardingObserver?.disconnect();
         onboardingObserver = null;
         clearInterval(onboardingPoll);
         onboardingPoll = 0;
         return;
       }
-      if (onboardingComplete()) tryScheduleRatingPrompt();
+      if (onboardingComplete() && ratingEligibility()) tryScheduleRatingPrompt();
     };
     onboardingObserver = new MutationObserver(check);
     onboardingObserver.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["hidden", "class", "style", "aria-hidden"] });
-    onboardingPoll = window.setInterval(check, 350);
+    onboardingPoll = window.setInterval(check, ENGAGEMENT_POLL_MS);
     document.addEventListener("gillie:launch-intro-complete", check);
+    document.addEventListener("visibilitychange", check);
     check();
   }
 
   function install() {
     const wasOnboardedAtBoot = Boolean(currentState()?.onboarded);
     showLaunchIntro();
-    watchForFirstSetup(wasOnboardedAtBoot);
+    installSlipCopyGuard();
+    watchForMeaningfulEngagement();
     window.GillieLaunchExperience = Object.freeze({
       showRatingPrompt: openRatingPrompt,
       requestReview: requestNativeReview,
