@@ -1,7 +1,9 @@
 const assert = require("assert");
 const {
+  hardenAccessibilityMarkup,
   hardenEraseEverything,
   hardenStartupRecovery,
+  hardenStorePricing,
   hardenUserTextRendering,
 } = require("./apply-release-safety");
 
@@ -44,8 +46,39 @@ assert(!safeUserText.includes('<div class="t">${b.name}</div>'));
 assert(!safeUserText.includes('<div class="row"><div class="gn">${state.goal.name}</div>'));
 assert(!safeUserText.includes('${state.reasons.join(" · ")}'));
 
+const inaccessibleFixture = `
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<div id="toast"><span class="em">🌊</span><span id="toast-msg"></span></div>
+`;
+const accessible = hardenAccessibilityMarkup(inaccessibleFixture);
+assert(!accessible.includes("user-scalable=no"));
+assert(accessible.includes("viewport-fit=cover"));
+assert(accessible.includes('id="toast" role="status" aria-live="polite" aria-atomic="true"'));
+assert(accessible.includes('class="em" aria-hidden="true"'));
+
+const pricingFixture = `
+yearly: { id: "gillie.plus.yearly", name: "Yearly", price: "$29.99", cadence: "/ year", note: "Best value for staying locked in.", badge: "Save 37%" }
+monthly: { id: "gillie.plus.monthly", name: "Monthly", price: "$3.99", cadence: "/ month", note: "Full Plus access. Cancel anytime." }
+`;
+const paywallFixture = `
+const nameHtml = \`Yearly <span class="badge">Save 37%</span>\`;
+if (note && note.textContent !== "Best value") note.textContent = "Best value";
+if (note && note.textContent !== "Flexible") note.textContent = "Flexible";
+`;
+const pricingResult = hardenStorePricing(pricingFixture, paywallFixture);
+assert(!pricingResult.html.includes("$29.99"));
+assert(!pricingResult.html.includes("$3.99"));
+assert(!pricingResult.html.includes("Save 37%"));
+assert(pricingResult.html.includes("Loading Apple price…"));
+assert(pricingResult.html.includes("Annual billing"));
+assert(pricingResult.html.includes("Monthly billing"));
+assert(!pricingResult.paywall.includes("Save 37%"));
+assert(pricingResult.paywall.includes('const nameHtml = "Yearly"'));
+
 assert.throws(() => hardenEraseEverything("no reset here"), /exactly one matching handler/);
 assert.throws(() => hardenStartupRecovery("no recovery here"), /exactly one matching handler/);
 assert.throws(() => hardenUserTextRendering("missing user text markers"), /exactly one source marker/);
+assert.throws(() => hardenAccessibilityMarkup("missing accessibility markers"), /exactly one source marker/);
+assert.throws(() => hardenStorePricing("missing pricing markers", "missing paywall markers"), /exactly one source marker/);
 
-console.log("Release safety transform test passed: reset hardening and user-text escaping reject unsafe or missing handlers.");
+console.log("Release safety transform test passed: reset, user text, scalable viewport, accessible toast, and Apple-price enforcement reject unsafe or missing handlers.");
