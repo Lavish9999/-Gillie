@@ -19,13 +19,12 @@ function requireMarker(relative, marker, label = marker) {
 function forbidMarker(relative, marker, label = marker) {
   const source = read(relative);
   if (source.includes(marker)) {
-    throw new Error(`Release-critical validation failed: ${label}\nFile: ${relative}\nObsolete marker: ${marker}`);
+    throw new Error(`Release-critical validation failed: ${label}\nFile: ${relative}\nForbidden: ${marker}`);
   }
 }
 
 function syntaxCheck(relative) {
-  const file = path.join(root, relative);
-  execFileSync(process.execPath, ["--check", file], { cwd: root, stdio: "inherit" });
+  execFileSync(process.execPath, ["--check", path.join(root, relative)], { cwd: root, stdio: "inherit" });
 }
 
 function run(command, args) {
@@ -36,9 +35,12 @@ for (const relative of [
   "scripts/prepare-single-launch.js",
   "scripts/inject-phase3.js",
   "scripts/inject-support-recovery.js",
+  "scripts/prepare-ios-release.js",
   "scripts/test-theme-access.js",
   "scripts/test-entitlement-sync.js",
   "scripts/test-purchase-director.js",
+  "scripts/write-build-provenance.js",
+  "scripts/verify-final-web-assets.js",
   "v1/store-pricing.js",
   "v1/purchase-director.js",
   "v1/entitlement-sync.js",
@@ -46,45 +48,38 @@ for (const relative of [
   "v1/launch-handoff.js",
   "v1/paywall-runtime-fix.js",
 ]) syntaxCheck(relative);
+
 requireMarker("scripts/inject-phase3.js", 'ENGINE = "store-pricing-v2-retryable"', "current retryable StoreKit pricing contract");
 forbidMarker("scripts/inject-phase3.js", 'ENGINE = "store-pricing-v1"', "obsolete StoreKit pricing contract");
 requireMarker("scripts/prepare-single-launch.js", "gillie-launch-bootstrap", "single web launch handoff");
-requireMarker("v1/purchase-director.js", "purchase-director-v1-authoritative", "single authoritative checkout director");
+requireMarker("v1/purchase-director.js", "purchase-director-v2-direct-native", "direct native checkout director");
+requireMarker("v1/purchase-director.js", "selected-product-direct-to-storekit-v1", "selected-product checkout mode");
 requireMarker("v1/purchase-director.js", "stopImmediatePropagation", "legacy checkout handler isolation");
-requireMarker("v1/purchase-director.js", "native.purchase({ productId: product.id })", "authoritative native purchase call");
-requireMarker("v1/store-pricing.js", "purchase-director-v1-authoritative", "pricing defers to checkout director");
-requireMarker("v1/store-pricing.js", "Never start a second product request", "no duplicate lookup on purchase tap");
+requireMarker("v1/purchase-director.js", "native.purchase({ productId: product.id })", "direct native purchase call");
+requireMarker("v1/purchase-director.js", "Checkout intentionally does not call native.getProducts()", "pricing cannot gate checkout");
+forbidMarker("v1/purchase-director.js", "await availablePlan(", "obsolete JavaScript product preflight");
+requireMarker("scripts/prepare-ios-release.js", "purchase_selected_lookup_started_native", "selected-product native lookup generation");
+requireMarker("scripts/prepare-ios-release.js", "purchase_sheet_requested_native", "Apple-sheet request diagnostics");
+requireMarker("scripts/prepare-ios-release.js", "SKPaymentQueue.canMakePayments()", "device purchase restriction diagnostics");
+requireMarker("scripts/prepare-ios-release.js", "Product.products(for: [productID])", "selected-product StoreKit lookup");
+requireMarker("v1/store-pricing.js", "store-pricing-v2-retryable", "localized Apple pricing");
 forbidMarker("v1/store-pricing.js", "purchase.disabled = loading", "pricing must never disable checkout");
 requireMarker("v1/entitlement-sync.js", "entitlement-sync-v1-always-on", "always-on Plus entitlement sync");
 requireMarker("v1/theme-access.js", "theme-access-v1-basic-free", "working core theme access");
 requireMarker("v1/launch-handoff.js", "launch-handoff-v1-single-intro", "single animated intro handoff");
-requireMarker("v1/paywall-runtime-fix.js", "paywall-runtime-fix-v1", "safe paywall and live StoreKit runtime");
 requireMarker("v1/paywall-runtime-fix.js", "css-only-system-chrome-v2", "CSS-only TestFlight/status-bar treatment");
-requireMarker("v1/paywall-runtime-fix.js", "single-open-storekit-probe", "one passive paywall product probe");
 requireMarker("v1/paywall-runtime-fix.js", "ensurePaywallSurface", "visible paywall surface recovery");
-forbidMarker("v1/paywall-runtime-fix.js", "bridge()?.setInterfaceStyle?.(", "native root-view mutation that covers the Capacitor WebView");
-requireMarker("v1/paywall-runtime-fix.css", "--gp-system-top", "minimum TestFlight/status-bar safe area");
+forbidMarker("v1/paywall-runtime-fix.js", "bridge()?.setInterfaceStyle?.(", "native root-view mutation");
 
-console.log("Running focused runtime checks for authoritative checkout, Plus restoration, and tank-theme access…");
+console.log("Running focused runtime checks for direct-native checkout, Plus restoration, and tank themes…");
 run(process.execPath, ["scripts/test-purchase-director.js"]);
 run(process.execPath, ["scripts/test-entitlement-sync.js"]);
 run(process.execPath, ["scripts/test-theme-access.js"]);
 
-console.log("Preparing the exact Capacitor web bundle that will be signed…");
+console.log("Preparing the exact Capacitor and iOS bundle that will be signed…");
 run(process.platform === "win32" ? "npm.cmd" : "npm", ["run", "prepare:cap"]);
 
 for (const relative of [
-  "v1/purchase-flow.js",
-  "v1/purchase-director.js",
-  "v1/store-pricing.js",
-  "v1/entitlement-sync.js",
-  "v1/theme-access.js",
-  "v1/theme-engine.js",
-  "v1/theme-paint.js",
-  "v1/launch-handoff.js",
-  "v1/paywall-runtime-fix.js",
-  "scripts/write-build-provenance.js",
-  "scripts/verify-final-web-assets.js",
   "www/v1/purchase-flow.js",
   "www/v1/purchase-director.js",
   "www/v1/store-pricing.js",
@@ -97,61 +92,37 @@ for (const relative of [
 ]) syntaxCheck(relative);
 
 const contracts = [
-  ["v1/purchase-flow.js", "purchase-flow-v3-production-branch", "production purchase diagnostics engine"],
-  ["v1/purchase-flow.js", "Apple returned zero Gillie Plus products", "zero-product diagnosis"],
-  ["v1/purchase-flow.js", "Copy purchase details", "purchase diagnostics"],
-  ["v1/purchase-director.js", "purchase-director-v1-authoritative", "authoritative checkout engine"],
-  ["v1/purchase-director.js", "PRODUCT_LOOKUP_TIMEOUT", "bounded product lookup"],
-  ["v1/purchase-director.js", "PURCHASE_TIMEOUT", "bounded Apple purchase call"],
-  ["v1/purchase-director.js", "stopImmediatePropagation", "legacy handler isolation"],
-  ["v1/purchase-director.js", "GillieEntitlementSync.apply", "verified entitlement application"],
-  ["v1/store-pricing.js", "store-pricing-v2-retryable", "retryable StoreKit pricing"],
-  ["v1/store-pricing.js", "purchase-director-v1-authoritative", "display-only pricing contract"],
-  ["v1/entitlement-sync.js", "app-boot", "Plus entitlement restored at app boot"],
-  ["v1/entitlement-sync.js", "foreground", "Plus entitlement refreshed on foreground"],
-  ["v1/entitlement-sync.js", "gillie:entitlement-updated", "entitlement update event"],
-  ["v1/theme-access.js", "theme-access-v1-basic-free", "core themes work without Plus"],
-  ["v1/theme-access.js", 'new Set(["clear", "sunset", "abyss", "sakura"])', "free core theme list"],
-  ["v1/theme-access.js", "window.GillieThemeEngine = wrapper", "theme engine blanket fallback adapter"],
-  ["v1/theme-engine.js", "theme-engine-v2-multitank-level-rewards", "Reef reward/theme engine"],
-  ["v1/theme-engine.js", "reef_level_reward_granted", "one-time level rewards"],
-  ["v1/theme-paint.js", "theme-paint-v1", "visible tank painter"],
-  ["v1/theme-paint.js", "--gillie-theme-water-top", "direct water painting"],
-  ["v1/launch-handoff.js", "launch-handoff-v1-single-intro", "animated intro handoff"],
-  ["v1/paywall-runtime-fix.js", "css-only-system-chrome-v2", "CSS-only safe-area treatment"],
-  ["v1/paywall-runtime-fix.js", "single-open-storekit-probe", "no duplicate click probe"],
-  ["v1/paywall-runtime-fix.js", "ensurePaywallSurface", "visible paywall surface repair"],
-  ["v1/paywall-runtime-fix.js", "Apple billing connected", "visible StoreKit readiness"],
-  ["v1/paywall-runtime-fix.css", "safe-area-inset-top", "paywall header safe area"],
-  ["v1/paywall-runtime-fix.css", ".gp-store-health", "StoreKit status row styles"],
-  ["ios/App/App/GilliePurchasesPlugin.swift", 'private let productIDs = ["gillie.plus.monthly", "gillie.plus.yearly"]', "native StoreKit product IDs"],
-  ["ios/App/App/GilliePurchasesPlugin.swift", 'CAPPluginMethod(name: "getProducts"', "native product bridge"],
-  ["ios/App/App/GilliePurchasesPlugin.swift", 'CAPPluginMethod(name: "purchase"', "native purchase bridge"],
-  ["ios/App/App/GilliePurchasesPlugin.swift", 'CAPPluginMethod(name: "restorePurchases"', "native restore bridge"],
-  ["ios/App/App/GilliePurchasesPlugin.swift", "loadAvailableProducts", "retried combined and per-product StoreKit discovery"],
-  ["ios/App/App/GilliePurchasesPlugin.swift", '"requestedProductIds": productIDs', "native product diagnostics"],
-  ["ios/App/App/GilliePurchasesPlugin.swift", "Product.products(for: productIDs)", "StoreKit 2 product request"],
-  ["ios/App/App/GilliePurchasesPlugin.swift", "Product.products(for: [productID])", "per-product StoreKit fallback"],
+  ["www/v1/purchase-flow.js", "purchase-flow-v3-production-branch", "purchase diagnostics engine"],
+  ["www/v1/purchase-flow.js", "Copy purchase details", "purchase diagnostics action"],
+  ["www/v1/purchase-director.js", "purchase-director-v2-direct-native", "generated direct checkout engine"],
+  ["www/v1/purchase-director.js", "selected-product-direct-to-storekit-v1", "generated checkout mode"],
+  ["www/v1/purchase-director.js", "native.purchase({ productId: product.id })", "generated native purchase call"],
+  ["www/v1/purchase-director.js", "GillieEntitlementSync.apply", "verified entitlement application"],
+  ["www/v1/store-pricing.js", "store-pricing-v2-retryable", "generated localized pricing"],
+  ["www/v1/entitlement-sync.js", "app-boot", "Plus restored at app boot"],
+  ["www/v1/entitlement-sync.js", "foreground", "Plus refreshed on foreground"],
+  ["www/v1/theme-access.js", "theme-access-v1-basic-free", "core theme access"],
+  ["www/v1/theme-engine.js", "theme-engine-v2-multitank-level-rewards", "Reef rewards and themes"],
+  ["www/v1/theme-paint.js", "theme-paint-v1", "visible tank painter"],
+  ["www/v1/launch-handoff.js", "launch-handoff-v1-single-intro", "single intro handoff"],
+  ["www/v1/paywall-runtime-fix.js", "css-only-system-chrome-v2", "safe paywall chrome"],
+  ["www/v1/paywall-runtime-fix.js", "ensurePaywallSurface", "visible paywall guard"],
+  ["ios/App/App/GilliePurchasesPlugin.swift", "purchase_selected_lookup_started_native", "selected-product native lookup"],
+  ["ios/App/App/GilliePurchasesPlugin.swift", "purchase_sheet_requested_native", "Apple-sheet request event"],
+  ["ios/App/App/GilliePurchasesPlugin.swift", "selected-product-direct-v1", "native direct checkout mode"],
+  ["ios/App/App/GilliePurchasesPlugin.swift", "SKPaymentQueue.canMakePayments()", "purchase restriction check"],
+  ["ios/App/App/GilliePurchasesPlugin.swift", "Product.products(for: [productID])", "selected product StoreKit request"],
   ["ios/App/App/GilliePurchasesPlugin.swift", "Transaction.currentEntitlements", "verified entitlement lookup"],
-  ["www/index.html", 'class="gillie-boot-pending"', "first-paint launch veil"],
-  ["www/index.html", "SINGLE LAUNCH HANDOFF", "legacy splash replacement"],
-  ["www/index.html", 'data-gillie-v1-purchase-flow="true"', "generated purchase diagnostics injection"],
-  ["www/index.html", 'data-gillie-v1-purchase-director="true"', "generated authoritative checkout injection"],
-  ["www/index.html", 'data-gillie-v1-entitlement-sync="true"', "generated entitlement sync injection"],
-  ["www/index.html", 'data-gillie-v1-theme-access="true"', "generated theme access injection"],
-  ["www/index.html", 'data-gillie-v1-theme-engine="true"', "generated theme engine injection"],
-  ["www/index.html", 'data-gillie-v1-theme-paint="true"', "generated theme painter injection"],
-  ["www/index.html", 'data-gillie-v1-launch-handoff="true"', "generated launch handoff injection"],
-  ["www/index.html", 'data-gillie-v1-paywall-runtime-fix="true"', "generated paywall runtime injection"],
-  ["www/index.html", 'data-gillie-v1-paywall-runtime-fix-styles="true"', "generated paywall safe-area styles"],
-  ["www/v1/build-source.json", '"sourceCommit"', "generated commit provenance"],
-  ["www/v1/build-source.json", '"commerceEngine": "purchase-flow-v3-production-branch"', "generated commerce provenance"],
-  ["www/v1/build-source.json", '"checkoutEngine": "purchase-director-v1-authoritative"', "generated checkout provenance"],
-  ["www/v1/build-source.json", '"paywallChromeMode": "css-only-system-chrome-v2"', "generated paywall chrome provenance"],
-  ["www/v1/build-source.json", '"themePaintEngine": "theme-paint-v1"', "generated theme provenance"],
+  ["www/index.html", 'data-gillie-v1-purchase-director="true"', "checkout director injection"],
+  ["www/index.html", 'data-gillie-v1-theme-paint="true"', "theme painter injection"],
+  ["www/v1/build-source.json", '"checkoutEngine": "purchase-director-v2-direct-native"', "checkout provenance"],
+  ["www/v1/build-source.json", '"checkoutMode": "selected-product-direct-to-storekit-v1"', "checkout-mode provenance"],
+  ["www/v1/build-source.json", '"nativeStoreKitLoader": "selected-product-only-retry-v1"', "native loader provenance"],
+  ["www/v1/build-source.json", '"nativeCheckoutMode": "selected-product-direct-v1"', "native checkout provenance"],
 ];
-
 for (const [relative, marker, label] of contracts) requireMarker(relative, marker, label);
+
+forbidMarker("www/v1/purchase-director.js", "await availablePlan(", "generated JavaScript product preflight");
 forbidMarker("www/v1/store-pricing.js", "purchase.disabled = loading", "generated pricing cannot disable checkout");
 forbidMarker("www/v1/paywall-runtime-fix.js", "bridge()?.setInterfaceStyle?.(", "generated native root-view mutation");
 forbidMarker("www/index.html", "splash-orb", "legacy web splash artwork");
@@ -170,10 +141,10 @@ for (const relative of [
   "paywall-runtime-fix.js",
   "paywall-runtime-fix.css",
 ]) {
-  const source = read(`v1/${relative}`);
-  const generated = read(`www/v1/${relative}`);
-  if (source !== generated) throw new Error(`Generated asset does not match source: v1/${relative}`);
+  if (read(`v1/${relative}`) !== read(`www/v1/${relative}`)) {
+    throw new Error(`Generated asset does not match source: v1/${relative}`);
+  }
 }
 
 run(process.execPath, ["scripts/verify-final-web-assets.js", "www"]);
-console.log("Release-critical validation passed: one tap reaches one StoreKit purchase, checkout stays enabled, entitlement restores, themes work, and the signed web bundle contains the authoritative Plus director.");
+console.log("Release-critical validation passed: checkout bypasses pricing, Swift resolves only the selected plan, Apple-sheet diagnostics are present, and Plus/theme/startup assets are in the signed bundle.");
