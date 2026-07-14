@@ -11,7 +11,11 @@
   const PROBE_MODE = "single-open-storekit-probe";
   const SHARED_LOOKUP_MODE = "shared-timed-storekit-lookup-v1";
   const EXPECTED_IDS = Object.freeze(["gillie.plus.monthly", "gillie.plus.yearly"]);
+  const ENTRY_SETTLE_MS = 240;
+  const ENTRY_ANIMATION_MS = 320;
   let probeToken = 0;
+  let entryToken = 0;
+  let entryTimer = 0;
   let observer = null;
   let lastVisible = false;
 
@@ -43,7 +47,8 @@
     overlay.style.setProperty("visibility", "visible", "important");
     overlay.style.setProperty("opacity", "1", "important");
     sheet.style.setProperty("visibility", "visible", "important");
-    sheet.style.setProperty("opacity", "1", "important");
+    if (overlay.classList.contains("gp-paywall-preparing")) sheet.style.removeProperty("opacity");
+    else sheet.style.setProperty("opacity", "1", "important");
     const content = $(".gp-paywall-scroll", sheet) || $(".plus-tank-hero", sheet) || $("#plus-title", sheet);
     if (content) {
       content.style?.setProperty?.("visibility", "visible", "important");
@@ -140,17 +145,71 @@
     }
   }
 
+  function cancelStableEntry() {
+    entryToken += 1;
+    clearTimeout(entryTimer);
+    entryTimer = 0;
+    const overlay = $("#plus-overlay");
+    const sheet = $("#plus-overlay > .sheet") || $(".sheet", overlay);
+    overlay?.classList?.remove("gp-paywall-preparing", "gp-paywall-entering");
+    if (sheet) {
+      sheet.style.removeProperty("opacity");
+      delete sheet.dataset.paywallEntryState;
+    }
+  }
+
+  function startStableEntry(reason = "paywall-open") {
+    const overlay = $("#plus-overlay");
+    if (!overlay || overlay.hidden) return false;
+    const sheet = $("#plus-overlay > .sheet") || $(".sheet", overlay);
+    if (!sheet) return false;
+
+    const token = ++entryToken;
+    clearTimeout(entryTimer);
+    overlay.classList.add("gp-runtime-controlled-entry", "gp-paywall-preparing");
+    overlay.classList.remove("gp-paywall-entering");
+    sheet.style.removeProperty("opacity");
+    sheet.dataset.paywallEntryState = "preparing";
+
+    ensurePaywallSurface(`${reason}:prepare`);
+    ensureHealthRow();
+
+    entryTimer = setTimeout(() => {
+      if (token !== entryToken || overlay.hidden) return;
+      ensureHealthRow();
+      ensurePaywallSurface(`${reason}:ready`);
+      overlay.classList.remove("gp-paywall-preparing");
+      void sheet.offsetWidth;
+      overlay.classList.add("gp-paywall-entering");
+      sheet.dataset.paywallEntryState = "animating";
+      track("paywall_stable_entry_started", { reason, settleMs: ENTRY_SETTLE_MS });
+
+      entryTimer = setTimeout(() => {
+        if (token !== entryToken || overlay.hidden) return;
+        overlay.classList.remove("gp-paywall-entering");
+        sheet.dataset.paywallEntryState = "settled";
+        ensurePaywallSurface(`${reason}:settled`);
+      }, ENTRY_ANIMATION_MS);
+    }, ENTRY_SETTLE_MS);
+    return true;
+  }
+
   function syncOverlay(reason = "mutation") {
     const overlay = $("#plus-overlay");
     if (!overlay) return false;
     const visible = !overlay.hidden;
     setSystemChrome(visible);
     if (visible) {
-      ensurePaywallSurface(reason);
-      ensureHealthRow();
-      setTimeout(() => ensurePaywallSurface(`${reason}:settled`), 180);
+      if (!lastVisible) startStableEntry(reason);
+      else {
+        ensurePaywallSurface(reason);
+        ensureHealthRow();
+      }
       if (!lastVisible) setTimeout(() => probeStoreKit("paywall-open"), 40);
-    } else probeToken += 1;
+    } else {
+      probeToken += 1;
+      cancelStableEntry();
+    }
     lastVisible = visible;
     return true;
   }
@@ -158,9 +217,10 @@
   function install() {
     const overlay = $("#plus-overlay");
     if (!overlay) return false;
+    overlay.classList.add("gp-runtime-controlled-entry");
     observer?.disconnect?.();
     observer = new MutationObserver(() => syncOverlay("overlay-change"));
-    observer.observe(overlay, { attributes: true, attributeFilter: ["hidden", "class"] });
+    observer.observe(overlay, { attributes: true, attributeFilter: ["hidden"] });
     document.addEventListener("click", (event) => {
       const target = event.target?.closest?.("#plus-open,#set-plus,[data-act='plus'],#ship-premium-teaser,.gp-close,#plus-soft-close");
       if (!target) return;
@@ -196,6 +256,7 @@
       checkoutOwner: CHECKOUT_OWNER,
       probeMode: PROBE_MODE,
       sharedLookupMode: SHARED_LOOKUP_MODE,
+      stableEntry: true,
     });
     return true;
   }
