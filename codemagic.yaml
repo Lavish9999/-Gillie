@@ -181,6 +181,7 @@ workflows:
           test -f "$app_path/public/v1/sos-support.js"
           test -f "$app_path/public/v1/welcome-recovery.js"
           test -f "$app_path/public/v1/purchase-flow.js"
+          test -f "$app_path/public/v1/theme-engine.js"
           test -f "$app_path/public/v1/support-recovery.css"
           grep -q 'store-pricing-v1' "$app_path/public/v1/store-pricing.js"
           grep -q 'Loading Apple price' "$app_path/public/v1/store-pricing.js"
@@ -195,6 +196,10 @@ workflows:
           grep -q 'purchase-flow-v1' "$app_path/public/v1/purchase-flow.js"
           grep -q 'entitlementChanged' "$app_path/public/v1/purchase-flow.js"
           grep -q 'Apple is still processing this purchase' "$app_path/public/v1/purchase-flow.js"
+          grep -q 'theme-engine-v1' "$app_path/public/v1/theme-engine.js"
+          grep -Fq '#theme-row [data-theme]' "$app_path/public/v1/theme-engine.js"
+          grep -q 'gillie:theme-applied' "$app_path/public/v1/theme-engine.js"
+          grep -q 'GillieThemeEngine' "$app_path/public/v1/theme-engine.js"
           grep -q 'id="toast" role="status" aria-live="polite" aria-atomic="true"' "$app_path/public/index.html"
 
           if grep -R -qE 'fonts\.googleapis\.com|fonts\.gstatic\.com' "$app_path/public"; then
