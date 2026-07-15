@@ -112,4 +112,14 @@ for (const marker of [
   if (!codemagic.includes(marker)) throw new Error(`Codemagic signed-IPA verification is missing: ${marker}`);
 }
 
-console.log("Build pipeline test passed: one seamless launch, synchronized production refs, boot-time Plus restoration, working core themes, and exact signed-IPA verification are required.");
+const interactionInjector = fs.readFileSync(path.join(root, "scripts/inject-progress-rescue.js"), "utf8");
+for (const marker of [
+  "v1/followup-rescue.js",
+  'data-gillie-v1-followup-rescue="true"',
+  "Follow-up rescue must load after the interaction director",
+]) {
+  if (!interactionInjector.includes(marker)) throw new Error(`Follow-up interaction build contract is missing: ${marker}`);
+}
+
+require("./test-followup-rescue");
+console.log("Build pipeline test passed: one seamless launch, synchronized production refs, boot-time Plus restoration, working core themes, direct craving follow-up controls, and exact signed-IPA verification are required.");
