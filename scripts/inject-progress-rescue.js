@@ -8,7 +8,7 @@ const sourcePath = path.join(root, "v1", "progress-rescue.js");
 const targetPath = path.join(out, "v1", "progress-rescue.js");
 const PLUS_VALUE_TAG = '<script src="./v1/plus-value.js" defer data-gillie-v1-plus-value="true"></script>';
 const SCRIPT_TAG = '<script src="./v1/progress-rescue.js" defer data-gillie-v1-progress-rescue="true"></script>';
-const ENGINE = "progress-rescue-v3-nav-safe";
+const ENGINE = "progress-rescue-v5-window-bounded";
 
 if (!fs.existsSync(indexPath)) {
   throw new Error("Progress rescue injection requires www/index.html. Run the canonical web preparation first.");
@@ -33,25 +33,28 @@ for (const marker of [
   ENGINE,
   "__gillieProgressRescueInstalled",
   "progress-rescue-actions",
-  "installProgressOnlyRouting",
-  'view.addEventListener("click"',
+  "installWindowBoundedRouting",
+  'window.addEventListener("pointerdown"',
+  'window.addEventListener("pointerup"',
+  "pointInsideProgressContent",
+  "tabs.getBoundingClientRect()",
+  "document.elementsFromPoint",
   "openDialogSurface",
   "openCheckinDirect",
   "openSosDirect",
   "repairInteractionSurface",
-  "CONTROLS V4",
+  "CONTROLS V5",
 ]) {
   if (!source.includes(marker)) throw new Error(`Generated Progress rescue is missing marker: ${marker}`);
 }
 for (const forbidden of [
-  "document.elementsFromPoint",
+  'view.addEventListener("click"',
   'document.addEventListener("pointerup"',
-  'document.addEventListener("click"',
   'document.addEventListener("touchend"',
   'overlay.style.setProperty("pointer-events", "none"',
   "view.hidden = false",
 ]) {
-  if (source.includes(forbidden)) throw new Error(`Generated Progress rescue contains forbidden global routing or shell mutation: ${forbidden}`);
+  if (source.includes(forbidden)) throw new Error(`Generated Progress rescue contains forbidden unbounded routing or shell mutation: ${forbidden}`);
 }
 if (!html.includes('data-gillie-v1-progress-rescue="true"')) {
   throw new Error("Generated index is missing the final Progress rescue runtime tag.");
@@ -63,4 +66,4 @@ if (rescueIndex < 0 || (plusIndex >= 0 && rescueIndex <= plusIndex)) {
 }
 
 new Function(source);
-console.log("Injected and validated nav-safe Progress controls with no document-wide touch routing.");
+console.log("Injected and validated window-first Progress routing bounded above the bottom navigation.");
