@@ -1,14 +1,18 @@
-/* Gillie Progress Rescue — nav-safe Progress controls and dialogs. */
+/* Gillie Progress Rescue — window-first routing, bounded to Progress content only. */
 (() => {
   "use strict";
 
-  const ENGINE = "progress-rescue-v3-nav-safe";
+  const ENGINE = "progress-rescue-v5-window-bounded";
   if (window.__gillieProgressRescueInstalled) return;
   window.__gillieProgressRescueInstalled = true;
 
   const $ = (selector, root = document) => root?.querySelector?.(selector) || null;
   const $$ = (selector, root = document) => Array.from(root?.querySelectorAll?.(selector) || []);
+  const CONTROL_SELECTOR = "button,summary,[role='button'],a[href]";
   let repairQueued = false;
+  let activePress = null;
+  let syntheticClick = false;
+  let suppressClickUntil = 0;
 
   function appState() {
     try { return typeof state !== "undefined" ? state : null; }
@@ -30,6 +34,28 @@
     if (!element) return;
     try { element.inert = false; } catch (_) {}
     element.removeAttribute?.("inert");
+  }
+
+  function visiblyOpen(element) {
+    if (!element || element.hidden) return false;
+    let style = null;
+    try { style = getComputedStyle(element); } catch (_) {}
+    if (style) {
+      if (style.display === "none" || style.visibility === "hidden") return false;
+      if (Number.parseFloat(style.opacity || "1") <= 0.02) return false;
+    }
+    try {
+      const rect = element.getBoundingClientRect();
+      return rect.width > 2 && rect.height > 2 && rect.bottom > 0 && rect.top < window.innerHeight;
+    } catch (_) {
+      return true;
+    }
+  }
+
+  function realDialogOpen() {
+    return $$(".overlay").some(visiblyOpen)
+      || visiblyOpen($("#pv-plus-welcome"))
+      || visiblyOpen($(".gillie-rating-overlay"));
   }
 
   function openDialogSurface(overlay) {
@@ -72,13 +98,12 @@
     });
 
     $$(".overlay").forEach((overlay) => {
-      if (overlay.hidden) {
-        overlay.style.removeProperty("pointer-events");
-        return;
+      if (overlay.hidden) overlay.style.removeProperty("pointer-events");
+      else if (visiblyOpen(overlay)) {
+        clearInert(overlay);
+        overlay.setAttribute("aria-hidden", "false");
+        overlay.style.setProperty("pointer-events", "auto", "important");
       }
-      clearInert(overlay);
-      overlay.setAttribute("aria-hidden", "false");
-      overlay.style.setProperty("pointer-events", "auto", "important");
     });
   }
 
@@ -123,7 +148,7 @@
       panel.id = "progress-rescue-actions";
       panel.setAttribute("aria-label", "Progress quick actions");
       panel.innerHTML = `
-        <div class="progress-rescue-head"><b>Progress tools</b><small>CONTROLS V4</small></div>
+        <div class="progress-rescue-head"><b>Progress tools</b><small>CONTROLS V5</small></div>
         <div class="progress-rescue-buttons">
           <button type="button" data-progress-rescue-action="checkin">Check in</button>
           <button type="button" data-progress-rescue-action="sos">Craving SOS</button>
@@ -132,7 +157,7 @@
       $(".stat-row", view)?.insertAdjacentElement("afterend", panel);
     } else {
       const badge = $(".progress-rescue-head small", panel);
-      if (badge) badge.textContent = "CONTROLS V4";
+      if (badge) badge.textContent = "CONTROLS V5";
     }
   }
 
@@ -210,32 +235,115 @@
     } catch (_) {}
   }
 
-  function runAction(action) {
+  function pointInsideProgressContent(clientX, clientY) {
+    if (!progressIsSelected() || !Number.isFinite(clientX) || !Number.isFinite(clientY)) return false;
+    const view = progressView();
+    const tabs = $("#tabs");
+    if (!view || !tabs) return false;
+    const viewRect = view.getBoundingClientRect();
+    const tabsRect = tabs.getBoundingClientRect();
+    const bottom = Math.min(viewRect.bottom, tabsRect.top - 2);
+    return clientX >= viewRect.left && clientX <= viewRect.right && clientY >= Math.max(0, viewRect.top) && clientY < bottom;
+  }
+
+  function controlAtPoint(target, clientX, clientY) {
+    const view = progressView();
+    if (!view) return null;
+    const direct = target?.closest?.(CONTROL_SELECTOR);
+    if (direct && view.contains(direct)) return direct;
+    if (typeof document.elementsFromPoint !== "function") return null;
+    for (const node of document.elementsFromPoint(clientX, clientY)) {
+      const candidate = node?.closest?.(CONTROL_SELECTOR);
+      if (candidate && view.contains(candidate)) return candidate;
+    }
+    return null;
+  }
+
+  function actionFor(control) {
+    let action = control?.dataset?.progressRescueAction || null;
+    if (control?.matches?.('[data-ship-progress="checkin"],[data-v1-progress="checkin"]')) action = "checkin";
+    if (control?.matches?.('[data-ship-progress="sos"],[data-v1-progress="sos"]')) action = "sos";
+    if (control?.matches?.("[data-plus-weekly-unlock]")) action = "plus";
+    return action;
+  }
+
+  function activateControl(control) {
+    if (!control) return;
+    const action = actionFor(control);
     if (action === "checkin") return openCheckinDirect();
     if (action === "sos") return openSosDirect();
     if (action === "share") return shareProgress();
     if (action === "plus") return openPlusDirect();
+
+    if (control.tagName === "SUMMARY") {
+      const details = control.closest("details");
+      if (details) details.open = !details.open;
+      return;
+    }
+
+    syntheticClick = true;
+    try { HTMLElement.prototype.click.call(control); }
+    catch (_) { invokePropertyHandler(control); }
+    finally { queueMicrotask(() => { syntheticClick = false; queueRepair(); }); }
   }
 
-  function installProgressOnlyRouting() {
-    const view = progressView();
-    if (!view || view.dataset.progressRescueRouting === ENGINE) return;
-    view.dataset.progressRescueRouting = ENGINE;
+  function handleCompletedPress(event, clientX, clientY, pointerId = null) {
+    if (syntheticClick || realDialogOpen() || !pointInsideProgressContent(clientX, clientY)) return;
+    if (activePress && pointerId !== null && activePress.pointerId !== pointerId) return;
+    if (activePress) {
+      const distance = Math.hypot(clientX - activePress.x, clientY - activePress.y);
+      const elapsed = Date.now() - activePress.at;
+      if (distance > 14 || elapsed > 900) return;
+    }
+    const control = controlAtPoint(event.target, clientX, clientY);
+    if (!control) return;
 
-    view.addEventListener("click", (event) => {
-      const button = event.target?.closest?.("button");
-      if (!button || !view.contains(button)) return;
+    event.preventDefault?.();
+    event.stopImmediatePropagation?.();
+    suppressClickUntil = Date.now() + 500;
+    activateControl(control);
+  }
 
-      let action = button.dataset?.progressRescueAction || null;
-      if (button.matches('[data-ship-progress="checkin"],[data-v1-progress="checkin"]')) action = "checkin";
-      if (button.matches('[data-ship-progress="sos"],[data-v1-progress="sos"]')) action = "sos";
-      if (button.matches("[data-plus-weekly-unlock]")) action = "plus";
-      if (!action) return;
+  function installWindowBoundedRouting() {
+    if (window.__gillieProgressWindowRouting === ENGINE) return;
+    window.__gillieProgressWindowRouting = ENGINE;
 
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      runAction(action);
+    window.addEventListener("pointerdown", (event) => {
+      if (realDialogOpen() || !pointInsideProgressContent(event.clientX, event.clientY)) {
+        activePress = null;
+        return;
+      }
+      activePress = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, at: Date.now() };
     }, true);
+
+    window.addEventListener("pointerup", (event) => {
+      handleCompletedPress(event, event.clientX, event.clientY, event.pointerId);
+      activePress = null;
+    }, true);
+
+    window.addEventListener("pointercancel", () => { activePress = null; }, true);
+
+    window.addEventListener("click", (event) => {
+      if (syntheticClick || Date.now() > suppressClickUntil) return;
+      const point = event instanceof MouseEvent ? { x: event.clientX, y: event.clientY } : { x: NaN, y: NaN };
+      if (!pointInsideProgressContent(point.x, point.y)) return;
+      event.preventDefault?.();
+      event.stopImmediatePropagation?.();
+    }, true);
+
+    window.addEventListener("touchstart", (event) => {
+      if (window.PointerEvent || !event.touches?.length) return;
+      const touch = event.touches[0];
+      if (!pointInsideProgressContent(touch.clientX, touch.clientY)) return;
+      activePress = { pointerId: "touch", x: touch.clientX, y: touch.clientY, at: Date.now() };
+    }, { capture: true, passive: true });
+
+    window.addEventListener("touchend", (event) => {
+      if (window.PointerEvent || !event.changedTouches?.length) return;
+      const touch = event.changedTouches[0];
+      handleCompletedPress(event, touch.clientX, touch.clientY, "touch");
+      activePress = null;
+    }, { capture: true, passive: false });
   }
 
   function installRecoveryHooks() {
@@ -243,7 +351,6 @@
       if (!event.target?.closest?.('button[data-view="progress"]')) return;
       [0, 40, 160, 420].forEach((delay) => setTimeout(() => {
         ensureActionPanel();
-        installProgressOnlyRouting();
         queueRepair();
       }, delay));
     }, true);
@@ -255,14 +362,12 @@
 
     window.GillieV1?.afterRender?.(() => {
       ensureActionPanel();
-      installProgressOnlyRouting();
       if (progressIsSelected()) queueRepair();
     });
 
     setInterval(() => {
       if (!progressIsSelected()) return;
       ensureActionPanel();
-      installProgressOnlyRouting();
       repairInteractionSurface();
     }, 1000);
   }
@@ -270,12 +375,11 @@
   function install() {
     ensureStyles();
     ensureActionPanel();
-    installProgressOnlyRouting();
+    installWindowBoundedRouting();
     installRecoveryHooks();
     document.documentElement.dataset.gillieProgressEngine = ENGINE;
     [0, 50, 250, 700].forEach((delay) => setTimeout(() => {
       ensureActionPanel();
-      installProgressOnlyRouting();
       if (progressIsSelected()) queueRepair();
     }, delay));
   }
