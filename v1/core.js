@@ -1,4 +1,4 @@
-/* Gillie V1 canonical coordinator — one boot path, late-module safe, strict tab isolation, no observers or polling loops. */
+/* Gillie V1 canonical coordinator — one boot path, late-module safe, strict tab isolation. */
 (() => {
   "use strict";
 
@@ -14,7 +14,7 @@
   let activeViewName = "home";
 
   const api = {
-    version: "gillie-v1-2026.07.12.4",
+    version: "gillie-v1-2026.07.15.1",
     register(name, installer) {
       if (typeof installer !== "function") return;
       const moduleName = String(name || `module-${installers.length + 1}`);
@@ -99,9 +99,21 @@
     else element.removeAttribute?.("inert");
   }
 
+  function releaseStaleShellLock() {
+    const main = document.querySelector("#main");
+    if (!main) return;
+
+    // Older dialog code could leave the whole shell inert after a sheet closed.
+    // The individual views are isolated below, so the shell itself must never
+    // remain inert or the fixed bottom navigation becomes untappable.
+    try { main.inert = false; } catch (_) {}
+    main.removeAttribute?.("inert");
+  }
+
   function enforceViewIsolation(requestedName = selectedViewName(), { preserveScroll = true } = {}) {
     const name = normalizeViewName(requestedName);
     activeViewName = name;
+    releaseStaleShellLock();
 
     for (const viewName of VIEW_NAMES) {
       const view = document.querySelector(`#view-${viewName}`);
@@ -117,10 +129,19 @@
       }
 
       if (tab) {
+        tab.disabled = false;
         tab.classList?.toggle?.("on", active);
         tab.setAttribute?.("aria-selected", active ? "true" : "false");
         tab.setAttribute?.("tabindex", active ? "0" : "-1");
+        tab.removeAttribute?.("inert");
       }
+    }
+
+    const tabs = document.querySelector("#tabs");
+    if (tabs) {
+      try { tabs.inert = false; } catch (_) {}
+      tabs.removeAttribute?.("inert");
+      tabs.setAttribute?.("aria-hidden", "false");
     }
 
     const root = document.documentElement;
@@ -171,29 +192,43 @@
     renderWrapped = true;
   }
 
+  function activateFromTabEvent(event) {
+    const button = event.target?.closest?.("button[data-view]");
+    const requested = button?.dataset?.view;
+    if (!VIEW_NAMES.includes(requested)) return false;
+
+    // Change screens synchronously. Delayed legacy renders may still run, but
+    // every reconciliation below uses the user's newest requested tab.
+    event.preventDefault?.();
+    enforceViewIsolation(requested, { preserveScroll: false });
+    queueMicrotask(() => enforceViewIsolation(requested));
+    requestAnimationFrame(() => {
+      enforceViewIsolation(requested);
+      runRenderHooks();
+    });
+    setTimeout(() => enforceViewIsolation(requested), 140);
+    return true;
+  }
+
   function installTabIsolation() {
     const tabs = document.querySelector("#tabs");
     if (!tabs || tabs.dataset?.v1Isolation === "true") return;
     if (tabs.dataset) tabs.dataset.v1Isolation = "true";
 
-    tabs.addEventListener("click", (event) => {
+    tabs.addEventListener("pointerdown", (event) => {
       const button = event.target?.closest?.("button[data-view]");
       const requested = button?.dataset?.view;
       if (!VIEW_NAMES.includes(requested)) return;
-
-      // The legacy onclick runs during the same event. Reassert the canonical
-      // state immediately afterwards and once more after the render it starts.
-      queueMicrotask(() => enforceViewIsolation(requested));
-      requestAnimationFrame(() => {
-        enforceViewIsolation(requested);
-        runRenderHooks();
-      });
-      setTimeout(() => enforceViewIsolation(requested), 140);
+      releaseStaleShellLock();
+      enforceViewIsolation(requested, { preserveScroll: false });
     }, true);
+
+    tabs.addEventListener("click", activateFromTabEvent, true);
 
     document.addEventListener?.("visibilitychange", () => {
       if (!document.hidden) enforceViewIsolation(selectedViewName());
     });
+    window.addEventListener?.("pageshow", () => enforceViewIsolation(selectedViewName()));
 
     enforceViewIsolation(selectedViewName());
   }
