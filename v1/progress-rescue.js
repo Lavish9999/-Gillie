@@ -1,18 +1,20 @@
-/* Gillie Progress Rescue — window-first routing, bounded to Progress content only. */
+/* Gillie Interaction Director — bounded Progress routing plus direct dialog controls. */
 (() => {
   "use strict";
 
-  const ENGINE = "progress-rescue-v5-window-bounded";
-  if (window.__gillieProgressRescueInstalled) return;
+  const ENGINE = "interaction-director-v6-dialog-safe";
+  if (window.__gillieInteractionDirectorInstalled) return;
+  window.__gillieInteractionDirectorInstalled = true;
   window.__gillieProgressRescueInstalled = true;
 
   const $ = (selector, root = document) => root?.querySelector?.(selector) || null;
   const $$ = (selector, root = document) => Array.from(root?.querySelectorAll?.(selector) || []);
-  const CONTROL_SELECTOR = "button,summary,[role='button'],a[href]";
+  const CONTROL_SELECTOR = "button,summary,[role='button'],a[href],input,select,textarea";
   let repairQueued = false;
   let activePress = null;
-  let syntheticClick = false;
+  let syntheticActivation = false;
   let suppressClickUntil = 0;
+  let suppressClickOwner = null;
 
   function appState() {
     try { return typeof state !== "undefined" ? state : null; }
@@ -52,10 +54,9 @@
     }
   }
 
-  function realDialogOpen() {
-    return $$(".overlay").some(visiblyOpen)
-      || visiblyOpen($("#pv-plus-welcome"))
-      || visiblyOpen($(".gillie-rating-overlay"));
+  function visibleOverlay() {
+    const overlays = $$(".overlay").filter(visiblyOpen);
+    return overlays[overlays.length - 1] || null;
   }
 
   function openDialogSurface(overlay) {
@@ -67,15 +68,20 @@
     overlay.style.removeProperty("visibility");
     overlay.style.removeProperty("opacity");
     overlay.style.setProperty("pointer-events", "auto", "important");
+    $$(CONTROL_SELECTOR, overlay).forEach((control) => {
+      clearInert(control);
+      control.style?.setProperty?.("pointer-events", "auto", "important");
+      if (control.matches("button,a,[role='button']")) control.style?.setProperty?.("touch-action", "manipulation", "important");
+    });
     document.body.classList.add("sheet-open");
     document.documentElement.dataset.gillieDialogOpen = "true";
     return true;
   }
 
-  function repairInteractionSurface() {
+  function repairProgressSurface() {
     repairQueued = false;
     const view = progressView();
-    if (!view || !progressIsSelected()) return;
+    if (!view || !progressIsSelected() || visibleOverlay()) return;
 
     const main = $("#main");
     const tabs = $("#tabs");
@@ -88,29 +94,33 @@
     view.style.setProperty("pointer-events", "auto", "important");
     view.style.setProperty("touch-action", "pan-y", "important");
 
-    $$("button,summary,[role='button'],a[href],input,select,textarea", view).forEach((control) => {
+    $$(CONTROL_SELECTOR, view).forEach((control) => {
       clearInert(control);
       if ("disabled" in control && control.matches("button[data-days],[data-ship-progress],[data-v1-progress],[data-plus-weekly-unlock],#phase2-share-progress,#progress-rescue-actions button")) {
         control.disabled = false;
       }
       control.style?.setProperty?.("pointer-events", "auto", "important");
-      control.style?.setProperty?.("touch-action", "manipulation", "important");
+      if (control.matches("button,a,[role='button'],summary")) control.style?.setProperty?.("touch-action", "manipulation", "important");
     });
+  }
 
-    $$(".overlay").forEach((overlay) => {
-      if (overlay.hidden) overlay.style.removeProperty("pointer-events");
-      else if (visiblyOpen(overlay)) {
-        clearInert(overlay);
-        overlay.setAttribute("aria-hidden", "false");
-        overlay.style.setProperty("pointer-events", "auto", "important");
-      }
-    });
+  function repairVisibleOverlay() {
+    const overlay = visibleOverlay();
+    if (!overlay) return;
+    openDialogSurface(overlay);
   }
 
   function queueRepair() {
     if (repairQueued) return;
     repairQueued = true;
-    requestAnimationFrame(repairInteractionSurface);
+    requestAnimationFrame(() => {
+      if (visibleOverlay()) {
+        repairQueued = false;
+        repairVisibleOverlay();
+      } else {
+        repairProgressSurface();
+      }
+    });
   }
 
   function ensureStyles() {
@@ -135,6 +145,7 @@
       #progress-rescue-actions button[data-progress-rescue-action="share"]{background:#edf4f1;color:var(--ink)}
       html[data-gillie-dialog-open="true"] #progress-rescue-actions{z-index:0}
       .overlay[hidden]{pointer-events:none!important}
+      .overlay:not([hidden]),.overlay:not([hidden]) button,.overlay:not([hidden]) a,.overlay:not([hidden]) [role="button"]{pointer-events:auto!important}
     `;
     document.head.appendChild(style);
   }
@@ -148,7 +159,7 @@
       panel.id = "progress-rescue-actions";
       panel.setAttribute("aria-label", "Progress quick actions");
       panel.innerHTML = `
-        <div class="progress-rescue-head"><b>Progress tools</b><small>CONTROLS V5</small></div>
+        <div class="progress-rescue-head"><b>Progress tools</b><small>CONTROLS V6</small></div>
         <div class="progress-rescue-buttons">
           <button type="button" data-progress-rescue-action="checkin">Check in</button>
           <button type="button" data-progress-rescue-action="sos">Craving SOS</button>
@@ -157,7 +168,7 @@
       $(".stat-row", view)?.insertAdjacentElement("afterend", panel);
     } else {
       const badge = $(".progress-rescue-head small", panel);
-      if (badge) badge.textContent = "CONTROLS V5";
+      if (badge) badge.textContent = "CONTROLS V6";
     }
   }
 
@@ -219,6 +230,22 @@
     openDialogSurface(overlay);
   }
 
+  function openSosSupportDirect() {
+    const support = $("#v1-sos-support-overlay");
+    if (!support) return false;
+    openDialogSurface(support);
+    document.body.classList.add("v1-sos-support-open");
+    return true;
+  }
+
+  async function trustedPersonDirect() {
+    const text = "I’m having a strong nicotine craving. Can you stay with me for a few minutes while it passes?";
+    try {
+      if (navigator.share) await navigator.share({ title: "Stay with me through this craving", text });
+      else if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
+    } catch (_) {}
+  }
+
   async function shareProgress() {
     const current = appState() || {};
     let days = 0;
@@ -228,15 +255,12 @@
     const text = `${days} day${days === 1 ? "" : "s"} clean with Gillie · ${money} saved · ${cravings} cravings beaten.`;
     try {
       if (navigator.share) await navigator.share({ title: "My Gillie progress", text });
-      else if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(text);
-        try { if (typeof toast === "function") toast("↗", "Progress summary copied."); } catch (_) {}
-      }
+      else if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
     } catch (_) {}
   }
 
   function pointInsideProgressContent(clientX, clientY) {
-    if (!progressIsSelected() || !Number.isFinite(clientX) || !Number.isFinite(clientY)) return false;
+    if (!progressIsSelected() || visibleOverlay() || !Number.isFinite(clientX) || !Number.isFinite(clientY)) return false;
     const view = progressView();
     const tabs = $("#tabs");
     if (!view || !tabs) return false;
@@ -246,20 +270,19 @@
     return clientX >= viewRect.left && clientX <= viewRect.right && clientY >= Math.max(0, viewRect.top) && clientY < bottom;
   }
 
-  function controlAtPoint(target, clientX, clientY) {
-    const view = progressView();
-    if (!view) return null;
+  function controlAtPoint(owner, target, clientX, clientY) {
+    if (!owner) return null;
     const direct = target?.closest?.(CONTROL_SELECTOR);
-    if (direct && view.contains(direct)) return direct;
+    if (direct && owner.contains(direct)) return direct;
     if (typeof document.elementsFromPoint !== "function") return null;
     for (const node of document.elementsFromPoint(clientX, clientY)) {
       const candidate = node?.closest?.(CONTROL_SELECTOR);
-      if (candidate && view.contains(candidate)) return candidate;
+      if (candidate && owner.contains(candidate)) return candidate;
     }
     return null;
   }
 
-  function actionFor(control) {
+  function progressAction(control) {
     let action = control?.dataset?.progressRescueAction || null;
     if (control?.matches?.('[data-ship-progress="checkin"],[data-v1-progress="checkin"]')) action = "checkin";
     if (control?.matches?.('[data-ship-progress="sos"],[data-v1-progress="sos"]')) action = "sos";
@@ -267,82 +290,153 @@
     return action;
   }
 
-  function activateControl(control) {
-    if (!control) return;
-    const action = actionFor(control);
-    if (action === "checkin") return openCheckinDirect();
-    if (action === "sos") return openSosDirect();
-    if (action === "share") return shareProgress();
-    if (action === "plus") return openPlusDirect();
+  function activateProgressControl(control) {
+    if (!control) return false;
+    const action = progressAction(control);
+    if (action === "checkin") { openCheckinDirect(); return true; }
+    if (action === "sos") { openSosDirect(); return true; }
+    if (action === "share") { void shareProgress(); return true; }
+    if (action === "plus") { openPlusDirect(); return true; }
 
     if (control.tagName === "SUMMARY") {
       const details = control.closest("details");
       if (details) details.open = !details.open;
+      return true;
+    }
+
+    syntheticActivation = true;
+    try { HTMLElement.prototype.click.call(control); }
+    catch (_) { return invokePropertyHandler(control); }
+    finally { queueMicrotask(() => { syntheticActivation = false; queueRepair(); }); }
+    return true;
+  }
+
+  function closeOverlayDirect(overlay) {
+    if (!overlay) return;
+    overlay.hidden = true;
+    overlay.setAttribute("aria-hidden", "true");
+    if (overlay.id === "v1-sos-support-overlay") document.body.classList.remove("v1-sos-support-open");
+    if (!visibleOverlay()) {
+      document.body.classList.remove("sheet-open");
+      document.documentElement.dataset.gillieDialogOpen = "false";
+    }
+    queueRepair();
+  }
+
+  function activateOverlayControl(overlay, control) {
+    if (!overlay || !control) return false;
+    if (control.disabled) return false;
+
+    if (control.matches("[data-open-sos-support]")) return openSosSupportDirect();
+    if (control.matches("[data-dialog-close],.sheet-close")) {
+      closeOverlayDirect(overlay);
+      return true;
+    }
+    if (control.matches('[data-sos-support-action="trusted-person"]')) {
+      void trustedPersonDirect();
+      return true;
+    }
+    if (control.tagName === "A" && control.href) {
+      try { window.location.href = control.href; } catch (_) {}
+      return true;
+    }
+    if (control.tagName === "SUMMARY") {
+      const details = control.closest("details");
+      if (details) details.open = !details.open;
+      return true;
+    }
+    if (invokePropertyHandler(control)) return true;
+
+    // Known SOS controls are assigned by addEventListener in later modules. Their
+    // core behavior remains explicit here so a capture-phase blocker cannot freeze
+    // the emergency screen.
+    if (control.id === "sos-close") {
+      try { if (typeof closeSOS === "function") closeSOS(); else closeOverlayDirect(overlay); }
+      catch (_) { closeOverlayDirect(overlay); }
+      return true;
+    }
+    if (control.id === "sos-beat") {
+      try {
+        if (typeof closeSOS === "function") closeSOS();
+        if (typeof openTriggerPicker === "function") openTriggerPicker(true);
+      } catch (_) {}
+      return true;
+    }
+    if (control.id === "sos-slipped") {
+      try {
+        if (typeof closeSOS === "function") closeSOS();
+        if (typeof openSlip === "function") openSlip();
+      } catch (_) {}
+      return true;
+    }
+    return false;
+  }
+
+  function validCompletedPress(clientX, clientY, pointerId) {
+    if (!activePress) return false;
+    if (pointerId !== null && activePress.pointerId !== pointerId) return false;
+    const distance = Math.hypot(clientX - activePress.x, clientY - activePress.y);
+    const elapsed = Date.now() - activePress.at;
+    return distance <= 14 && elapsed <= 900;
+  }
+
+  function beginPress(event, clientX, clientY, pointerId) {
+    const overlay = visibleOverlay();
+    const owner = overlay || (pointInsideProgressContent(clientX, clientY) ? progressView() : null);
+    if (!owner) {
+      activePress = null;
+      return;
+    }
+    activePress = { owner, pointerId, x: clientX, y: clientY, at: Date.now() };
+  }
+
+  function finishPress(event, clientX, clientY, pointerId) {
+    if (syntheticActivation || !validCompletedPress(clientX, clientY, pointerId)) {
+      activePress = null;
       return;
     }
 
-    syntheticClick = true;
-    try { HTMLElement.prototype.click.call(control); }
-    catch (_) { invokePropertyHandler(control); }
-    finally { queueMicrotask(() => { syntheticClick = false; queueRepair(); }); }
-  }
-
-  function handleCompletedPress(event, clientX, clientY, pointerId = null) {
-    if (syntheticClick || realDialogOpen() || !pointInsideProgressContent(clientX, clientY)) return;
-    if (activePress && pointerId !== null && activePress.pointerId !== pointerId) return;
-    if (activePress) {
-      const distance = Math.hypot(clientX - activePress.x, clientY - activePress.y);
-      const elapsed = Date.now() - activePress.at;
-      if (distance > 14 || elapsed > 900) return;
-    }
-    const control = controlAtPoint(event.target, clientX, clientY);
+    const owner = activePress.owner;
+    const overlay = owner?.classList?.contains("overlay") && visiblyOpen(owner) ? owner : null;
+    const control = controlAtPoint(owner, event.target, clientX, clientY);
+    activePress = null;
     if (!control) return;
+
+    const handled = overlay ? activateOverlayControl(overlay, control) : activateProgressControl(control);
+    if (!handled) return;
 
     event.preventDefault?.();
     event.stopImmediatePropagation?.();
     suppressClickUntil = Date.now() + 500;
-    activateControl(control);
+    suppressClickOwner = owner;
   }
 
-  function installWindowBoundedRouting() {
-    if (window.__gillieProgressWindowRouting === ENGINE) return;
-    window.__gillieProgressWindowRouting = ENGINE;
+  function installRouting() {
+    if (window.__gillieInteractionDirectorRouting === ENGINE) return;
+    window.__gillieInteractionDirectorRouting = ENGINE;
 
-    window.addEventListener("pointerdown", (event) => {
-      if (realDialogOpen() || !pointInsideProgressContent(event.clientX, event.clientY)) {
-        activePress = null;
-        return;
-      }
-      activePress = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, at: Date.now() };
-    }, true);
-
-    window.addEventListener("pointerup", (event) => {
-      handleCompletedPress(event, event.clientX, event.clientY, event.pointerId);
-      activePress = null;
-    }, true);
-
+    window.addEventListener("pointerdown", (event) => beginPress(event, event.clientX, event.clientY, event.pointerId), true);
+    window.addEventListener("pointerup", (event) => finishPress(event, event.clientX, event.clientY, event.pointerId), true);
     window.addEventListener("pointercancel", () => { activePress = null; }, true);
 
     window.addEventListener("click", (event) => {
-      if (syntheticClick || Date.now() > suppressClickUntil) return;
-      const point = event instanceof MouseEvent ? { x: event.clientX, y: event.clientY } : { x: NaN, y: NaN };
-      if (!pointInsideProgressContent(point.x, point.y)) return;
+      if (syntheticActivation || Date.now() > suppressClickUntil || !suppressClickOwner) return;
+      if (!suppressClickOwner.contains?.(event.target)) return;
       event.preventDefault?.();
       event.stopImmediatePropagation?.();
+      suppressClickOwner = null;
     }, true);
 
     window.addEventListener("touchstart", (event) => {
       if (window.PointerEvent || !event.touches?.length) return;
       const touch = event.touches[0];
-      if (!pointInsideProgressContent(touch.clientX, touch.clientY)) return;
-      activePress = { pointerId: "touch", x: touch.clientX, y: touch.clientY, at: Date.now() };
+      beginPress(event, touch.clientX, touch.clientY, "touch");
     }, { capture: true, passive: true });
 
     window.addEventListener("touchend", (event) => {
       if (window.PointerEvent || !event.changedTouches?.length) return;
       const touch = event.changedTouches[0];
-      handleCompletedPress(event, touch.clientX, touch.clientY, "touch");
-      activePress = null;
+      finishPress(event, touch.clientX, touch.clientY, "touch");
     }, { capture: true, passive: false });
   }
 
@@ -360,27 +454,36 @@
     });
     window.addEventListener("pageshow", queueRepair);
 
+    if (typeof MutationObserver === "function") {
+      new MutationObserver(() => queueRepair()).observe(document.body, {
+        attributes: true,
+        subtree: true,
+        attributeFilter: ["hidden", "inert"],
+      });
+    }
+
     window.GillieV1?.afterRender?.(() => {
       ensureActionPanel();
-      if (progressIsSelected()) queueRepair();
+      queueRepair();
     });
 
     setInterval(() => {
-      if (!progressIsSelected()) return;
       ensureActionPanel();
-      repairInteractionSurface();
+      if (visibleOverlay()) repairVisibleOverlay();
+      else if (progressIsSelected()) repairProgressSurface();
     }, 1000);
   }
 
   function install() {
     ensureStyles();
     ensureActionPanel();
-    installWindowBoundedRouting();
+    installRouting();
     installRecoveryHooks();
     document.documentElement.dataset.gillieProgressEngine = ENGINE;
+    document.documentElement.dataset.gillieInteractionDirector = ENGINE;
     [0, 50, 250, 700].forEach((delay) => setTimeout(() => {
       ensureActionPanel();
-      if (progressIsSelected()) queueRepair();
+      queueRepair();
     }, delay));
   }
 
