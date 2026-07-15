@@ -28,6 +28,7 @@ function makeElement({ dataset = {}, classes = [], hidden = false } = {}) {
     dataset,
     hidden,
     inert: false,
+    disabled: false,
     scrollTop: 0,
     classList: makeClassList(classes),
     setAttribute(name, value = "") { attributes.set(name, String(value)); },
@@ -39,6 +40,9 @@ function makeElement({ dataset = {}, classes = [], hidden = false } = {}) {
 
 const dataset = {};
 const app = {};
+const main = makeElement();
+main.inert = true;
+main.setAttribute("inert", "");
 const names = ["home", "progress", "reef", "you"];
 const views = Object.fromEntries(names.map((name) => [name, makeElement({ hidden: false })]));
 const tabButtons = Object.fromEntries(names.map((name) => {
@@ -47,12 +51,17 @@ const tabButtons = Object.fromEntries(names.map((name) => {
   return [name, tab];
 }));
 let tabsClickHandler = null;
+let tabsPointerHandler = null;
 const tabs = makeElement({ dataset: {} });
-tabs.addEventListener = (type, handler) => { if (type === "click") tabsClickHandler = handler; };
+tabs.addEventListener = (type, handler) => {
+  if (type === "click") tabsClickHandler = handler;
+  if (type === "pointerdown") tabsPointerHandler = handler;
+};
 let renderCalls = 0;
 
 function querySelector(selector) {
   if (selector === "#app") return app;
+  if (selector === "#main") return main;
   if (selector === "#tabs") return tabs;
   if (selector === "#phase2-live") return null;
   if (selector === "#tabs button.on[data-view]") return names.map((name) => tabButtons[name]).find((tab) => tab.classList.contains("on")) || null;
@@ -64,7 +73,9 @@ function querySelector(selector) {
 }
 
 const context = {
-  window: {},
+  window: {
+    addEventListener() {},
+  },
   document: {
     readyState: "interactive",
     hidden: false,
@@ -93,6 +104,8 @@ assert(api, "GillieV1 coordinator was not created");
 assert.strictEqual(api.isBooted, true, "Coordinator did not boot before late-module test");
 assert.deepStrictEqual(Array.from(api.installedModules), [], "Coordinator unexpectedly installed modules before registration");
 assert.strictEqual(api.activeView, "home", "Home was not selected as the initial canonical view");
+assert.strictEqual(main.inert, false, "A stale inert property remained on the main shell after boot");
+assert.strictEqual(main.getAttribute("inert"), undefined, "A stale inert attribute remained on the main shell after boot");
 assert.strictEqual(views.home.hidden, false, "Home was hidden during initial isolation");
 for (const name of ["progress", "reef", "you"]) {
   assert.strictEqual(views[name].hidden, true, `${name} remained visible under Home`);
@@ -133,13 +146,22 @@ assert.strictEqual(hookRuns, 1, "Late module render hook was not retained");
 assert.strictEqual(views.reef.hidden, false, "Reef lost active state after render reconciliation");
 for (const name of ["home", "progress", "you"]) assert.strictEqual(views[name].hidden, true, `${name} leaked into the Reef scroll after rendering`);
 
+assert.strictEqual(typeof tabsPointerHandler, "function", "Immediate pointer navigation was not installed");
 assert.strictEqual(typeof tabsClickHandler, "function", "Canonical tab click isolation was not installed");
-tabsClickHandler({ target: tabButtons.progress });
-assert.strictEqual(api.activeView, "progress", "Progress tab click did not update canonical active view");
-assert.strictEqual(views.progress.hidden, false, "Progress stayed hidden after its tab click");
-for (const name of ["home", "reef", "you"]) assert.strictEqual(views[name].hidden, true, `${name} remained visible beside Progress`);
-assert.strictEqual(tabButtons.progress.getAttribute("aria-selected"), "true", "Progress tab accessibility state was not updated");
+tabsPointerHandler({ target: tabButtons.progress });
+assert.strictEqual(api.activeView, "progress", "Progress did not activate immediately on pointerdown");
+assert.strictEqual(views.progress.hidden, false, "Progress stayed hidden after pointerdown");
+
+main.inert = true;
+main.setAttribute("inert", "");
+tabsClickHandler({ target: tabButtons.home, preventDefault() {} });
+assert.strictEqual(api.activeView, "home", "Home tab click did not update canonical active view");
+assert.strictEqual(views.home.hidden, false, "Home stayed hidden after its tab click");
+assert.strictEqual(main.inert, false, "Tab activation did not release the stale main-shell inert property");
+assert.strictEqual(main.getAttribute("inert"), undefined, "Tab activation did not remove the stale main-shell inert attribute");
+for (const name of ["progress", "reef", "you"]) assert.strictEqual(views[name].hidden, true, `${name} remained visible beside Home`);
+assert.strictEqual(tabButtons.home.getAttribute("aria-selected"), "true", "Home tab accessibility state was not updated");
 assert.strictEqual(views.reef.getAttribute("aria-hidden"), "true", "Inactive Reef accessibility state was not updated");
 assert.strictEqual(renderCalls, 0, "Coordinator test unexpectedly invoked renderAll");
 
-console.log("Gillie V1 coordinator test passed: late modules and strict one-view tab isolation survive render regressions.");
+console.log("Gillie V1 coordinator test passed: immediate tab switching clears stale shell locks and preserves strict one-view isolation.");
