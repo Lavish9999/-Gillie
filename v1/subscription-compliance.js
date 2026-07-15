@@ -78,6 +78,14 @@
     ].join("");
   }
 
+  function linksAreCurrent(links) {
+    if (links?.dataset?.subscriptionCompliance !== ENGINE) return false;
+    const terms = $("[data-subscription-compliance-link='terms']", links);
+    const privacy = $("[data-subscription-compliance-link='privacy']", links);
+    const apple = $("[data-subscription-compliance-link='apple-eula']", links);
+    return terms?.href === TERMS_URL && privacy?.href === PRIVACY_URL && apple?.href === APPLE_EULA_URL;
+  }
+
   function ensureComplianceContent() {
     ensureStyles();
     const overlay = $("#plus-overlay");
@@ -94,6 +102,7 @@
       footer.insertBefore(disclosure, legalSource || null);
     }
     if (disclosure.textContent !== DISCLOSURE_TEXT) disclosure.textContent = DISCLOSURE_TEXT;
+    disclosure.dataset.subscriptionCompliance = ENGINE;
 
     let links = $(".gp-legal-links", footer);
     if (!links) {
@@ -102,8 +111,10 @@
       const legalSource = $("#plus-legal", footer);
       footer.insertBefore(links, legalSource || null);
     }
-    const expected = expectedLinksHtml();
-    if (links.innerHTML !== expected) links.innerHTML = expected;
+    if (!linksAreCurrent(links)) {
+      links.innerHTML = expectedLinksHtml();
+      links.dataset.subscriptionCompliance = ENGINE;
+    }
 
     if (overlay.dataset.subscriptionCompliance !== ENGINE) overlay.dataset.subscriptionCompliance = ENGINE;
     return true;
