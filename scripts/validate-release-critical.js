@@ -50,6 +50,7 @@ for (const relative of [
   "v1/launch-experience.js",
   "v1/launch-handoff.js",
   "v1/paywall-runtime-fix.js",
+  "v1/subscription-compliance.js",
 ]) syntaxCheck(relative);
 
 requireMarker("scripts/inject-phase3.js", 'ENGINE = "store-pricing-v2-retryable"', "current retryable StoreKit pricing contract");
@@ -84,10 +85,21 @@ requireMarker("v1/launch-handoff.js", "post-hatch-handoff-v1", "post-hatch trans
 requireMarker("v1/launch-handoff.js", "gillie-hatch-handoff-active", "hatch cinematic remains visually covered until Home is ready");
 requireMarker("v1/paywall-runtime-fix.js", "css-only-system-chrome-v2", "CSS-only TestFlight/status-bar treatment");
 requireMarker("v1/paywall-runtime-fix.js", "ensurePaywallSurface", "visible paywall surface recovery");
+requireMarker("v1/subscription-compliance.js", "subscription-compliance-v1", "App Store subscription compliance module");
+requireMarker("v1/subscription-compliance.js", "Terms of Use (EULA)", "explicit Terms of Use label");
+requireMarker("v1/subscription-compliance.js", "Privacy Policy", "explicit Privacy Policy label");
+requireMarker("v1/subscription-compliance.js", "Apple Standard EULA", "direct Apple standard EULA link");
+requireMarker("v1/subscription-compliance.js", "Gillie Plus Monthly renews monthly", "visible subscription length disclosure");
+requireMarker("v1/subscription-compliance.js", "https://lavish9999.github.io/-Gillie/terms.html", "hosted terms URL");
+requireMarker("v1/subscription-compliance.js", "https://lavish9999.github.io/-Gillie/privacy.html", "hosted privacy URL");
+requireMarker("v1/subscription-compliance.js", "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/", "Apple standard EULA URL");
+requireMarker("terms.html", "Gillie Terms of Use (EULA)", "hosted EULA title");
+requireMarker("terms.html", "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/", "hosted Apple EULA link");
+requireMarker("terms.html", "https://lavish9999.github.io/-Gillie/privacy.html", "hosted privacy link from terms");
 forbidMarker("v1/paywall-runtime-fix.js", "bridge()?.setInterfaceStyle?.(", "native root-view mutation");
 forbidMarker("ios/App/App/GilliePurchasesPlugin.swift", "setInterfaceStyle", "obsolete native interface-style bridge");
 
-console.log("Running focused runtime checks for direct-native checkout, Plus restoration, tank themes, audit regressions, and shell reliability…");
+console.log("Running focused runtime checks for direct-native checkout, Plus restoration, tank themes, audit regressions, subscription compliance, and shell reliability…");
 run(process.execPath, ["scripts/test-purchase-director.js"]);
 run(process.execPath, ["scripts/test-entitlement-sync.js"]);
 run(process.execPath, ["scripts/test-theme-access.js"]);
@@ -108,6 +120,7 @@ for (const relative of [
   "www/v1/launch-experience.js",
   "www/v1/launch-handoff.js",
   "www/v1/paywall-runtime-fix.js",
+  "www/v1/subscription-compliance.js",
 ]) syntaxCheck(relative);
 
 const contracts = [
@@ -135,6 +148,11 @@ const contracts = [
   ["www/v1/launch-handoff.js", "gillie-hatch-handoff-active", "generated hatch coverage until Home is ready"],
   ["www/v1/paywall-runtime-fix.js", "css-only-system-chrome-v2", "safe paywall chrome"],
   ["www/v1/paywall-runtime-fix.js", "ensurePaywallSurface", "visible paywall guard"],
+  ["www/v1/subscription-compliance.js", "subscription-compliance-v1", "generated subscription compliance module"],
+  ["www/v1/subscription-compliance.js", "Terms of Use (EULA)", "generated Terms of Use link"],
+  ["www/v1/subscription-compliance.js", "Privacy Policy", "generated Privacy Policy link"],
+  ["www/v1/subscription-compliance.js", "Apple Standard EULA", "generated Apple EULA link"],
+  ["www/v1/subscription-compliance.js", "Gillie Plus Monthly renews monthly", "generated renewal disclosure"],
   ["ios/App/App/GilliePurchasesPlugin.swift", "purchase_selected_lookup_started_native", "selected-product native lookup"],
   ["ios/App/App/GilliePurchasesPlugin.swift", "purchase_sheet_requested_native", "Apple-sheet request event"],
   ["ios/App/App/GilliePurchasesPlugin.swift", "selected-product-direct-v1", "native direct checkout mode"],
@@ -143,6 +161,7 @@ const contracts = [
   ["ios/App/App/GilliePurchasesPlugin.swift", "Transaction.currentEntitlements", "verified entitlement lookup"],
   ["www/index.html", 'data-gillie-v1-purchase-director="true"', "checkout director injection"],
   ["www/index.html", 'data-gillie-v1-theme-paint="true"', "theme painter injection"],
+  ["www/index.html", 'data-gillie-v1-subscription-compliance="true"', "subscription compliance injection"],
   ["www/v1/build-source.json", '"checkoutEngine": "purchase-director-v2-direct-native"', "checkout provenance"],
   ["www/v1/build-source.json", '"checkoutMode": "selected-product-direct-to-storekit-v1"', "checkout-mode provenance"],
   ["www/v1/build-source.json", '"nativeStoreKitLoader": "selected-product-only-retry-v1"', "native loader provenance"],
@@ -172,6 +191,7 @@ for (const relative of [
   "launch-handoff.js",
   "paywall-runtime-fix.js",
   "paywall-runtime-fix.css",
+  "subscription-compliance.js",
 ]) {
   if (read(`v1/${relative}`) !== read(`www/v1/${relative}`)) {
     throw new Error(`Generated asset does not match source: v1/${relative}`);
@@ -179,4 +199,4 @@ for (const relative of [
 }
 
 run(process.execPath, ["scripts/verify-final-web-assets.js", "www"]);
-console.log("Release-critical validation passed: first launch waits for a user tap, hatch completion transitions directly into Home, destructive reset clears locally in two stages, bottom navigation self-recovers, checkout bypasses pricing, and signed assets match source.");
+console.log("Release-critical validation passed: first launch waits for a user tap, hatch completion transitions directly into Home, subscription terms and privacy links are explicit and functional, destructive reset clears locally in two stages, bottom navigation self-recovers, checkout bypasses pricing, and signed assets match source.");
