@@ -18,11 +18,12 @@ const assets = [
   "v1/launch-experience.js",
   "v1/launch-handoff.js",
   "v1/paywall-runtime-fix.js",
+  "v1/subscription-compliance.js",
   "v1/purchase-director.js",
 ];
 
 if (!fs.existsSync(indexPath)) {
-  throw new Error("Launch, SOS support, direct native Plus checkout, entitlement sync, theme access, and theme paint injection requires www/index.html.");
+  throw new Error("Launch, SOS support, subscription compliance, direct native Plus checkout, entitlement sync, theme access, and theme paint injection requires www/index.html.");
 }
 
 for (const asset of assets) {
@@ -52,6 +53,7 @@ const injection = `${marker}
 <script src="./v1/launch-experience.js" defer data-gillie-v1-launch-experience="true"></script>
 <script src="./v1/launch-handoff.js" defer data-gillie-v1-launch-handoff="true"></script>
 <script src="./v1/paywall-runtime-fix.js" defer data-gillie-v1-paywall-runtime-fix="true"></script>
+<script src="./v1/subscription-compliance.js" defer data-gillie-v1-subscription-compliance="true"></script>
 <script src="./v1/purchase-director.js" defer data-gillie-v1-purchase-director="true"></script>`;
 
 if (html.includes(themeMarker) && !html.includes(marker)) {
@@ -90,6 +92,7 @@ for (const markerText of [
   'data-gillie-v1-launch-experience="true"',
   'data-gillie-v1-launch-handoff="true"',
   'data-gillie-v1-paywall-runtime-fix="true"',
+  'data-gillie-v1-subscription-compliance="true"',
   'data-gillie-v1-purchase-director="true"',
 ]) {
   if (!html.includes(markerText)) throw new Error(`Generated index is missing launch/support marker: ${markerText}`);
@@ -106,6 +109,7 @@ const themePaint = fs.readFileSync(path.join(out, "v1", "theme-paint.js"), "utf8
 const launchExperience = fs.readFileSync(path.join(out, "v1", "launch-experience.js"), "utf8");
 const launchHandoff = fs.readFileSync(path.join(out, "v1", "launch-handoff.js"), "utf8");
 const paywallRuntime = fs.readFileSync(path.join(out, "v1", "paywall-runtime-fix.js"), "utf8");
+const subscriptionCompliance = fs.readFileSync(path.join(out, "v1", "subscription-compliance.js"), "utf8");
 const launchStyles = fs.readFileSync(path.join(out, "v1", "launch-experience.css"), "utf8");
 const paywallStyles = fs.readFileSync(path.join(out, "v1", "paywall-runtime-fix.css"), "utf8");
 for (const required of ["1-800-QUIT-NOW", "QUITNOW to 333888", "smokefree.gov", "Message someone I trust"]) {
@@ -191,6 +195,19 @@ if (paywallRuntime.includes("bridge()?.setInterfaceStyle?.(")) {
   throw new Error("Generated paywall runtime still calls the native interface-style bridge that covers the Capacitor WebView.");
 }
 new Function(paywallRuntime);
+for (const required of [
+  "subscription-compliance-v1",
+  "Terms of Use (EULA)",
+  "Privacy Policy",
+  "Apple Standard EULA",
+  "Gillie Plus Monthly renews monthly",
+  "https://lavish9999.github.io/-Gillie/terms.html",
+  "https://lavish9999.github.io/-Gillie/privacy.html",
+  "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/",
+]) {
+  if (!subscriptionCompliance.includes(required)) throw new Error(`Generated subscription compliance module is missing marker: ${required}`);
+}
+new Function(subscriptionCompliance);
 for (const required of [".gillie-launch-intro", ".gillie-rating-overlay", "gillieLaunchSwimIn", "prefers-reduced-motion"]) {
   if (!launchStyles.includes(required)) throw new Error(`Generated launch styles are missing marker: ${required}`);
 }
@@ -199,4 +216,4 @@ for (const required of ["--gp-system-top", ".gp-store-health", "safe-area-inset-
 }
 
 fs.writeFileSync(indexPath, html, "utf8");
-console.log("Injected one animated launch, direct native Plus checkout, CSS-only safe chrome, entitlement sync, working themes, and Reef rewards.");
+console.log("Injected one animated launch, explicit subscription legal compliance, direct native Plus checkout, CSS-only safe chrome, entitlement sync, working themes, and Reef rewards.");
