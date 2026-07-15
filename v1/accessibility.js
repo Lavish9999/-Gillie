@@ -50,6 +50,7 @@
     focusableSelector: FOCUSABLE,
     normalizeViewportContent,
     isDialogVisiblyOpen,
+    nativeInertDisabled: true,
   });
 
   window.GillieV1?.register("accessibility", ({ qs, qsa, afterRender, track }) => {
@@ -59,6 +60,7 @@
     let activeOverlay = null;
     let returnFocus = null;
     let syncTimer = 0;
+    let inertObserver = null;
 
     function visibleOverlays() {
       return qsa(".overlay").filter(isDialogVisiblyOpen);
@@ -117,30 +119,43 @@
       else element.removeAttribute("inert");
     }
 
-    function setBackgroundInert(inert) {
-      const main = qs("#main");
-
-      // Never inert the entire main shell. The bottom navigation is inside it,
-      // and a stale ancestor inert attribute makes every tab permanently
-      // untappable. Modal isolation belongs on the content surfaces instead.
-      if (main) setElementInert(main, false);
-
+    function clearLegacyInert() {
       const surfaces = [
+        qs("#main"),
         ...qsa("#main .view"),
+        ...qsa("#main [inert]"),
+        qs("#tabs"),
+        ...qsa("#tabs button[data-view]"),
         qs("#sos-fab"),
         qs("#onboarding"),
       ].filter(Boolean);
-      surfaces.forEach((surface) => setElementInert(surface, inert));
+
+      // Native inert proved unsafe inside the Capacitor WebView: a stale flag on
+      // Progress makes every visible control ignore touch. Hidden views and the
+      // full-screen overlay already provide pointer isolation, while the focus
+      // trap below preserves keyboard and VoiceOver dialog behavior.
+      surfaces.forEach((surface) => setElementInert(surface, false));
+    }
+
+    function setBackgroundInert(dialogOpen) {
+      clearLegacyInert();
+      document.documentElement.dataset.gillieDialogOpen = dialogOpen ? "true" : "false";
 
       const tabs = qs("#tabs");
       if (tabs) {
-        setElementInert(tabs, false);
-        tabs.setAttribute("aria-hidden", inert ? "true" : "false");
+        tabs.setAttribute("aria-hidden", "false");
         qsa("button[data-view]", tabs).forEach((button) => {
           button.disabled = false;
           setElementInert(button, false);
         });
       }
+    }
+
+    function installInertRecovery() {
+      const main = qs("#main");
+      if (!main || inertObserver || typeof MutationObserver !== "function") return;
+      inertObserver = new MutationObserver(() => clearLegacyInert());
+      inertObserver.observe(main, { attributes: true, subtree: true, attributeFilter: ["inert"] });
     }
 
     function focusableIn(overlay) {
@@ -266,6 +281,8 @@
 
     afterRender(() => scheduleSync());
     enhanceStaticAccessibility();
+    clearLegacyInert();
+    installInertRecovery();
     scheduleSync();
   });
 })();
