@@ -29,9 +29,11 @@ assert(accessibility, "Accessibility API was not exposed");
 assert.strictEqual(accessibility.engine, "accessibility-v1");
 assert(accessibility.focusableSelector.includes("button:not([disabled])"));
 assert.strictEqual(typeof accessibility.isDialogVisiblyOpen, "function");
-assert(source.includes('...qsa("#main .view")'), "Dialog isolation no longer targets individual content views");
-assert(source.includes('if (main) setElementInert(main, false)'), "Main-shell stale inert recovery is missing");
-assert(source.includes('setElementInert(tabs, false)'), "Bottom navigation can still become inert");
+assert.strictEqual(accessibility.nativeInertDisabled, true, "Native inert must stay disabled in the Capacitor shell");
+assert(source.includes("function clearLegacyInert()"), "Stale inert recovery is missing");
+assert(source.includes("installInertRecovery()"), "The inert mutation recovery guard is missing");
+assert(source.includes("surfaces.forEach((surface) => setElementInert(surface, false))"), "Progress surfaces are not force-unlocked");
+assert(!source.includes("surfaces.forEach((surface) => setElementInert(surface, inert))"), "Dialog refresh can still disable the entire Progress screen");
 assert(!source.includes('[qs("#main"), qs("#onboarding")]'), "The entire main shell is still placed inside dialog inert scope");
 
 const normalized = accessibility.normalizeViewportContent(
@@ -74,4 +76,4 @@ assert.strictEqual(accessibility.isDialogVisiblyOpen(dialog({ style: { pointerEv
 assert.strictEqual(accessibility.isDialogVisiblyOpen(dialog({ style: { opacity: "0" } })), false, "Transparent dialog was treated as blocking");
 assert.strictEqual(accessibility.isDialogVisiblyOpen(dialog({ width: 0, height: 0 })), false, "Collapsed dialog was treated as blocking");
 
-console.log("Accessibility test passed: dialogs isolate content without ever disabling Gillie's bottom navigation.");
+console.log("Accessibility test passed: dialogs keep focus isolation without allowing native inert to disable Progress interactions.");
