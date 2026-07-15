@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const ENGINE = "accessibility-v1";
+  const ENGINE = "accessibility-v1.1-nav-safe";
   const FOCUSABLE = [
     "button:not([disabled])",
     "a[href]",
@@ -110,12 +110,37 @@
       qsa(".overlay").forEach(enhanceOverlay);
     }
 
+    function setElementInert(element, inert) {
+      if (!element) return;
+      try { element.inert = inert; } catch (_) {}
+      if (inert) element.setAttribute("inert", "");
+      else element.removeAttribute("inert");
+    }
+
     function setBackgroundInert(inert) {
-      [qs("#main"), qs("#onboarding")].filter(Boolean).forEach((surface) => {
-        try { surface.inert = inert; } catch (_) {}
-        if (inert) surface.setAttribute("inert", "");
-        else surface.removeAttribute("inert");
-      });
+      const main = qs("#main");
+
+      // Never inert the entire main shell. The bottom navigation is inside it,
+      // and a stale ancestor inert attribute makes every tab permanently
+      // untappable. Modal isolation belongs on the content surfaces instead.
+      if (main) setElementInert(main, false);
+
+      const surfaces = [
+        ...qsa("#main .view"),
+        qs("#sos-fab"),
+        qs("#onboarding"),
+      ].filter(Boolean);
+      surfaces.forEach((surface) => setElementInert(surface, inert));
+
+      const tabs = qs("#tabs");
+      if (tabs) {
+        setElementInert(tabs, false);
+        tabs.setAttribute("aria-hidden", inert ? "true" : "false");
+        qsa("button[data-view]", tabs).forEach((button) => {
+          button.disabled = false;
+          setElementInert(button, false);
+        });
+      }
     }
 
     function focusableIn(overlay) {
@@ -164,9 +189,8 @@
         return;
       }
 
-      // A prior dialog implementation may leave #main inert even after its
-      // overlay is visually gone. Always reconcile the shell to the actual
-      // visible-dialog state so bottom navigation cannot become untappable.
+      // Always reconcile the shell, even when no locally tracked dialog
+      // transition occurred. This clears stale inert state from older layers.
       if (!next) {
         setBackgroundInert(false);
         return;
