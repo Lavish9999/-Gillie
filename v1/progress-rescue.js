@@ -1,17 +1,14 @@
-/* Gillie Progress Rescue — last-loaded, device-safe Progress interaction controller. */
+/* Gillie Progress Rescue — nav-safe Progress controls and dialogs. */
 (() => {
   "use strict";
 
-  const ENGINE = "progress-rescue-v2-dialogs";
+  const ENGINE = "progress-rescue-v3-nav-safe";
   if (window.__gillieProgressRescueInstalled) return;
   window.__gillieProgressRescueInstalled = true;
 
   const $ = (selector, root = document) => root?.querySelector?.(selector) || null;
   const $$ = (selector, root = document) => Array.from(root?.querySelectorAll?.(selector) || []);
-  const ACTION_SELECTOR = "button,summary,[role='button'],a[href]";
-  let syntheticActivation = false;
   let repairQueued = false;
-  let lastHandledAt = 0;
 
   function appState() {
     try { return typeof state !== "undefined" ? state : null; }
@@ -35,21 +32,10 @@
     element.removeAttribute?.("inert");
   }
 
-  function openOverlays() {
-    return $$(".overlay").filter((overlay) => !overlay.hidden);
-  }
-
-  function realDialogOpen() {
-    return openOverlays().length > 0
-      || Boolean($("#pv-plus-welcome:not([hidden])"))
-      || Boolean($(".gillie-rating-overlay:not([hidden])"));
-  }
-
   function openDialogSurface(overlay) {
     if (!overlay) return false;
     clearInert(overlay);
     overlay.hidden = false;
-    overlay.removeAttribute("inert");
     overlay.setAttribute("aria-hidden", "false");
     overlay.style.removeProperty("display");
     overlay.style.removeProperty("visibility");
@@ -63,11 +49,7 @@
   function repairInteractionSurface() {
     repairQueued = false;
     const view = progressView();
-    if (!view) return;
-
-    const selected = progressIsSelected();
-    document.documentElement.dataset.progressRescueActive = selected ? "true" : "false";
-    if (!selected) return;
+    if (!view || !progressIsSelected()) return;
 
     const main = $("#main");
     const tabs = $("#tabs");
@@ -91,7 +73,6 @@
 
     $$(".overlay").forEach((overlay) => {
       if (overlay.hidden) {
-        overlay.setAttribute("aria-hidden", "true");
         overlay.style.removeProperty("pointer-events");
         return;
       }
@@ -99,10 +80,6 @@
       overlay.setAttribute("aria-hidden", "false");
       overlay.style.setProperty("pointer-events", "auto", "important");
     });
-
-    const hasOpenOverlay = openOverlays().length > 0;
-    document.body.classList.toggle("sheet-open", hasOpenOverlay);
-    document.documentElement.dataset.gillieDialogOpen = hasOpenOverlay ? "true" : "false";
   }
 
   function queueRepair() {
@@ -117,8 +94,12 @@
     style.id = "progress-rescue-style";
     style.textContent = `
       #view-progress[data-progress-rescue="${ENGINE}"]{pointer-events:auto!important;touch-action:pan-y!important;isolation:isolate}
-      #view-progress[data-progress-rescue="${ENGINE}"]::before,#view-progress[data-progress-rescue="${ENGINE}"]::after{pointer-events:none!important}
-      #view-progress[data-progress-rescue="${ENGINE}"] button,#view-progress[data-progress-rescue="${ENGINE}"] summary,#view-progress[data-progress-rescue="${ENGINE}"] [role="button"],#view-progress[data-progress-rescue="${ENGINE}"] a[href]{pointer-events:auto!important;touch-action:manipulation!important}
+      #view-progress[data-progress-rescue="${ENGINE}"]::before,
+      #view-progress[data-progress-rescue="${ENGINE}"]::after{pointer-events:none!important}
+      #view-progress[data-progress-rescue="${ENGINE}"] button,
+      #view-progress[data-progress-rescue="${ENGINE}"] summary,
+      #view-progress[data-progress-rescue="${ENGINE}"] [role="button"],
+      #view-progress[data-progress-rescue="${ENGINE}"] a[href]{pointer-events:auto!important;touch-action:manipulation!important}
       #progress-rescue-actions{position:relative;z-index:55;margin:12px 0 14px;padding:14px;border:1px solid rgba(17,51,47,.09);border-radius:18px;background:rgba(255,255,255,.94);box-shadow:0 8px 22px rgba(17,51,47,.07)}
       #progress-rescue-actions .progress-rescue-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
       #progress-rescue-actions .progress-rescue-head b{font-size:14px;color:var(--ink)}
@@ -142,7 +123,7 @@
       panel.id = "progress-rescue-actions";
       panel.setAttribute("aria-label", "Progress quick actions");
       panel.innerHTML = `
-        <div class="progress-rescue-head"><b>Progress tools</b><small>CONTROLS V3</small></div>
+        <div class="progress-rescue-head"><b>Progress tools</b><small>CONTROLS V4</small></div>
         <div class="progress-rescue-buttons">
           <button type="button" data-progress-rescue-action="checkin">Check in</button>
           <button type="button" data-progress-rescue-action="sos">Craving SOS</button>
@@ -151,7 +132,7 @@
       $(".stat-row", view)?.insertAdjacentElement("afterend", panel);
     } else {
       const badge = $(".progress-rescue-head small", panel);
-      if (badge) badge.textContent = "CONTROLS V3";
+      if (badge) badge.textContent = "CONTROLS V4";
     }
   }
 
@@ -171,26 +152,6 @@
     }
   }
 
-  function activateNative(element) {
-    if (!element) return;
-    syntheticActivation = true;
-    try {
-      if (element.tagName === "SUMMARY") {
-        const details = element.closest("details");
-        if (details) details.open = !details.open;
-      } else {
-        HTMLElement.prototype.click.call(element);
-      }
-    } catch (_) {
-      invokePropertyHandler(element);
-    } finally {
-      queueMicrotask(() => {
-        syntheticActivation = false;
-        queueRepair();
-      });
-    }
-  }
-
   function openCheckinDirect() {
     const trigger = $("#checkin-open");
     const overlay = $("#checkin-overlay");
@@ -199,7 +160,6 @@
       invokePropertyHandler(trigger);
     }
     openDialogSurface(overlay);
-    queueRepair();
   }
 
   function openSosDirect() {
@@ -216,7 +176,6 @@
     } catch (_) {}
     if (!opened) invokePropertyHandler($("#sos-fab"));
     openDialogSurface(overlay);
-    queueRepair();
   }
 
   function openPlusDirect() {
@@ -233,7 +192,6 @@
     } catch (_) {}
     if (!opened) invokePropertyHandler($("#plus-open"));
     openDialogSurface(overlay);
-    queueRepair();
   }
 
   async function shareProgress() {
@@ -252,55 +210,31 @@
     } catch (_) {}
   }
 
-  function runRescueAction(action) {
+  function runAction(action) {
     if (action === "checkin") return openCheckinDirect();
     if (action === "sos") return openSosDirect();
     if (action === "share") return shareProgress();
     if (action === "plus") return openPlusDirect();
   }
 
-  function actionAtPoint(target, clientX, clientY) {
+  function installProgressOnlyRouting() {
     const view = progressView();
-    if (!view) return null;
-    const direct = target?.closest?.(ACTION_SELECTOR);
-    if (direct && view.contains(direct)) return direct;
-    if (!Number.isFinite(clientX) || !Number.isFinite(clientY) || typeof document.elementsFromPoint !== "function") return null;
-    for (const node of document.elementsFromPoint(clientX, clientY)) {
-      const candidate = node?.closest?.(ACTION_SELECTOR);
-      if (candidate && view.contains(candidate)) return candidate;
-    }
-    return null;
-  }
+    if (!view || view.dataset.progressRescueRouting === ENGINE) return;
+    view.dataset.progressRescueRouting = ENGINE;
 
-  function handleProgressPress(event, clientX = event.clientX, clientY = event.clientY) {
-    if (syntheticActivation || !progressIsSelected() || realDialogOpen()) return;
-    const now = Date.now();
-    if (now - lastHandledAt < 180) return;
-    const element = actionAtPoint(event.target, clientX, clientY);
-    if (!element) return;
+    view.addEventListener("click", (event) => {
+      const button = event.target?.closest?.("button");
+      if (!button || !view.contains(button)) return;
 
-    let action = element.dataset?.progressRescueAction || null;
-    if (element.matches('[data-ship-progress="checkin"],[data-v1-progress="checkin"]')) action = "checkin";
-    if (element.matches('[data-ship-progress="sos"],[data-v1-progress="sos"]')) action = "sos";
-    if (element.matches("[data-plus-weekly-unlock]")) action = "plus";
+      let action = button.dataset?.progressRescueAction || null;
+      if (button.matches('[data-ship-progress="checkin"],[data-v1-progress="checkin"]')) action = "checkin";
+      if (button.matches('[data-ship-progress="sos"],[data-v1-progress="sos"]')) action = "sos";
+      if (button.matches("[data-plus-weekly-unlock]")) action = "plus";
+      if (!action) return;
 
-    event.preventDefault?.();
-    event.stopImmediatePropagation?.();
-    lastHandledAt = now;
-    if (action) runRescueAction(action);
-    else activateNative(element);
-  }
-
-  function installPressRouting() {
-    document.addEventListener("pointerup", (event) => handleProgressPress(event), true);
-    document.addEventListener("touchend", (event) => {
-      if (window.PointerEvent || !event.changedTouches?.length) return;
-      const touch = event.changedTouches[0];
-      handleProgressPress(event, touch.clientX, touch.clientY);
-    }, { capture: true, passive: false });
-    document.addEventListener("click", (event) => {
-      if (syntheticActivation || Date.now() - lastHandledAt < 420) return;
-      handleProgressPress(event);
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      runAction(action);
     }, true);
   }
 
@@ -309,6 +243,7 @@
       if (!event.target?.closest?.('button[data-view="progress"]')) return;
       [0, 40, 160, 420].forEach((delay) => setTimeout(() => {
         ensureActionPanel();
+        installProgressOnlyRouting();
         queueRepair();
       }, delay));
     }, true);
@@ -318,21 +253,16 @@
     });
     window.addEventListener("pageshow", queueRepair);
 
-    const main = $("#main");
-    if (main && typeof MutationObserver === "function") {
-      new MutationObserver(() => {
-        if (progressIsSelected()) queueRepair();
-      }).observe(main, { attributes: true, subtree: true, attributeFilter: ["inert", "hidden", "style"] });
-    }
-
     window.GillieV1?.afterRender?.(() => {
       ensureActionPanel();
+      installProgressOnlyRouting();
       if (progressIsSelected()) queueRepair();
     });
 
     setInterval(() => {
       if (!progressIsSelected()) return;
       ensureActionPanel();
+      installProgressOnlyRouting();
       repairInteractionSurface();
     }, 1000);
   }
@@ -340,11 +270,12 @@
   function install() {
     ensureStyles();
     ensureActionPanel();
-    installPressRouting();
+    installProgressOnlyRouting();
     installRecoveryHooks();
     document.documentElement.dataset.gillieProgressEngine = ENGINE;
     [0, 50, 250, 700].forEach((delay) => setTimeout(() => {
       ensureActionPanel();
+      installProgressOnlyRouting();
       if (progressIsSelected()) queueRepair();
     }, delay));
   }
