@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const ENGINE = "accessibility-v1.1-nav-safe";
+  const ENGINE = "accessibility-v1";
   const FOCUSABLE = [
     "button:not([disabled])",
     "a[href]",
