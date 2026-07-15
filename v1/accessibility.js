@@ -24,10 +24,32 @@
     return parts.join(", ");
   }
 
+  function isDialogVisiblyOpen(overlay) {
+    if (!overlay || overlay.hidden) return false;
+
+    let style = null;
+    try {
+      if (typeof getComputedStyle === "function") style = getComputedStyle(overlay);
+    } catch (_) {}
+
+    if (style) {
+      if (style.display === "none" || style.visibility === "hidden" || style.pointerEvents === "none") return false;
+      if (Number.parseFloat(style.opacity || "1") <= 0.02) return false;
+    }
+
+    try {
+      const rect = overlay.getBoundingClientRect?.();
+      if (rect && (rect.width <= 1 || rect.height <= 1)) return false;
+    } catch (_) {}
+
+    return true;
+  }
+
   window.GillieAccessibility = Object.freeze({
     engine: ENGINE,
     focusableSelector: FOCUSABLE,
     normalizeViewportContent,
+    isDialogVisiblyOpen,
   });
 
   window.GillieV1?.register("accessibility", ({ qs, qsa, afterRender, track }) => {
@@ -39,7 +61,7 @@
     let syncTimer = 0;
 
     function visibleOverlays() {
-      return qsa(".overlay").filter((overlay) => !overlay.hidden && getComputedStyle(overlay).display !== "none");
+      return qsa(".overlay").filter(isDialogVisiblyOpen);
     }
 
     function currentOverlay() {
@@ -142,11 +164,17 @@
         return;
       }
 
-      if (next) {
-        activeOverlay = next;
-        enhanceOverlay(next);
-        setBackgroundInert(true);
+      // A prior dialog implementation may leave #main inert even after its
+      // overlay is visually gone. Always reconcile the shell to the actual
+      // visible-dialog state so bottom navigation cannot become untappable.
+      if (!next) {
+        setBackgroundInert(false);
+        return;
       }
+
+      activeOverlay = next;
+      enhanceOverlay(next);
+      setBackgroundInert(true);
     }
 
     function scheduleSync(trigger = null) {
