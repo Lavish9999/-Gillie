@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const ENGINE = "progress-rescue-v1";
+  const ENGINE = "progress-rescue-v2-dialogs";
   if (window.__gillieProgressRescueInstalled) return;
   window.__gillieProgressRescueInstalled = true;
 
@@ -29,31 +29,35 @@
     return Boolean(tab?.classList.contains("on") || window.GillieV1?.activeView === "progress");
   }
 
-  function visiblyOpenDialog(overlay) {
-    if (!overlay || overlay.hidden) return false;
-    let style = null;
-    try { style = getComputedStyle(overlay); } catch (_) {}
-    if (style) {
-      if (style.display === "none" || style.visibility === "hidden" || style.pointerEvents === "none") return false;
-      if (Number.parseFloat(style.opacity || "1") <= 0.02) return false;
-    }
-    try {
-      const rect = overlay.getBoundingClientRect();
-      if (rect.width <= 1 || rect.height <= 1) return false;
-    } catch (_) {}
-    return true;
-  }
-
-  function realDialogOpen() {
-    return $$(".overlay").some(visiblyOpenDialog)
-      || Boolean($("#pv-plus-welcome:not([hidden])"))
-      || Boolean($(".gillie-rating-overlay:not([hidden])"));
-  }
-
   function clearInert(element) {
     if (!element) return;
     try { element.inert = false; } catch (_) {}
     element.removeAttribute?.("inert");
+  }
+
+  function openOverlays() {
+    return $$(".overlay").filter((overlay) => !overlay.hidden);
+  }
+
+  function realDialogOpen() {
+    return openOverlays().length > 0
+      || Boolean($("#pv-plus-welcome:not([hidden])"))
+      || Boolean($(".gillie-rating-overlay:not([hidden])"));
+  }
+
+  function openDialogSurface(overlay) {
+    if (!overlay) return false;
+    clearInert(overlay);
+    overlay.hidden = false;
+    overlay.removeAttribute("inert");
+    overlay.setAttribute("aria-hidden", "false");
+    overlay.style.removeProperty("display");
+    overlay.style.removeProperty("visibility");
+    overlay.style.removeProperty("opacity");
+    overlay.style.setProperty("pointer-events", "auto", "important");
+    document.body.classList.add("sheet-open");
+    document.documentElement.dataset.gillieDialogOpen = "true";
+    return true;
   }
 
   function repairInteractionSurface() {
@@ -86,17 +90,19 @@
     });
 
     $$(".overlay").forEach((overlay) => {
-      if (visiblyOpenDialog(overlay)) {
+      if (overlay.hidden) {
+        overlay.setAttribute("aria-hidden", "true");
         overlay.style.removeProperty("pointer-events");
-        overlay.setAttribute("aria-hidden", "false");
         return;
       }
-      overlay.style.setProperty("pointer-events", "none", "important");
-      overlay.setAttribute("aria-hidden", "true");
-      if (!overlay.hidden) overlay.hidden = true;
+      clearInert(overlay);
+      overlay.setAttribute("aria-hidden", "false");
+      overlay.style.setProperty("pointer-events", "auto", "important");
     });
 
-    document.body.classList.toggle("sheet-open", $$(".overlay").some(visiblyOpenDialog));
+    const hasOpenOverlay = openOverlays().length > 0;
+    document.body.classList.toggle("sheet-open", hasOpenOverlay);
+    document.documentElement.dataset.gillieDialogOpen = hasOpenOverlay ? "true" : "false";
   }
 
   function queueRepair() {
@@ -129,18 +135,24 @@
 
   function ensureActionPanel() {
     const view = progressView();
-    if (!view || $("#progress-rescue-actions", view)) return;
-    const panel = document.createElement("section");
-    panel.id = "progress-rescue-actions";
-    panel.setAttribute("aria-label", "Progress quick actions");
-    panel.innerHTML = `
-      <div class="progress-rescue-head"><b>Progress tools</b><small>CONTROLS V2</small></div>
-      <div class="progress-rescue-buttons">
-        <button type="button" data-progress-rescue-action="checkin">Check in</button>
-        <button type="button" data-progress-rescue-action="sos">Craving SOS</button>
-        <button type="button" data-progress-rescue-action="share">Share</button>
-      </div>`;
-    $(".stat-row", view)?.insertAdjacentElement("afterend", panel);
+    if (!view) return;
+    let panel = $("#progress-rescue-actions", view);
+    if (!panel) {
+      panel = document.createElement("section");
+      panel.id = "progress-rescue-actions";
+      panel.setAttribute("aria-label", "Progress quick actions");
+      panel.innerHTML = `
+        <div class="progress-rescue-head"><b>Progress tools</b><small>CONTROLS V3</small></div>
+        <div class="progress-rescue-buttons">
+          <button type="button" data-progress-rescue-action="checkin">Check in</button>
+          <button type="button" data-progress-rescue-action="sos">Craving SOS</button>
+          <button type="button" data-progress-rescue-action="share">Share</button>
+        </div>`;
+      $(".stat-row", view)?.insertAdjacentElement("afterend", panel);
+    } else {
+      const badge = $(".progress-rescue-head small", panel);
+      if (badge) badge.textContent = "CONTROLS V3";
+    }
   }
 
   function invokePropertyHandler(element) {
@@ -179,19 +191,49 @@
     }
   }
 
-  function openOverlayFromTrigger(triggerId, overlayId) {
-    const trigger = $(triggerId);
-    const overlay = $(overlayId);
-    const invoked = invokePropertyHandler(trigger);
-    if (!invoked && trigger) {
-      syntheticActivation = true;
-      try { HTMLElement.prototype.click.call(trigger); } catch (_) {}
-      syntheticActivation = false;
+  function openCheckinDirect() {
+    const trigger = $("#checkin-open");
+    const overlay = $("#checkin-overlay");
+    if (trigger) {
+      try { trigger.disabled = false; } catch (_) {}
+      invokePropertyHandler(trigger);
     }
-    setTimeout(() => {
-      if (overlay && overlay.hidden) overlay.hidden = false;
-      try { if (typeof syncOverlayLock === "function") syncOverlayLock(); } catch (_) {}
-    }, 0);
+    openDialogSurface(overlay);
+    queueRepair();
+  }
+
+  function openSosDirect() {
+    const overlay = $("#sos-overlay");
+    let opened = false;
+    try {
+      if (typeof window.openSOS === "function") {
+        window.openSOS();
+        opened = true;
+      } else if (typeof openSOS === "function") {
+        openSOS();
+        opened = true;
+      }
+    } catch (_) {}
+    if (!opened) invokePropertyHandler($("#sos-fab"));
+    openDialogSurface(overlay);
+    queueRepair();
+  }
+
+  function openPlusDirect() {
+    const overlay = $("#plus-overlay");
+    let opened = false;
+    try {
+      if (typeof window.openPlus === "function") {
+        window.openPlus();
+        opened = true;
+      } else if (typeof openPlus === "function") {
+        openPlus();
+        opened = true;
+      }
+    } catch (_) {}
+    if (!opened) invokePropertyHandler($("#plus-open"));
+    openDialogSurface(overlay);
+    queueRepair();
   }
 
   async function shareProgress() {
@@ -211,10 +253,10 @@
   }
 
   function runRescueAction(action) {
-    if (action === "checkin") return openOverlayFromTrigger("#checkin-open", "#checkin-overlay");
-    if (action === "sos") return openOverlayFromTrigger("#sos-fab", "#sos-overlay");
+    if (action === "checkin") return openCheckinDirect();
+    if (action === "sos") return openSosDirect();
     if (action === "share") return shareProgress();
-    if (action === "plus") return openOverlayFromTrigger("#plus-open", "#plus-overlay");
+    if (action === "plus") return openPlusDirect();
   }
 
   function actionAtPoint(target, clientX, clientY) {
