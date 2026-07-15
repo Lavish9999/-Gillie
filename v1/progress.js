@@ -38,7 +38,18 @@
       return qsa(".section-h", view).find((node) => node.textContent.trim().toLowerCase() === text.toLowerCase()) || null;
     }
 
+    function unlockProgressInteractions() {
+      const surfaces = [view, ...qsa("[inert]", view)];
+      surfaces.forEach((surface) => {
+        try { surface.inert = false; } catch (_) {}
+        surface.removeAttribute?.("inert");
+      });
+      view.style?.setProperty?.("pointer-events", "auto", "important");
+      view.dataset.v1ProgressInteractive = "true";
+    }
+
     function render() {
+      unlockProgressInteractions();
       const current = getState();
       if (!current) return;
 
@@ -100,13 +111,21 @@
 
       sectionHeading("Recent check-ins")?.removeAttribute("hidden");
       qs("#checkin-log", view)?.removeAttribute("hidden");
+      unlockProgressInteractions();
     }
 
     afterRender(render);
     render();
     qs('#tabs [data-view="progress"]')?.addEventListener("click", () => {
-      setTimeout(render, 40);
-      setTimeout(render, 220);
+      unlockProgressInteractions();
+      setTimeout(() => {
+        unlockProgressInteractions();
+        render();
+      }, 40);
+      setTimeout(() => {
+        unlockProgressInteractions();
+        render();
+      }, 220);
       track("progress_opened_v1");
     });
   });
