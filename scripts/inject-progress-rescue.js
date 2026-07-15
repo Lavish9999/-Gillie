@@ -6,8 +6,11 @@ const out = path.join(root, "www");
 const indexPath = path.join(out, "index.html");
 const sourcePath = path.join(root, "v1", "progress-rescue.js");
 const targetPath = path.join(out, "v1", "progress-rescue.js");
+const followupSourcePath = path.join(root, "v1", "followup-rescue.js");
+const followupTargetPath = path.join(out, "v1", "followup-rescue.js");
 const PLUS_VALUE_TAG = '<script src="./v1/plus-value.js" defer data-gillie-v1-plus-value="true"></script>';
 const SCRIPT_TAG = '<script src="./v1/progress-rescue.js" defer data-gillie-v1-progress-rescue="true"></script>';
+const FOLLOWUP_TAG = '<script src="./v1/followup-rescue.js" defer data-gillie-v1-followup-rescue="true"></script>';
 const ENGINE = "interaction-director-v6-dialog-safe";
 
 if (!fs.existsSync(indexPath)) {
@@ -16,15 +19,22 @@ if (!fs.existsSync(indexPath)) {
 if (!fs.existsSync(sourcePath)) {
   throw new Error("Interaction director source is missing: v1/progress-rescue.js");
 }
+if (!fs.existsSync(followupSourcePath)) {
+  throw new Error("Follow-up rescue source is missing: v1/followup-rescue.js");
+}
 
 fs.mkdirSync(path.dirname(targetPath), { recursive: true });
 fs.copyFileSync(sourcePath, targetPath);
+fs.copyFileSync(followupSourcePath, followupTargetPath);
 
 let html = fs.readFileSync(indexPath, "utf8");
 if (!html.includes(SCRIPT_TAG)) {
   if (html.includes(PLUS_VALUE_TAG)) html = html.replace(PLUS_VALUE_TAG, `${PLUS_VALUE_TAG}\n${SCRIPT_TAG}`);
   else if (html.includes("</body>")) html = html.replace("</body>", `${SCRIPT_TAG}\n</body>`);
   else throw new Error("Interaction director injection could not locate a final script insertion point.");
+}
+if (!html.includes(FOLLOWUP_TAG)) {
+  html = html.replace(SCRIPT_TAG, `${SCRIPT_TAG}\n${FOLLOWUP_TAG}`);
 }
 fs.writeFileSync(indexPath, html, "utf8");
 
@@ -63,14 +73,36 @@ for (const forbidden of [
 ]) {
   if (source.includes(forbidden)) throw new Error(`Generated interaction director contains forbidden legacy routing or shell mutation: ${forbidden}`);
 }
+
+const followupSource = fs.readFileSync(followupTargetPath, "utf8");
+for (const marker of [
+  "followup-rescue-v1-ios-direct-routing",
+  "followup-made",
+  "followup-fighting",
+  "followup-used",
+  "fallbackResolve",
+  'window.addEventListener("pointerup"',
+  "GillieFollowupRescue",
+]) {
+  if (!followupSource.includes(marker)) throw new Error(`Generated Follow-up rescue is missing marker: ${marker}`);
+}
+
 if (!html.includes('data-gillie-v1-progress-rescue="true"')) {
   throw new Error("Generated index is missing the final interaction director runtime tag.");
 }
+if (!html.includes('data-gillie-v1-followup-rescue="true"')) {
+  throw new Error("Generated index is missing the final Follow-up rescue runtime tag.");
+}
 const plusIndex = html.indexOf(PLUS_VALUE_TAG);
 const directorIndex = html.indexOf(SCRIPT_TAG);
+const followupIndex = html.indexOf(FOLLOWUP_TAG);
 if (directorIndex < 0 || (plusIndex >= 0 && directorIndex <= plusIndex)) {
   throw new Error("Interaction director is not the final interaction runtime after Plus value and legacy screen modules.");
 }
+if (followupIndex <= directorIndex) {
+  throw new Error("Follow-up rescue must load after the interaction director.");
+}
 
 new Function(source);
-console.log("Injected and validated dialog-safe interaction director for Progress, Check-in, and SOS.");
+new Function(followupSource);
+console.log("Injected and validated dialog-safe interaction routing plus direct iOS craving follow-up actions.");
