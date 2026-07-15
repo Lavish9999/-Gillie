@@ -22,11 +22,10 @@
     return $("#view-progress");
   }
 
-  function progressIsActive() {
+  function progressIsSelected() {
     const view = progressView();
     const tab = $('#tabs button[data-view="progress"]');
-    if (!view || view.hidden) return false;
-    if (view.dataset?.v1Active === "false") return false;
+    if (!view || view.hidden || view.dataset?.v1Active === "false") return false;
     return Boolean(tab?.classList.contains("on") || window.GillieV1?.activeView === "progress");
   }
 
@@ -62,14 +61,16 @@
     const view = progressView();
     if (!view) return;
 
+    const selected = progressIsSelected();
+    document.documentElement.dataset.progressRescueActive = selected ? "true" : "false";
+    if (!selected) return;
+
     const main = $("#main");
     const tabs = $("#tabs");
     [document.documentElement, document.body, $("#app"), main, view, tabs, ...$$('[inert]', main || document), ...$$('#tabs button[data-view]')]
       .filter(Boolean)
       .forEach(clearInert);
 
-    view.hidden = false;
-    view.dataset.v1Active = "true";
     view.dataset.progressRescue = ENGINE;
     view.setAttribute("aria-hidden", "false");
     view.style.setProperty("pointer-events", "auto", "important");
@@ -77,7 +78,9 @@
 
     $$("button,summary,[role='button'],a[href],input,select,textarea", view).forEach((control) => {
       clearInert(control);
-      if ("disabled" in control && !control.matches("[data-progress-disabled='true']")) control.disabled = false;
+      if ("disabled" in control && control.matches("button[data-days],[data-ship-progress],[data-v1-progress],[data-plus-weekly-unlock],#phase2-share-progress,#progress-rescue-actions button")) {
+        control.disabled = false;
+      }
       control.style?.setProperty?.("pointer-events", "auto", "important");
       control.style?.setProperty?.("touch-action", "manipulation", "important");
     });
@@ -93,9 +96,7 @@
       if (!overlay.hidden) overlay.hidden = true;
     });
 
-    const anyOpen = $$(".overlay").some(visiblyOpenDialog);
-    document.body.classList.toggle("sheet-open", anyOpen);
-    document.documentElement.dataset.progressRescueActive = progressIsActive() ? "true" : "false";
+    document.body.classList.toggle("sheet-open", $$(".overlay").some(visiblyOpenDialog));
   }
 
   function queueRepair() {
@@ -109,30 +110,10 @@
     const style = document.createElement("style");
     style.id = "progress-rescue-style";
     style.textContent = `
-      #view-progress[data-progress-rescue="${ENGINE}"]{
-        pointer-events:auto!important;
-        touch-action:pan-y!important;
-        isolation:isolate;
-      }
-      #view-progress[data-progress-rescue="${ENGINE}"]::before,
-      #view-progress[data-progress-rescue="${ENGINE}"]::after{pointer-events:none!important}
-      #view-progress[data-progress-rescue="${ENGINE}"] button,
-      #view-progress[data-progress-rescue="${ENGINE}"] summary,
-      #view-progress[data-progress-rescue="${ENGINE}"] [role="button"],
-      #view-progress[data-progress-rescue="${ENGINE}"] a[href]{
-        pointer-events:auto!important;
-        touch-action:manipulation!important;
-      }
-      #progress-rescue-actions{
-        position:relative;
-        z-index:55;
-        margin:12px 0 14px;
-        padding:14px;
-        border:1px solid rgba(17,51,47,.09);
-        border-radius:18px;
-        background:rgba(255,255,255,.94);
-        box-shadow:0 8px 22px rgba(17,51,47,.07);
-      }
+      #view-progress[data-progress-rescue="${ENGINE}"]{pointer-events:auto!important;touch-action:pan-y!important;isolation:isolate}
+      #view-progress[data-progress-rescue="${ENGINE}"]::before,#view-progress[data-progress-rescue="${ENGINE}"]::after{pointer-events:none!important}
+      #view-progress[data-progress-rescue="${ENGINE}"] button,#view-progress[data-progress-rescue="${ENGINE}"] summary,#view-progress[data-progress-rescue="${ENGINE}"] [role="button"],#view-progress[data-progress-rescue="${ENGINE}"] a[href]{pointer-events:auto!important;touch-action:manipulation!important}
+      #progress-rescue-actions{position:relative;z-index:55;margin:12px 0 14px;padding:14px;border:1px solid rgba(17,51,47,.09);border-radius:18px;background:rgba(255,255,255,.94);box-shadow:0 8px 22px rgba(17,51,47,.07)}
       #progress-rescue-actions .progress-rescue-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
       #progress-rescue-actions .progress-rescue-head b{font-size:14px;color:var(--ink)}
       #progress-rescue-actions .progress-rescue-head small{font-size:9px;font-weight:900;letter-spacing:.08em;color:var(--ink-faint)}
@@ -148,22 +129,18 @@
 
   function ensureActionPanel() {
     const view = progressView();
-    if (!view) return;
-    let panel = $("#progress-rescue-actions", view);
-    if (!panel) {
-      panel = document.createElement("section");
-      panel.id = "progress-rescue-actions";
-      panel.setAttribute("aria-label", "Progress quick actions");
-      panel.innerHTML = `
-        <div class="progress-rescue-head"><b>Progress tools</b><small>CONTROLS V2</small></div>
-        <div class="progress-rescue-buttons">
-          <button type="button" data-progress-rescue-action="checkin">Check in</button>
-          <button type="button" data-progress-rescue-action="sos">Craving SOS</button>
-          <button type="button" data-progress-rescue-action="share">Share</button>
-        </div>`;
-      const statRow = $(".stat-row", view);
-      statRow?.insertAdjacentElement("afterend", panel);
-    }
+    if (!view || $("#progress-rescue-actions", view)) return;
+    const panel = document.createElement("section");
+    panel.id = "progress-rescue-actions";
+    panel.setAttribute("aria-label", "Progress quick actions");
+    panel.innerHTML = `
+      <div class="progress-rescue-head"><b>Progress tools</b><small>CONTROLS V2</small></div>
+      <div class="progress-rescue-buttons">
+        <button type="button" data-progress-rescue-action="checkin">Check in</button>
+        <button type="button" data-progress-rescue-action="sos">Craving SOS</button>
+        <button type="button" data-progress-rescue-action="share">Share</button>
+      </div>`;
+    $(".stat-row", view)?.insertAdjacentElement("afterend", panel);
   }
 
   function invokePropertyHandler(element) {
@@ -189,20 +166,23 @@
       if (element.tagName === "SUMMARY") {
         const details = element.closest("details");
         if (details) details.open = !details.open;
-        return;
+      } else {
+        HTMLElement.prototype.click.call(element);
       }
-      HTMLElement.prototype.click.call(element);
     } catch (_) {
       invokePropertyHandler(element);
     } finally {
-      queueMicrotask(() => { syntheticActivation = false; queueRepair(); });
+      queueMicrotask(() => {
+        syntheticActivation = false;
+        queueRepair();
+      });
     }
   }
 
   function openOverlayFromTrigger(triggerId, overlayId) {
     const trigger = $(triggerId);
     const overlay = $(overlayId);
-    let invoked = invokePropertyHandler(trigger);
+    const invoked = invokePropertyHandler(trigger);
     if (!invoked && trigger) {
       syntheticActivation = true;
       try { HTMLElement.prototype.click.call(trigger); } catch (_) {}
@@ -211,7 +191,6 @@
     setTimeout(() => {
       if (overlay && overlay.hidden) overlay.hidden = false;
       try { if (typeof syncOverlayLock === "function") syncOverlayLock(); } catch (_) {}
-      queueRepair();
     }, 0);
   }
 
@@ -232,21 +211,10 @@
   }
 
   function runRescueAction(action) {
-    if (action === "checkin") {
-      openOverlayFromTrigger("#checkin-open", "#checkin-overlay");
-      return;
-    }
-    if (action === "sos") {
-      openOverlayFromTrigger("#sos-fab", "#sos-overlay");
-      return;
-    }
-    if (action === "share") {
-      shareProgress();
-      return;
-    }
-    if (action === "plus") {
-      openOverlayFromTrigger("#plus-open", "#plus-overlay");
-    }
+    if (action === "checkin") return openOverlayFromTrigger("#checkin-open", "#checkin-overlay");
+    if (action === "sos") return openOverlayFromTrigger("#sos-fab", "#sos-overlay");
+    if (action === "share") return shareProgress();
+    if (action === "plus") return openOverlayFromTrigger("#plus-open", "#plus-overlay");
   }
 
   function actionAtPoint(target, clientX, clientY) {
@@ -263,47 +231,22 @@
   }
 
   function handleProgressPress(event, clientX = event.clientX, clientY = event.clientY) {
-    if (syntheticActivation || !progressIsActive() || realDialogOpen()) return;
+    if (syntheticActivation || !progressIsSelected() || realDialogOpen()) return;
     const now = Date.now();
     if (now - lastHandledAt < 180) return;
     const element = actionAtPoint(event.target, clientX, clientY);
     if (!element) return;
 
-    const rescueAction = element.dataset?.progressRescueAction;
-    if (rescueAction) {
-      event.preventDefault?.();
-      event.stopImmediatePropagation?.();
-      lastHandledAt = now;
-      runRescueAction(rescueAction);
-      return;
-    }
-
-    if (element.matches('[data-ship-progress="checkin"],[data-v1-progress="checkin"]')) {
-      event.preventDefault?.();
-      event.stopImmediatePropagation?.();
-      lastHandledAt = now;
-      runRescueAction("checkin");
-      return;
-    }
-    if (element.matches('[data-ship-progress="sos"],[data-v1-progress="sos"]')) {
-      event.preventDefault?.();
-      event.stopImmediatePropagation?.();
-      lastHandledAt = now;
-      runRescueAction("sos");
-      return;
-    }
-    if (element.matches("[data-plus-weekly-unlock]")) {
-      event.preventDefault?.();
-      event.stopImmediatePropagation?.();
-      lastHandledAt = now;
-      runRescueAction("plus");
-      return;
-    }
+    let action = element.dataset?.progressRescueAction || null;
+    if (element.matches('[data-ship-progress="checkin"],[data-v1-progress="checkin"]')) action = "checkin";
+    if (element.matches('[data-ship-progress="sos"],[data-v1-progress="sos"]')) action = "sos";
+    if (element.matches("[data-plus-weekly-unlock]")) action = "plus";
 
     event.preventDefault?.();
     event.stopImmediatePropagation?.();
     lastHandledAt = now;
-    activateNative(element);
+    if (action) runRescueAction(action);
+    else activateNative(element);
   }
 
   function installPressRouting() {
@@ -321,8 +264,7 @@
 
   function installRecoveryHooks() {
     $("#tabs")?.addEventListener("click", (event) => {
-      const button = event.target?.closest?.('button[data-view="progress"]');
-      if (!button) return;
+      if (!event.target?.closest?.('button[data-view="progress"]')) return;
       [0, 40, 160, 420].forEach((delay) => setTimeout(() => {
         ensureActionPanel();
         queueRepair();
@@ -337,17 +279,17 @@
     const main = $("#main");
     if (main && typeof MutationObserver === "function") {
       new MutationObserver(() => {
-        if (progressIsActive()) queueRepair();
+        if (progressIsSelected()) queueRepair();
       }).observe(main, { attributes: true, subtree: true, attributeFilter: ["inert", "hidden", "style"] });
     }
 
     window.GillieV1?.afterRender?.(() => {
       ensureActionPanel();
-      queueRepair();
+      if (progressIsSelected()) queueRepair();
     });
 
     setInterval(() => {
-      if (!progressIsActive()) return;
+      if (!progressIsSelected()) return;
       ensureActionPanel();
       repairInteractionSurface();
     }, 1000);
@@ -361,7 +303,7 @@
     document.documentElement.dataset.gillieProgressEngine = ENGINE;
     [0, 50, 250, 700].forEach((delay) => setTimeout(() => {
       ensureActionPanel();
-      queueRepair();
+      if (progressIsSelected()) queueRepair();
     }, delay));
   }
 
