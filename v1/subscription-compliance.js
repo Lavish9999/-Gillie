@@ -9,8 +9,10 @@
   const TERMS_URL = "https://lavish9999.github.io/-Gillie/terms.html";
   const PRIVACY_URL = "https://lavish9999.github.io/-Gillie/privacy.html";
   const APPLE_EULA_URL = "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/";
+  const DISCLOSURE_TEXT = "Gillie Plus Monthly renews monthly and Gillie Plus Yearly renews yearly. The selected Apple price is shown above. Payment is charged to your Apple ID at confirmation and renews automatically until cancelled in Apple subscription settings.";
   let observer = null;
   let refreshTimer = 0;
+  let readyTracked = false;
 
   const $ = (selector, root = document) => root?.querySelector?.(selector) || null;
   const bridge = () => window.Capacitor?.Plugins?.GilliePurchases || null;
@@ -66,6 +68,16 @@
     return `<a href="${url}" target="_blank" rel="noopener noreferrer external" data-subscription-compliance-link="${key}">${label}</a>`;
   }
 
+  function expectedLinksHtml() {
+    return [
+      linkHtml(TERMS_URL, "Terms of Use (EULA)", "terms"),
+      '<span class="gp-legal-separator" aria-hidden="true">·</span>',
+      linkHtml(PRIVACY_URL, "Privacy Policy", "privacy"),
+      '<span class="gp-legal-separator" aria-hidden="true">·</span>',
+      linkHtml(APPLE_EULA_URL, "Apple Standard EULA", "apple-eula"),
+    ].join("");
+  }
+
   function ensureComplianceContent() {
     ensureStyles();
     const overlay = $("#plus-overlay");
@@ -81,7 +93,7 @@
       const legalSource = $("#plus-legal", footer);
       footer.insertBefore(disclosure, legalSource || null);
     }
-    disclosure.textContent = "Gillie Plus Monthly renews monthly and Gillie Plus Yearly renews yearly. The selected Apple price is shown above. Payment is charged to your Apple ID at confirmation and renews automatically until cancelled in Apple subscription settings.";
+    if (disclosure.textContent !== DISCLOSURE_TEXT) disclosure.textContent = DISCLOSURE_TEXT;
 
     let links = $(".gp-legal-links", footer);
     if (!links) {
@@ -90,22 +102,19 @@
       const legalSource = $("#plus-legal", footer);
       footer.insertBefore(links, legalSource || null);
     }
-    links.innerHTML = [
-      linkHtml(TERMS_URL, "Terms of Use (EULA)", "terms"),
-      '<span class="gp-legal-separator" aria-hidden="true">·</span>',
-      linkHtml(PRIVACY_URL, "Privacy Policy", "privacy"),
-      '<span class="gp-legal-separator" aria-hidden="true">·</span>',
-      linkHtml(APPLE_EULA_URL, "Apple Standard EULA", "apple-eula"),
-    ].join("");
+    const expected = expectedLinksHtml();
+    if (links.innerHTML !== expected) links.innerHTML = expected;
 
-    overlay.dataset.subscriptionCompliance = ENGINE;
+    if (overlay.dataset.subscriptionCompliance !== ENGINE) overlay.dataset.subscriptionCompliance = ENGINE;
     return true;
   }
 
   function scheduleRefresh(delay = 0) {
     clearTimeout(refreshTimer);
     refreshTimer = setTimeout(() => {
-      if (ensureComplianceContent()) track("subscription_compliance_ready");
+      if (!ensureComplianceContent() || readyTracked) return;
+      readyTracked = true;
+      track("subscription_compliance_ready");
     }, delay);
   }
 
@@ -137,6 +146,7 @@
   function boot(attempt = 0) {
     installObserver();
     if (ensureComplianceContent()) {
+      readyTracked = true;
       track("subscription_compliance_installed", {
         terms: TERMS_URL,
         privacy: PRIVACY_URL,
