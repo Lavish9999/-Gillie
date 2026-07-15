@@ -26,7 +26,7 @@ vm.runInContext(source, context, { filename: "v1/accessibility.js" });
 
 const accessibility = context.window.GillieAccessibility;
 assert(accessibility, "Accessibility API was not exposed");
-assert.strictEqual(accessibility.engine, "accessibility-v1.1-nav-safe");
+assert.strictEqual(accessibility.engine, "accessibility-v1");
 assert(accessibility.focusableSelector.includes("button:not([disabled])"));
 assert.strictEqual(typeof accessibility.isDialogVisiblyOpen, "function");
 assert(source.includes('...qsa("#main .view")'), "Dialog isolation no longer targets individual content views");
