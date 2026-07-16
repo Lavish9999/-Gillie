@@ -64,3 +64,4 @@ for (const file of targets) {
 
 if (!patched) throw new Error("No Gillie purchase director source was available to harden.");
 console.log("Hardened Gillie checkout: verified native purchase proof survives delayed StoreKit entitlement propagation.");
+require("./harden-expired-sandbox-recovery.js");
