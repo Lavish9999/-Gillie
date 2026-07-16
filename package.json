@@ -4,6 +4,7 @@
   "private": true,
   "description": "Gillie quit-vaping wellness companion.",
   "scripts": {
+    "postinstall": "node scripts/harden-storekit-entitlements.js",
     "prepare:cap": "node scripts/prepare-capacitor-web.js && node scripts/prepare-single-launch.js && node scripts/inject-phase3.js && node scripts/harden-phase3-pricing.js && node scripts/inject-support-recovery.js && node scripts/inject-reef-economy.js && node scripts/apply-release-safety.js && node scripts/inject-reef-layout-fixes.js && node scripts/inject-moonlit-reef.js && node scripts/inject-visual-integrity.js && node scripts/inject-progress-rescue.js && node scripts/prepare-ios-release.js && node scripts/harden-storekit-entitlements.js && node scripts/write-build-provenance.js",
     "cap:sync:ios": "npm run prepare:cap && npx cap sync ios",
     "cap:open:ios": "npx cap open ios",
