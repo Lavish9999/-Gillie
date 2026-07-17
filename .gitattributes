@@ -1,0 +1,8 @@
+# The build injectors match exact "\n"-delimited blocks; CRLF working trees
+# break prepare:cap. Keep every text asset LF on disk everywhere.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
