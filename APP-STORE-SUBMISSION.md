@@ -70,6 +70,23 @@ Before submission, confirm both products:
 - Are attached to this app version when required by App Store Connect
 - Match the prices shown in the newest TestFlight storefront
 
+### Optional free trial (introductory offer)
+
+The paywall is trial-aware but never invents a trial. It reads the
+introductory offer and per-user eligibility directly from StoreKit:
+
+- No introductory offer configured → the paywall shows the standard
+  "Meet Gillie Plus" presentation with no trial language.
+- A **Free** introductory offer configured on a product (for example
+  7 days on `gillie.plus.yearly`) → eligible users see "Try Gillie Plus
+  free", the trial badge, the trial timeline, "No payment due today",
+  and a CTA derived from the real trial length. Ineligible users
+  (previous subscribers) automatically see the standard presentation.
+
+To enable the 7-day trial, add an Introductory Offer of type **Free**
+with duration **1 week** to the chosen product in App Store Connect →
+Subscriptions. No app change or resubmission is needed to turn it on or off.
+
 ## App Review notes — ready to paste
 
 Gillie is a local-first nicotine-quitting wellness companion. The app does not require an account or sign-in. Recovery information is stored on the device unless the user deliberately exports and shares a backup or diagnostic report.

@@ -185,10 +185,10 @@ for (const required of ["gillieLaunchHardeningInstalled", "store_prices_localize
 for (const required of ["ship-reef-plus-strip", "padding-bottom:calc", "#plus-purchase::before"]) {
   if (!phase4Css.includes(required)) throw new Error(`Generated Phase 4 CSS is missing marker: ${required}`);
 }
-for (const required of ["gilliePaywallRebuildInstalled", "gp-paywall-sheet", "gp-paywall-scroll", "gp-purchase-dock", "gp-status-banner", "gp-benefit-svg", "A quit plan that adapts to you", "Nothing charged. You can try again anytime.", "paywall_cta_tapped"]) {
+for (const required of ["gilliePaywallRebuildInstalled", "gp-paywall-sheet", "gp-paywall-scroll", "gp-purchase-dock", "gp-status-banner", "gp-benefit-svg", "gp-trial-timeline", "deriveTrialState", "A quit plan that adapts to your cravings", "Nothing charged. You can try again anytime.", "paywall_cta_tapped"]) {
   if (!phase5.includes(required)) throw new Error(`Generated Phase 5 JavaScript is missing marker: ${required}`);
 }
-for (const required of ["#plus-overlay.gp-paywall-overlay", ".gp-hero-card", ".gp-benefit-list", ".gp-benefit-svg", ".gp-paywall-scroll", ".gp-purchase-dock", ".gp-status-banner", ".gp-primary-cta"]) {
+for (const required of ["#plus-overlay.gp-paywall-overlay", ".gp-hero-card", ".gp-benefit-list", ".gp-benefit-svg", ".gp-paywall-scroll", ".gp-purchase-dock", ".gp-status-banner", ".gp-primary-cta", ".gp-trial-timeline", ".gp-topbar", "prefers-reduced-motion"]) {
   if (!phase5Css.includes(required)) throw new Error(`Generated Phase 5 CSS is missing marker: ${required}`);
 }
 for (const required of ["Gillie V1 visual foundation", "--g-icon-size", ".gp-benefit-icon", ".gp-status-banner.info"]) {

@@ -111,6 +111,22 @@
     row.appendChild(copy);
   }
 
+  function idleCtaLabel() {
+    try {
+      const label = window.GilliePaywallPresenter?.idleCtaLabel?.();
+      if (typeof label === "string" && label.trim()) return label;
+    } catch (_) {}
+    return "Start Gillie Plus";
+  }
+
+  function idleRestoreLabel() {
+    try {
+      const label = window.GilliePaywallPresenter?.idleRestoreLabel?.();
+      if (typeof label === "string" && label.trim()) return label;
+    } catch (_) {}
+    return "Restore purchases";
+  }
+
   function setButtonState(active, mode = "purchase") {
     busy = Boolean(active);
     const purchase = $("#plus-purchase");
@@ -123,7 +139,7 @@
       purchase.dataset.purchaseBusy = busy ? "1" : "0";
       purchase.setAttribute("aria-busy", String(busy && mode === "purchase"));
       purchase.classList.toggle("phase2-loading", busy && mode === "purchase");
-      purchase.textContent = busy && mode === "purchase" ? "Opening Apple…" : "Start Gillie Plus";
+      purchase.textContent = busy && mode === "purchase" ? "Opening Apple…" : idleCtaLabel();
     }
 
     if (restore) {
@@ -132,7 +148,8 @@
       restore.dataset.purchaseDirector = ENGINE;
       restore.dataset.purchaseBusy = busy ? "1" : "0";
       restore.setAttribute("aria-busy", String(busy && mode === "restore"));
-      restore.textContent = busy && mode === "restore" ? "Checking Apple…" : "Restore purchases";
+      restore.setAttribute("aria-label", "Restore purchases");
+      restore.textContent = busy && mode === "restore" ? "Checking Apple…" : idleRestoreLabel();
     }
 
     $$("#plus-plans [data-plus-plan]").forEach((button) => {
@@ -141,7 +158,34 @@
     });
   }
 
+  function recoverVerifiedPurchaseProof(status, source) {
+    const productId = clean(status?.productId, 80);
+    const expectedProduct = Object.values(PRODUCT_IDS).includes(productId);
+    const expiresAt = Number(status?.expiresAt || 0);
+    const transactionIsCurrent = !expiresAt || expiresAt > Date.now();
+    const authoritativePurchaseResult = source === "purchase-result"
+      && status?.verified === true
+      && expectedProduct
+      && !status?.cancelled
+      && !status?.pending
+      && status?.expired !== true
+      && status?.revoked !== true
+      && status?.requiresSandboxReset !== true
+      && transactionIsCurrent;
+
+    if (status?.active || !authoritativePurchaseResult) return status;
+
+    track("purchase_director_verified_result_recovered", { productId });
+    return {
+      ...status,
+      active: true,
+      source: status.source || "storekit2-verified-purchase-result",
+      purchaseProofRecovered: true,
+    };
+  }
+
   function applyEntitlement(status, source) {
+    status = recoverVerifiedPurchaseProof(status, source);
     if (!status?.active) return false;
     let active = true;
     try {
@@ -223,6 +267,15 @@
         track("purchase_director_pending", { productId: product.id });
         return;
       }
+      if (result?.expired || result?.requiresSandboxReset) {
+        if (await confirmAfterPurchase("expired-result-recheck")) return;
+        setHealth("error", "Apple returned an expired TestFlight subscription for this test account. Deleting Gillie does not clear Apple’s sandbox purchase history. Clear Purchase History for the Sandbox tester or sign in with a fresh Sandbox Apple Account, then try again.", true);
+        track("purchase_director_sandbox_reset_required", {
+          productId: product.id,
+          expiresAt: String(result?.expiresAt || "").slice(0, 40),
+        });
+        return;
+      }
       if (await confirmAfterPurchase("purchase-recheck")) return;
 
       setHealth("error", "Apple returned without an active Gillie Plus entitlement. Tap Restore purchases, then Copy details if it remains inactive.", true);
@@ -232,6 +285,11 @@
       const code = clean(error?.code || "PURCHASE_ERROR", 80);
       const message = clean(error?.message || error || "Purchase was not completed.");
       if (await confirmAfterPurchase("purchase-error-recheck")) return;
+      if (/expired subscription transaction/i.test(message)) {
+        setHealth("error", "Apple returned an expired TestFlight subscription for this test account. Deleting Gillie does not clear Apple’s sandbox purchase history. Clear Purchase History for the Sandbox tester or sign in with a fresh Sandbox Apple Account, then try again.", true);
+        track("purchase_director_sandbox_reset_required", { productId: product.id, source: "native-error" });
+        return;
+      }
       setHealth("error", message, true);
       track("purchase_director_failed", { code, productId: product.id, message: message.slice(0, 140) });
     } finally {

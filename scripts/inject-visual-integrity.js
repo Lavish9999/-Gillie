@@ -94,9 +94,7 @@ for (const marker of [
   "normalizeDisplayTracking",
   "removeDecorativeAccentStripes",
   "collapseEmptyOversizedSurfaces",
-  "normalizeHealthClaimCopy",
-  "Spot the times cravings may be more likely",
-  "See when cravings may be more likely",
+  "data-gp-computed",
   "ensurePaywallDisclosure",
   "v1-renewal-disclosure",
   "v1ManageSubscription",
@@ -152,7 +150,6 @@ for (const marker of [
   'PERFECT_TARGET = 5',
   'WELCOME_PEARLS = 250',
   'claimPlusWelcomeBundle',
-  'A quit plan that remembers what works.',
   'Your Weekly Pattern Report',
   'plus_perfect_care_claimed',
   'First tank mate included',
@@ -161,12 +158,16 @@ for (const marker of [
 }
 for (const marker of [
   "Gillie V1 Plus Value",
-  "#plus-overlay .pv-paywall-showcase",
   "#view-progress .v1-weekly-report",
   "#view-reef .pv-perfect-care",
   "#pv-plus-welcome",
 ]) {
   if (!plusValueCss.includes(marker)) throw new Error(`Generated Plus value CSS is missing marker: ${marker}`);
+}
+for (const forbidden of ["repackagePaywall", "pv-paywall-showcase"]) {
+  if (plusValueJs.includes(forbidden) || plusValueCss.includes(forbidden)) {
+    throw new Error(`Generated Plus value must not own paywall presentation: ${forbidden}`);
+  }
 }
 if (!html.includes('data-gillie-v1-home-gillie="true"')) throw new Error("Generated index is missing the Gillie anatomy runtime tag.");
 if (!html.includes('data-gillie-v1-home-gillie-styles="true"')) throw new Error("Generated index is missing the Gillie anatomy stylesheet tag.");

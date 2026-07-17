@@ -95,33 +95,27 @@ function hardenStorePricing(html, paywall) {
   html = replaceStringExactlyOnce(
     html,
     'yearly: { id: "gillie.plus.yearly", name: "Yearly", price: "$29.99", cadence: "/ year", note: "Best value for staying locked in.", badge: "Save 37%" }',
-    'yearly: { id: "gillie.plus.yearly", name: "Yearly", price: "Loading Apple price…", cadence: "", note: "Annual billing", badge: "" }',
+    'yearly: { id: "gillie.plus.yearly", name: "Yearly", price: "Loading Apple price…", cadence: "", note: "Best value", badge: "" }',
     "Yearly StoreKit placeholder",
   );
   html = replaceStringExactlyOnce(
     html,
     'monthly: { id: "gillie.plus.monthly", name: "Monthly", price: "$3.99", cadence: "/ month", note: "Full Plus access. Cancel anytime." }',
-    'monthly: { id: "gillie.plus.monthly", name: "Monthly", price: "Loading Apple price…", cadence: "", note: "Monthly billing" }',
+    'monthly: { id: "gillie.plus.monthly", name: "Monthly", price: "Loading Apple price…", cadence: "", note: "Cancel anytime" }',
     "Monthly StoreKit placeholder",
   );
-  paywall = replaceStringExactlyOnce(
-    paywall,
-    'const nameHtml = `Yearly <span class="badge">Save 37%</span>`;',
-    'const nameHtml = "Yearly";',
-    "Hardcoded yearly savings removal",
-  );
-  paywall = replaceStringExactlyOnce(
-    paywall,
-    'if (note && note.textContent !== "Best value") note.textContent = "Best value";',
-    'if (note && note.textContent !== "Annual billing") note.textContent = "Annual billing";',
-    "Yearly billing note",
-  );
-  paywall = replaceStringExactlyOnce(
-    paywall,
-    'if (note && note.textContent !== "Flexible") note.textContent = "Flexible";',
-    'if (note && note.textContent !== "Monthly billing") note.textContent = "Monthly billing";',
-    "Monthly billing note",
-  );
+  // The Phase 5 paywall computes savings and equivalents from live StoreKit
+  // prices (marked data-gp-computed) and ships no hardcoded price claims.
+  for (const forbidden of ["$3.99", "$29.99", "Save 37%"]) {
+    if (paywall.includes(forbidden)) {
+      throw new Error(`Paywall source reintroduced a hardcoded price claim: ${forbidden}`);
+    }
+  }
+  for (const required of ['data-gp-computed="true"', "savingsPercent"]) {
+    if (!paywall.includes(required)) {
+      throw new Error(`Paywall source lost its StoreKit-derived pricing marker: ${required}`);
+    }
+  }
   return { html, paywall };
 }
 
@@ -157,13 +151,12 @@ function run() {
     html = html.replace(before, after);
   }
 
-  const paywallReplacements = new Map([
-    ["Know the hard moment before it arrives — and what to do next.", "Spot the times cravings may be more likely — and what to do next."],
-    ["Know when cravings are most likely to hit.", "See when cravings may be more likely."],
-  ]);
-  for (const [before, after] of paywallReplacements) {
-    if (!paywall.includes(before)) throw new Error(`Release paywall copy marker changed: ${before}`);
-    paywall = paywall.replace(before, after);
+  // Paywall copy ships probability-safe from source; verify it stayed that way.
+  for (const forbidden of ["Know the hard moment before it arrives", "Know when cravings are most likely to hit"]) {
+    if (paywall.includes(forbidden)) throw new Error(`Overly certain paywall claim returned: ${forbidden}`);
+  }
+  for (const required of ["A quit plan that adapts to your cravings", "Get practical help when an urge hits"]) {
+    if (!paywall.includes(required)) throw new Error(`Release paywall copy marker changed: ${required}`);
   }
 
   html = hardenEraseEverything(html);
@@ -193,9 +186,6 @@ function run() {
   ]) {
     if (html.includes(forbidden)) throw new Error(`Generated native bundle still contains unsafe user-text rendering: ${forbidden}`);
   }
-  for (const forbidden of ["Know the hard moment before it arrives", "Know when cravings are most likely to hit"]) {
-    if (paywall.includes(forbidden)) throw new Error(`Generated paywall still contains an overly certain wellness claim: ${forbidden}`);
-  }
   if (commerce.includes('localStorage.removeItem("gillie_v1")')) throw new Error("Startup recovery still performs a partial reset.");
   for (const required of [
     "clearDiagnostics",
@@ -207,8 +197,8 @@ function run() {
     "state.reasons.map(escapeHTML).join",
     'role="status" aria-live="polite" aria-atomic="true"',
     "Loading Apple price…",
-    "Annual billing",
-    "Monthly billing",
+    "Best value",
+    "Cancel anytime",
   ]) {
     if (!html.includes(required)) throw new Error(`Generated native bundle is missing release marker: ${required}`);
   }
@@ -216,11 +206,11 @@ function run() {
     if (!commerce.includes(required)) throw new Error(`Generated startup recovery is missing release marker: ${required}`);
   }
   for (const required of [
-    "Spot the times cravings may be more likely",
-    "See when cravings may be more likely",
-    'const nameHtml = "Yearly"',
-    "Annual billing",
-    "Monthly billing",
+    "deriveTrialState",
+    'data-gp-computed="true"',
+    "Best value",
+    "Cancel anytime",
+    "No payment due today",
   ]) {
     if (!paywall.includes(required)) throw new Error(`Generated paywall is missing safer launch behavior: ${required}`);
   }

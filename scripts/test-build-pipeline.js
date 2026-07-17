@@ -92,8 +92,9 @@ const releaseValidator = fs.readFileSync(path.join(root, "scripts/validate-relea
 for (const marker of [
   'run(process.execPath, ["scripts/test-entitlement-sync.js"])',
   'run(process.execPath, ["scripts/test-theme-access.js"])',
-  "working core tank themes",
-  "one fluid intro",
+  'run(process.execPath, ["scripts/test-paywall-presenter.js"])',
+  'run(process.execPath, ["scripts/test-launch-experience.js"])',
+  "StoreKit-verified trial gating",
 ]) {
   if (!releaseValidator.includes(marker)) throw new Error(`Focused release validation is missing: ${marker}`);
 }

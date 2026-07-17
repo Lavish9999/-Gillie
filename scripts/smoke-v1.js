@@ -56,8 +56,10 @@ requireMarker(sos, "you do not have to decide anything yet", "SOS relief-first c
 requireMarker(sos, "I made it through this moment", "SOS completion action");
 requireMarker(progress, "Always free", "Free Progress patterns");
 requireMarker(progress, "Advanced patterns and planning", "Premium Progress boundary");
-requireMarker(visualIntegrity, "Spot the times cravings may be more likely", "Probability-based paywall subtitle");
-requireMarker(paywall, "See when cravings may be more likely", "Probability-based paywall benefit");
+requireMarker(visualIntegrity, "data-gp-computed", "StoreKit-only savings-claim guard");
+requireMarker(paywall, "Get practical help when an urge hits", "Probability-safe paywall benefit");
+requireMarker(paywall, "deriveTrialState", "StoreKit-verified trial gating");
+requireMarker(paywall, "Your selected Gillie Plus plan renews unless canceled.", "Honest trial-timeline billing step");
 requireMarker(reef, "Curated aquarium collection", "Reef curation");
 requireMarker(reef, 'PREVIEW_ENGINE = "canonical-v3-swipe"', "Canonical Reef swipe preview engine");
 requireMarker(reef, "handlePreviewCapture", "Reef capture-phase override");
@@ -93,10 +95,11 @@ requireMarker(reefDashboardStyles, ".v1-reef-vault", "Reef premium vault styles"
 requireMarker(coach, "What do you need right now?", "Focused Coach flow");
 requireMarker(backup, 'format: "gillie-backup"', "Backup export contract");
 requireMarker(backup, "restore-pending-apple", "Entitlement-safe restore");
-requireMarker(storePricing, 'ENGINE = "store-pricing-v1"', "StoreKit pricing authority");
+requireMarker(storePricing, 'ENGINE = "store-pricing-v2-retryable"', "StoreKit pricing authority");
 requireMarker(storePricing, "normalizeProducts", "StoreKit product normalization");
-requireMarker(storePricing, "Apple prices are temporarily unavailable", "StoreKit failure state");
-requireMarker(storePricing, "Restore purchases is still available", "Restore remains available");
+requireMarker(storePricing, "Apple unavailable", "StoreKit failure state");
+requireMarker(storePricing, "restore.disabled = false", "Restore remains available");
+requireMarker(storePricing, "introEligible", "StoreKit introductory-offer eligibility");
 requireMarker(accessibility, 'ENGINE = "accessibility-v1"', "Accessibility module");
 requireMarker(accessibility, "normalizeViewportContent", "Scalable viewport contract");
 requireMarker(accessibility, 'toast.setAttribute("aria-live", "polite")', "Toast announcement contract");
@@ -118,11 +121,13 @@ requireMarker(styles, "body.v1-reef-preview-open #main .view", "Reef nested view
 requireMarker(styles, "pointer-events:none!important", "Reef background pointer isolation");
 requireMarker(styles, "#phase2-tank-preview .phase2-preview-sheet", "Reef contained sheet scrolling");
 
-const canonicalJs = [core, onboarding, sos, progress, reef, reefDashboard, coach, backup, storePricing, accessibility].join("\n");
+// Canonical screen modules stay observer-free. Runtime service modules
+// (accessibility's inert repair) are allowed their single scoped observer.
+const canonicalJs = [core, onboarding, sos, progress, reef, reefDashboard, coach, backup, storePricing].join("\n");
 if (canonicalJs.includes("new MutationObserver")) {
   throw new Error("Canonical V1 modules must not add MutationObserver patch loops.");
 }
-if (canonicalJs.includes("setInterval(")) {
+if (canonicalJs.includes("setInterval(") || accessibility.includes("setInterval(")) {
   throw new Error("Canonical V1 modules must not add recurring polling intervals.");
 }
 for (const forbidden of ["Advanced predictions", "Know the hard moment before it arrives", "Know when cravings are most likely to hit"]) {

@@ -27,6 +27,21 @@
     return value === 1 ? `/ ${unit}` : `/ ${value} ${unit}s`;
   }
 
+  function normalizeIntroOffer(offer) {
+    if (!offer || typeof offer !== "object") return null;
+    const paymentMode = clean(offer.paymentMode, 24);
+    const periodUnit = clean(offer.periodUnit, 16).toLowerCase().replace(/s$/, "");
+    const periodValue = Math.max(1, Math.round(Number(offer.periodValue) || 1));
+    if (!paymentMode || !["day", "week", "month", "year"].includes(periodUnit)) return null;
+    return {
+      paymentMode,
+      periodValue,
+      periodUnit,
+      periodCount: Math.max(1, Math.round(Number(offer.periodCount) || 1)),
+      displayPrice: clean(offer.displayPrice, 64),
+    };
+  }
+
   function normalizeProducts(response) {
     const allowed = new Set(Object.values(PRODUCT_IDS));
     const output = new Map();
@@ -34,7 +49,18 @@
       const id = clean(product?.id);
       const displayPrice = clean(product?.displayPrice, 64);
       if (!allowed.has(id) || !displayPrice) return;
-      output.set(id, { id, displayPrice, cadence: cadenceFor(product) });
+      const price = Number(product?.price);
+      output.set(id, {
+        id,
+        displayPrice,
+        cadence: cadenceFor(product),
+        price: Number.isFinite(price) && price >= 0 ? price : null,
+        currencyCode: clean(product?.currencyCode, 8),
+        // Trial truth comes only from StoreKit: a verified introductory offer
+        // plus this user's verified eligibility for it.
+        introOffer: normalizeIntroOffer(product?.introOffer),
+        introEligible: product?.introEligible === true,
+      });
     });
     return output;
   }
@@ -48,6 +74,7 @@
     cadenceFor,
     load: async () => new Map(),
     snapshot: () => ({ state: "uninstalled", products: [], error: "", native: null }),
+    details: () => new Map(),
   };
   window.GillieStorePricing = publicApi;
 
@@ -195,6 +222,11 @@
           chooseAvailablePlan();
           rerenderPlans();
           track("store_pricing_ready", { count: products.size, engine: ENGINE, lookupMode: LOOKUP_MODE });
+          try {
+            document.dispatchEvent(new CustomEvent("gillie:store-pricing-ready", {
+              detail: { productIds: Array.from(products.keys()) },
+            }));
+          } catch (_) {}
           return products;
         } catch (error) {
           products = new Map();
@@ -214,6 +246,7 @@
 
     publicApi.load = loadAppleProducts;
     publicApi.snapshot = snapshot;
+    publicApi.details = () => new Map(products);
 
     document.addEventListener("click", (event) => {
       const target = event.target?.closest?.("button,[role='button']");

@@ -81,12 +81,16 @@ const authoritativePurchaseSuccess = `                case .success(let verifica
                     }
                     call.resolve(status)`;
 
-source = replaceExactlyOnce(
-  source,
-  laggyPurchaseSuccess,
-  authoritativePurchaseSuccess,
-  "Verified StoreKit purchase handling",
-);
+// The expired-sandbox recovery pass rewrites the expiration branch inside this
+// block, so once the authoritative checkout marker exists the block is final.
+if (!source.includes('"checkoutMode": "verified-purchase-authoritative-v2"')) {
+  source = replaceExactlyOnce(
+    source,
+    laggyPurchaseSuccess,
+    authoritativePurchaseSuccess,
+    "Verified StoreKit purchase handling",
+  );
+}
 
 const brittleRestore = `    @objc func restorePurchases(_ call: CAPPluginCall) {
         Task {

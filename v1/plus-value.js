@@ -16,7 +16,6 @@
     ];
 
     let welcomeClaimInFlight = false;
-    let paywallObserver = null;
 
     const bridge = () => window.Capacitor?.Plugins?.GilliePurchases || null;
     const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (character) => ({
@@ -52,72 +51,8 @@
       return { value: current.plusValue, welcome: current.plusWelcome };
     }
 
-    function paywallIcon(kind) {
-      const common = 'viewBox="0 0 24 24" aria-hidden="true" focusable="false"';
-      if (kind === "coach") return `<svg ${common}><path d="M6 5.5h12v10H9l-3 3v-13Z"></path><path d="M9 9h6M9 12h4"></path></svg>`;
-      if (kind === "report") return `<svg ${common}><path d="M5 19V9M10 19V5M15 19v-7M20 19V8"></path></svg>`;
-      return `<svg ${common}><path d="M4 15c3-5 5 1 8-4s5 1 8-4"></path><path d="M5 19h14"></path><circle cx="17" cy="5" r="2.5"></circle></svg>`;
-    }
-
-    function repackagePaywall() {
-      const overlay = qs("#plus-overlay");
-      if (!overlay || overlay.hidden) return;
-      const current = getState?.() || {};
-      const title = qs("#plus-title", overlay);
-      const subtitle = qs("#plus-subtitle", overlay);
-      const proof = qs("#plus-proof", overlay);
-      const adaptive = qs("#plus-now", overlay);
-      if (!title || !subtitle || !proof) return;
-
-      title.textContent = "A quit plan that remembers what works.";
-      subtitle.textContent = "Daily Coach missions, a deeper weekly pattern report, and a premium living reef built around your progress.";
-      proof.dataset.plusValuePillars = ENGINE;
-      proof.innerHTML = `
-        <div data-plus-benefit="coach">
-          <span class="gp-benefit-icon pv-benefit-icon">${paywallIcon("coach")}</span>
-          <span><b>Your personal Coach</b><em>Daily missions, trigger playbooks, risk-hour planning, and slip-review memory.</em></span>
-        </div>
-        <div data-plus-benefit="report">
-          <span class="gp-benefit-icon pv-benefit-icon">${paywallIcon("report")}</span>
-          <span><b>See what is working</b><em>A private weekly report with craving patterns, wins, mood trends, and one next focus.</em></span>
-        </div>
-        <div data-plus-benefit="reef">
-          <span class="gp-benefit-icon pv-benefit-icon">${paywallIcon("reef")}</span>
-          <span><b>Your premium living reef</b><em>Moonlit Reef, rare Gillie colors, tank mates, exclusive items, and 2× pearls.</em></span>
-        </div>`;
-
-      let showcase = qs("#pv-paywall-showcase", overlay);
-      if (!showcase) {
-        showcase = document.createElement("section");
-        showcase.id = "pv-paywall-showcase";
-        showcase.className = "pv-paywall-showcase";
-        proof.insertAdjacentElement("afterend", showcase);
-      }
-      showcase.innerHTML = `
-        <div class="pv-showcase-report" aria-hidden="true"><span>WEEKLY REPORT</span><i style="--h:42%"></i><i style="--h:76%"></i><i style="--h:55%"></i><i style="--h:88%"></i></div>
-        <div class="pv-showcase-moonlit" aria-hidden="true"><i></i><b>Moonlit Reef</b><span>Full collection</span></div>`;
-
-      if (adaptive) {
-        adaptive.innerHTML = current.premium
-          ? `<span class="gp-note-mark" aria-hidden="true">✓</span><span><strong>Your Plus toolkit is active</strong><em>Open Progress for your Weekly Report or Reef for premium collections and rewards.</em></span>`
-          : `<span class="gp-note-mark" aria-hidden="true">✦</span><span><strong>Immediate value on day one</strong><em>Includes 250 welcome pearls and your first tank-mate adoption.</em></span>`;
-      }
-      overlay.dataset.plusValuePackaged = ENGINE;
-    }
-
-    function observePaywall() {
-      const overlay = qs("#plus-overlay");
-      if (!overlay || paywallObserver) return;
-      paywallObserver = new MutationObserver(() => {
-        if (overlay.hidden) return;
-        const title = qs("#plus-title", overlay)?.textContent || "";
-        const proof = qs("#plus-proof", overlay);
-        if (title !== "A quit plan that remembers what works." || proof?.dataset.plusValuePillars !== ENGINE) {
-          queueMicrotask(repackagePaywall);
-        }
-      });
-      paywallObserver.observe(overlay, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ["hidden"] });
-    }
+    // Paywall copy and layout are owned by the Phase 5 presenter
+    // (phase5-paywall.js). Plus Value contributes post-purchase value only.
 
     function weeklyCleanMs(current, start, end) {
       let total = 0;
@@ -444,9 +379,6 @@
       if (!target) return;
       const current = getState?.();
 
-      if (target.matches("#plus-open,#set-plus,[data-act='plus'],#ship-premium-teaser,[data-reef-vault-action],[data-moonlit-equip]")) {
-        [0, 80, 240, 440].forEach((delay) => setTimeout(repackagePaywall, delay));
-      }
       if (target.matches("[data-plus-weekly-unlock]")) {
         event.preventDefault();
         event.stopImmediatePropagation();
@@ -492,8 +424,6 @@
     }
 
     function applyPlusValue() {
-      observePaywall();
-      repackagePaywall();
       renderWeeklyReport();
       renderReefValue();
       tuneBuddyCredit();

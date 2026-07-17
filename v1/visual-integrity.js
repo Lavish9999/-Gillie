@@ -94,21 +94,11 @@
       });
     }
 
-    function normalizeHealthClaimCopy() {
-      const overlay = qs("#plus-overlay");
-      if (!overlay) return;
-
-      const subtitle = qs("#plus-subtitle", overlay);
-      if (subtitle) subtitle.textContent = "Spot the times cravings may be more likely — and what to do next.";
-
-      const riskBenefit = qs("#plus-proof > div:first-child em", overlay);
-      if (riskBenefit) riskBenefit.textContent = "See when cravings may be more likely.";
-    }
-
     function ensurePaywallDisclosure() {
       const overlay = qs("#plus-overlay");
       if (!overlay) return;
-      normalizeHealthClaimCopy();
+      // Paywall copy is owned by phase5-paywall.js and already avoids
+      // certainty-based wellness claims; this module owns the legal layer.
 
       const footer = qs(".gp-footer", overlay);
       if (!footer) return;
@@ -122,10 +112,11 @@
         footer.appendChild(disclosure);
       }
 
-      const caption = qs(".gp-cta-caption", overlay);
-      if (caption) caption.textContent = "Apple billing · Manage or cancel in Settings";
-
+      // Only StoreKit-derived savings may appear. The presenter marks badges it
+      // computed from live Apple prices with data-gp-computed; anything else is
+      // a hard-coded claim and is removed.
       qsa('[data-plus-plan="yearly"] .badge', overlay).forEach((badge) => {
+        if (badge.dataset?.gpComputed === "true") return;
         if (/save\s*\d/i.test(badge.textContent || "")) badge.remove();
       });
 
@@ -152,7 +143,9 @@
         activeNote?.remove();
         if (purchase?.dataset.v1ManageSubscription === "true") {
           delete purchase.dataset.v1ManageSubscription;
-          purchase.textContent = "Start Gillie Plus";
+          let label = "";
+          try { label = String(window.GilliePaywallPresenter?.idleCtaLabel?.() || ""); } catch (_) {}
+          purchase.textContent = label.trim() || "Start Gillie Plus";
         }
       }
     }
@@ -209,7 +202,6 @@
       removeDecorativeAccentStripes();
       compactOversizedStatusPills();
       collapseEmptyOversizedSurfaces();
-      normalizeHealthClaimCopy();
       ensurePaywallDisclosure();
       cleanVersionLabel();
       document.documentElement.dataset.visualIntegrity = ENGINE;

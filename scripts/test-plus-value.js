@@ -24,21 +24,27 @@ const requiredJs = [
   "claimPlusWelcomeBundle",
   "First tank mate included",
   "adoptIncludedBuddy",
-  "A quit plan that remembers what works.",
-  "Your premium living reef",
 ];
 for (const marker of requiredJs) {
   if (!source.includes(marker)) throw new Error(`Plus value source is missing: ${marker}`);
 }
 
+// Paywall presentation belongs to phase5-paywall.js; Plus Value must no longer
+// rewrite paywall copy or observe the paywall for repackaging.
+for (const forbidden of ["repackagePaywall", "observePaywall", "pv-paywall-showcase"]) {
+  if (source.includes(forbidden)) throw new Error(`Plus value regained paywall ownership: ${forbidden}`);
+}
+
 for (const marker of [
   "Gillie V1 Plus Value",
-  "#plus-overlay .pv-paywall-showcase",
   "#view-progress .v1-weekly-report",
   "#view-reef .pv-perfect-care",
   "#pv-plus-welcome",
 ]) {
   if (!styles.includes(marker)) throw new Error(`Plus value styles are missing: ${marker}`);
+}
+if (styles.includes(".pv-paywall-showcase")) {
+  throw new Error("Plus value styles still restyle the paywall showcase.");
 }
 
 for (const marker of [

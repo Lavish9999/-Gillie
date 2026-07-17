@@ -7,7 +7,15 @@ const { scanFinalWebAssets } = require("./verify-final-web-assets");
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), "gillie-final-web-assets-"));
 
-const safeIndex = `<!doctype html><html class="gillie-boot-pending"><head><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"><link data-gillie-v1-paywall-runtime-fix-styles="true"></head><body><!-- SINGLE LAUNCH HANDOFF --><script data-gillie-v1-entitlement-sync="true"></script><script data-gillie-v1-theme-access="true"></script><script data-gillie-v1-launch-handoff="true"></script><script data-gillie-v1-paywall-runtime-fix="true"></script><main>Gillie</main></body></html>`;
+const safeIndex = `<!doctype html><html class="gillie-boot-pending"><head><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"><link data-gillie-v1-paywall-runtime-fix-styles="true"></head><body><!-- SINGLE LAUNCH HANDOFF --><script data-gillie-v1-entitlement-sync="true"></script><script data-gillie-v1-theme-access="true"></script><script data-gillie-v1-launch-handoff="true"></script><script data-gillie-v1-paywall-runtime-fix="true"></script><script data-gillie-v1-purchase-director="true"></script><main>Gillie</main></body></html>`;
+
+const safePurchaseDirector = `const engine = "purchase-director-v2-direct-native";
+const mode = "selected-product-direct-to-storekit-v1";
+function own(event) { event.stopImmediatePropagation(); }
+async function buy(native, product) {
+  const status = await native.purchase({ productId: product.id });
+  return window.GillieEntitlementSync.apply(status, "purchase-result");
+}`;
 
 function writeProductionContract(target, sourceBranch = "main") {
   fs.mkdirSync(path.join(target, "v1"), { recursive: true });
@@ -17,10 +25,17 @@ function writeProductionContract(target, sourceBranch = "main") {
     allowedProductionRefs: ["main", "native-ios-launch"],
     sourceBranch,
     sourceCommit: "abc123",
+    checkoutEngine: "purchase-director-v2-direct-native",
+    checkoutMode: "selected-product-direct-to-storekit-v1",
+    pricingCheckoutPolicy: "display-only-never-gates-checkout-v2",
+    nativeStoreKitLoader: "selected-product-only-retry-v1",
+    nativeCheckoutMode: "selected-product-direct-v1",
+    themePaintEngine: "theme-paint-v1",
     paywallChromeMode: "css-only-system-chrome-v2",
     paywallSurfaceGuard: "ensurePaywallSurface-v1",
-  }));
+  }, null, 2));
   fs.writeFileSync(path.join(target, "v1", "purchase-flow.js"), 'const a = "purchase-flow-v3-production-branch Apple returned zero Gillie Plus products Copy purchase details";');
+  fs.writeFileSync(path.join(target, "v1", "purchase-director.js"), safePurchaseDirector);
   fs.writeFileSync(path.join(target, "v1", "store-pricing.js"), 'const a = "store-pricing-v2-retryable Loading Apple price…";');
   fs.writeFileSync(path.join(target, "v1", "entitlement-sync.js"), 'const a = "entitlement-sync-v1-always-on app-boot gillie:entitlement-updated";');
   fs.writeFileSync(path.join(target, "v1", "theme-access.js"), 'const a = "theme-access-v1-basic-free";');
@@ -38,7 +53,7 @@ try {
   fs.writeFileSync(path.join(safe, "image.png"), Buffer.from("binary metadata $3.99 is ignored because this is not executable text"));
 
   const safeResult = scanFinalWebAssets(safe);
-  assert.strictEqual(safeResult.filesChecked, 12, "Only supported text assets and complete shipping contracts should be scanned");
+  assert.strictEqual(safeResult.filesChecked, 13, "Only supported text assets and complete shipping contracts should be scanned");
   assert.strictEqual(safeResult.provenance.sourceBranch, "main");
 
   const nativeReleaseRef = path.join(root, "native-ref");
@@ -50,7 +65,7 @@ try {
   fs.writeFileSync(path.join(nativeCover, "v1", "paywall-runtime-fix.js"), 'bridge()?.setInterfaceStyle?.({ lightStatusBar: true }); const a = "paywall-runtime-fix-v1 css-only-system-chrome-v2 ensurePaywallSurface Apple billing connected";');
   assert.throws(
     () => scanFinalWebAssets(nativeCover),
-    /covers the Capacitor WebView/,
+    /native root-view mutation/,
     "The signed bundle must reject the native call that blanked both startup and Plus",
   );
 
@@ -96,9 +111,15 @@ try {
     allowedProductionRefs: ["main"],
     sourceBranch: "main",
     sourceCommit: "abc123",
+    checkoutEngine: "purchase-director-v2-direct-native",
+    checkoutMode: "selected-product-direct-to-storekit-v1",
+    pricingCheckoutPolicy: "display-only-never-gates-checkout-v2",
+    nativeStoreKitLoader: "selected-product-only-retry-v1",
+    nativeCheckoutMode: "selected-product-direct-v1",
+    themePaintEngine: "theme-paint-v1",
     paywallChromeMode: "css-only-system-chrome-v2",
     paywallSurfaceGuard: "ensurePaywallSurface-v1",
-  }));
+  }, null, 2));
   assert.throws(
     () => scanFinalWebAssets(incompleteRefs),
     /production refs are incomplete; missing native-ios-launch/,

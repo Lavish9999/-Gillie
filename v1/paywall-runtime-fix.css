@@ -24,6 +24,8 @@
   to{opacity:1;transform:translate3d(0,0,0)}
 }
 
+/* CSS-only status-bar treatment: the paywall shell is light, so the strip
+   simply extends the shell under the system status text. */
 #plus-overlay.gp-paywall-overlay::before{
   content:"";
   position:absolute;
@@ -33,40 +35,20 @@
   right:0;
   height:var(--gp-system-top);
   pointer-events:none;
-  background:#EAF7F3;
-  border-bottom:1px solid rgba(17,51,47,.06);
+  background:linear-gradient(180deg,#EAF7F3 78%,rgba(234,247,243,0));
 }
 
 #plus-overlay.gp-paywall-overlay .gp-paywall-scroll{
   scroll-padding-top:calc(var(--gp-system-top) + 20px)!important;
 }
 
-#plus-overlay.gp-paywall-overlay .gp-hero-card{
-  min-height:292px!important;
-  padding-top:calc(var(--gp-system-top) + 28px)!important;
-  padding-left:calc(22px + var(--gp-system-left))!important;
-  padding-right:calc(18px + var(--gp-system-right))!important;
-}
-
-#plus-overlay.gp-paywall-overlay .gp-close{
-  top:calc(var(--gp-system-top) + 8px)!important;
-  right:calc(14px + var(--gp-system-right))!important;
+#plus-overlay.gp-paywall-overlay .gp-topbar{
+  padding-left:calc(8px + var(--gp-system-left))!important;
+  padding-right:calc(12px + var(--gp-system-right))!important;
 }
 
 #plus-overlay.gp-paywall-overlay .gp-status-banner{
   top:calc(var(--gp-system-top) + 58px)!important;
-}
-
-#plus-overlay.gp-paywall-overlay .gp-kicker{
-  position:relative!important;
-  z-index:2!important;
-  color:#f5cf72!important;
-  text-shadow:0 1px 12px rgba(0,25,22,.35)!important;
-}
-
-#plus-overlay.gp-paywall-overlay .gp-title{
-  max-width:270px!important;
-  text-shadow:0 3px 24px rgba(0,27,24,.24)!important;
 }
 
 #plus-overlay.gp-paywall-overlay .gp-store-health{
@@ -122,14 +104,10 @@
 @media (orientation:landscape) and (max-height:560px){
   #plus-overlay.gp-paywall-overlay{--gp-system-top:max(env(safe-area-inset-top),50px)}
   #plus-overlay.gp-paywall-overlay .gp-hero-card{
-    min-height:250px!important;
-    padding-top:calc(var(--gp-system-top) + 18px)!important;
-    grid-template-columns:minmax(0,1fr) 170px!important;
+    height:150px!important;
   }
   #plus-overlay.gp-paywall-overlay .gp-title{
     max-width:430px!important;
-    font-size:clamp(31px,6vw,48px)!important;
-    line-height:.98!important;
   }
   #plus-overlay.gp-paywall-overlay .gp-subtitle{max-width:420px!important}
 }

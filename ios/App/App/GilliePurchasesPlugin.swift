@@ -25,6 +25,7 @@ public class GilliePurchasesPlugin: CAPPlugin, CAPBridgedPlugin {
     private let productIDs = ["gillie.plus.monthly", "gillie.plus.yearly"]
     private let defaults = UserDefaults.standard
     private let entitlementCacheKey = "gillie.storekit.entitlement"
+    private let entitlementGracePeriod: TimeInterval = 5 * 60
     private let eventLogKey = "gillie.diagnostics.events"
     private let metricLogKey = "gillie.diagnostics.metricPayloads"
     private let installIDKey = "gillie.diagnostics.installID"
@@ -68,18 +69,36 @@ public class GilliePurchasesPlugin: CAPPlugin, CAPBridgedPlugin {
         Task {
             do {
                 let products = try await loadAvailableProducts()
-                let output: [[String: Any]] = products.map { product in
+                var output: [[String: Any]] = []
+                for product in products {
                     var item: [String: Any] = [
                         "id": product.id,
                         "displayName": product.displayName,
                         "description": product.description,
-                        "displayPrice": product.displayPrice
+                        "displayPrice": product.displayPrice,
+                        "price": NSDecimalNumber(decimal: product.price).doubleValue,
+                        "currencyCode": product.priceFormatStyle.currencyCode
                     ]
-                    if let period = product.subscription?.subscriptionPeriod {
-                        item["periodValue"] = period.value
-                        item["periodUnit"] = periodUnitName(period.unit)
+                    if let subscription = product.subscription {
+                        item["periodValue"] = subscription.subscriptionPeriod.value
+                        item["periodUnit"] = periodUnitName(subscription.subscriptionPeriod.unit)
+                        // Trial presentation contract: the paywall may only advertise a free
+                        // trial that StoreKit verifies for this product and this user.
+                        if let intro = subscription.introductoryOffer {
+                            item["introOffer"] = [
+                                "paymentMode": paymentModeName(intro.paymentMode),
+                                "periodValue": intro.period.value,
+                                "periodUnit": periodUnitName(intro.period.unit),
+                                "periodCount": intro.periodCount,
+                                "displayPrice": intro.displayPrice,
+                                "price": NSDecimalNumber(decimal: intro.price).doubleValue
+                            ]
+                            item["introEligible"] = await subscription.isEligibleForIntroOffer
+                        } else {
+                            item["introEligible"] = false
+                        }
                     }
-                    return item
+                    output.append(item)
                 }
                 let returnedIDs = products.map(\.id)
                 let missingIDs = productIDs.filter { !returnedIDs.contains($0) }
@@ -162,11 +181,91 @@ public class GilliePurchasesPlugin: CAPPlugin, CAPBridgedPlugin {
                 switch result {
                 case .success(let verification):
                     let transaction = try checkVerified(verification)
+                    guard transaction.revocationDate == nil else {
+                        recordEvent(name: "purchase_rejected_native", properties: [
+                            "productId": transaction.productID,
+                            "reason": "revoked-transaction"
+                        ])
+                        call.reject("Apple returned a revoked subscription transaction.")
+                        return
+                    }
+                    if let expiration = transaction.expirationDate, expiration <= Date() {
+                        await transaction.finish()
+                        recordEvent(name: "purchase_expired_result_native", properties: [
+                            "productId": transaction.productID,
+                            "transactionId": String(transaction.id),
+                            "purchaseDate": transaction.purchaseDate.timeIntervalSince1970 * 1000,
+                            "expiresAt": expiration.timeIntervalSince1970 * 1000
+                        ])
+
+                        var recoveredStatus = await currentEntitlementStatus()
+                        if recoveredStatus["active"] as? Bool == true {
+                            recoveredStatus["checkoutMode"] = "expired-result-current-entitlement-v3"
+                            recordEvent(name: "purchase_expired_result_recovered_native", properties: [
+                                "productId": recoveredStatus["productId"] as? String ?? transaction.productID,
+                                "mode": "current-entitlement"
+                            ])
+                            call.resolve(recoveredStatus)
+                            return
+                        }
+
+                        do {
+                            try await AppStore.sync()
+                        } catch {
+                            recordEvent(name: "purchase_expired_result_sync_failed_native", properties: [
+                                "productId": transaction.productID,
+                                "error": error.localizedDescription
+                            ])
+                        }
+
+                        recoveredStatus = await currentEntitlementStatus()
+                        if recoveredStatus["active"] as? Bool == true {
+                            recoveredStatus["checkoutMode"] = "expired-result-sync-recovered-v3"
+                            recordEvent(name: "purchase_expired_result_recovered_native", properties: [
+                                "productId": recoveredStatus["productId"] as? String ?? transaction.productID,
+                                "mode": "app-store-sync"
+                            ])
+                            call.resolve(recoveredStatus)
+                            return
+                        }
+
+                        call.resolve([
+                            "active": false,
+                            "verified": true,
+                            "source": "storekit2-expired-purchase-result",
+                            "productId": transaction.productID,
+                            "transactionId": String(transaction.id),
+                            "purchaseDate": transaction.purchaseDate.timeIntervalSince1970 * 1000,
+                            "expiresAt": expiration.timeIntervalSince1970 * 1000,
+                            "checkedAt": Date().timeIntervalSince1970 * 1000,
+                            "expired": true,
+                            "requiresSandboxReset": true,
+                            "checkoutMode": "expired-result-requires-sandbox-reset-v3"
+                        ])
+                        return
+                    }
+
+                    var status: [String: Any] = [
+                        "active": true,
+                        "verified": true,
+                        "source": "storekit2-purchase",
+                        "productId": transaction.productID,
+                        "transactionId": String(transaction.id),
+                        "checkoutMode": "verified-purchase-authoritative-v2",
+                        "checkedAt": Date().timeIntervalSince1970 * 1000
+                    ]
+                    if let expiration = transaction.expirationDate {
+                        status["expiresAt"] = expiration.timeIntervalSince1970 * 1000
+                    }
+                    cacheEntitlement(status)
                     await transaction.finish()
-                    var status = await currentEntitlementStatus()
-                    status["productId"] = transaction.productID
-                    status["checkoutMode"] = "selected-product-direct-v1"
-                    recordEvent(name: "purchase_completed_native", properties: ["productId": transaction.productID])
+                    recordEvent(name: "purchase_completed_native", properties: [
+                        "productId": transaction.productID,
+                        "checkoutMode": "verified-purchase-authoritative-v2"
+                    ])
+                    await MainActor.run {
+                        self.notifyListeners("entitlementChanged", data: status)
+                    }
                     call.resolve(status)
                 case .userCancelled:
                     recordEvent(name: "purchase_cancelled_native", properties: ["productId": productID])
@@ -190,12 +289,38 @@ public class GilliePurchasesPlugin: CAPPlugin, CAPBridgedPlugin {
 
     @objc func restorePurchases(_ call: CAPPluginCall) {
         Task {
+            var localStatus = await currentEntitlementStatus()
+            if localStatus["active"] as? Bool == true {
+                localStatus["restoreMode"] = "current-entitlement-before-sync-v2"
+                recordEvent(name: "restore_completed_native", properties: [
+                    "active": true,
+                    "mode": "current-entitlement-before-sync-v2"
+                ])
+                call.resolve(localStatus)
+                return
+            }
+
             do {
                 try await AppStore.sync()
-                let status = await currentEntitlementStatus()
-                recordEvent(name: "restore_completed_native", properties: ["active": status["active"] as? Bool ?? false])
+                var status = await currentEntitlementStatus()
+                status["restoreMode"] = "restore-sync-fallback-v2"
+                recordEvent(name: "restore_completed_native", properties: [
+                    "active": status["active"] as? Bool ?? false,
+                    "mode": "restore-sync-fallback-v2"
+                ])
                 call.resolve(status)
             } catch {
+                var fallbackStatus = await currentEntitlementStatus()
+                if fallbackStatus["active"] as? Bool == true {
+                    fallbackStatus["restoreMode"] = "entitlement-recovered-after-sync-error-v2"
+                    fallbackStatus["syncWarning"] = error.localizedDescription
+                    recordEvent(name: "restore_recovered_native", properties: [
+                        "active": true,
+                        "mode": "entitlement-recovered-after-sync-error-v2"
+                    ])
+                    call.resolve(fallbackStatus)
+                    return
+                }
                 recordEvent(name: "restore_failed_native", properties: ["error": error.localizedDescription])
                 call.reject("Restore failed: \(error.localizedDescription)")
             }
@@ -401,6 +526,13 @@ public class GilliePurchasesPlugin: CAPPlugin, CAPBridgedPlugin {
             return status
         }
 
+        if let cached = recentCachedActiveEntitlement() {
+            recordEvent(name: "entitlement_cache_grace_native", properties: [
+                "productId": cached["productId"] as? String ?? "unknown"
+            ])
+            return cached
+        }
+
         let status: [String: Any] = [
             "active": false,
             "verified": true,
@@ -409,6 +541,26 @@ public class GilliePurchasesPlugin: CAPPlugin, CAPBridgedPlugin {
         ]
         cacheEntitlement(status)
         return status
+    }
+
+    private func recentCachedActiveEntitlement() -> [String: Any]? {
+        guard var cached = defaults.dictionary(forKey: entitlementCacheKey),
+              cached["active"] as? Bool == true,
+              let checkedAt = (cached["checkedAt"] as? NSNumber)?.doubleValue else {
+            return nil
+        }
+
+        let now = Date().timeIntervalSince1970 * 1000
+        let age = now - checkedAt
+        guard age >= 0, age <= entitlementGracePeriod * 1000 else { return nil }
+        if let expiresAt = (cached["expiresAt"] as? NSNumber)?.doubleValue, expiresAt <= now {
+            return nil
+        }
+
+        cached["source"] = "storekit2-cache-grace"
+        cached["checkedAt"] = now
+        cached["cacheGrace"] = true
+        return cached
     }
 
     private func cacheEntitlement(_ status: [String: Any]) {
@@ -463,6 +615,15 @@ public class GilliePurchasesPlugin: CAPPlugin, CAPBridgedPlugin {
             throw StoreKitError.notAvailableInStorefront
         case .verified(let safe):
             return safe
+        }
+    }
+
+    private func paymentModeName(_ mode: Product.SubscriptionOffer.PaymentMode) -> String {
+        switch mode {
+        case .freeTrial: return "freeTrial"
+        case .payAsYouGo: return "payAsYouGo"
+        case .payUpFront: return "payUpFront"
+        default: return "unknown"
         }
     }
 

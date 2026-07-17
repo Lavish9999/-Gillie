@@ -1,19 +1,5 @@
-/* Gillie V1 Plus Value — premium paywall, weekly report, Reef bonuses, and welcome bundle. */
-
-/* Paywall positioning */
-#plus-overlay .gp-title{max-width:340px}
-#plus-overlay .pv-benefit-icon svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-#plus-overlay .pv-paywall-showcase{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0 0}
-#plus-overlay .pv-showcase-report,#plus-overlay .pv-showcase-moonlit{position:relative;min-height:92px;overflow:hidden;border-radius:18px;border:1px solid rgba(17,51,47,.09);box-shadow:0 8px 20px rgba(17,51,47,.06)}
-#plus-overlay .pv-showcase-report{display:flex;align-items:flex-end;gap:7px;padding:34px 15px 14px;background:linear-gradient(145deg,#f7fbfa,#e7f1ee)}
-#plus-overlay .pv-showcase-report>span{position:absolute;left:14px;top:12px;font-size:9px;font-weight:900;letter-spacing:.1em;color:var(--ink-faint)}
-#plus-overlay .pv-showcase-report>i{display:block;flex:1;height:var(--h);min-height:12px;border-radius:999px 999px 5px 5px;background:linear-gradient(180deg,#65b59c,#174d45);box-shadow:0 4px 10px rgba(23,77,69,.15)}
-#plus-overlay .pv-showcase-moonlit{padding:14px;background:radial-gradient(circle at 80% 18%,rgba(229,234,255,.8),transparent 18%),linear-gradient(145deg,#26315d,#101b3e 72%);color:#fff}
-#plus-overlay .pv-showcase-moonlit>i{position:absolute;right:13px;top:13px;width:28px;height:28px;border-radius:50%;background:#eef1ff;box-shadow:0 0 18px rgba(225,232,255,.55)}
-#plus-overlay .pv-showcase-moonlit>i::after{content:"";position:absolute;left:-7px;top:-3px;width:28px;height:28px;border-radius:50%;background:#35416f}
-#plus-overlay .pv-showcase-moonlit>b,#plus-overlay .pv-showcase-moonlit>span{position:absolute;left:14px;display:block}
-#plus-overlay .pv-showcase-moonlit>b{bottom:30px;font-size:13px}
-#plus-overlay .pv-showcase-moonlit>span{bottom:13px;font-size:9.5px;color:rgba(255,255,255,.62);font-weight:700}
+/* Gillie V1 Plus Value — weekly report, Reef bonuses, and welcome bundle.
+   Paywall presentation is owned by phase5-paywall.js/.css. */
 
 /* Weekly Pattern Report */
 #view-progress .v1-weekly-report{margin:18px 0;padding:20px;border-radius:25px;background:#fff;box-shadow:0 14px 34px rgba(17,51,47,.09);border:1px solid rgba(17,51,47,.07)}
@@ -69,7 +55,7 @@
 body.pv-welcome-open #sos-fab{display:none!important}
 
 @media (max-width:370px){
-  #plus-overlay .pv-paywall-showcase,#view-progress .pv-report-grid,#pv-plus-welcome .pv-welcome-benefits{grid-template-columns:1fr}
+  #view-progress .pv-report-grid,#pv-plus-welcome .pv-welcome-benefits{grid-template-columns:1fr}
   #pv-plus-welcome .pv-welcome-benefits>div{min-height:72px}
 }
 @media (prefers-reduced-motion:reduce){

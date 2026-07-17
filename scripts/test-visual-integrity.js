@@ -94,9 +94,11 @@ const oversizedStatus = element({ text: "Ready", fontSize: 20, height: 58, class
 const overlay = element({ id: "plus-overlay" });
 const footer = element({ classes: ["gp-footer"] });
 const caption = element({ text: "Secure Apple billing · Cancel anytime", classes: ["gp-cta-caption"] });
-const subtitle = element({ text: "Know the hard moment before it arrives — and what to do next." });
-const riskBenefit = element({ text: "Know when cravings are most likely to hit." });
+const subtitle = element({ text: "Presenter-owned subtitle copy." });
+const riskBenefit = element({ text: "Presenter-owned benefit copy." });
 const yearlyBadge = element({ text: "Save 37%", classes: ["badge"] });
+const computedBadge = element({ text: "Save 30%", classes: ["badge"] });
+computedBadge.dataset.gpComputed = "true";
 const purchasePanel = element({ classes: ["gp-purchase-panel"] });
 const purchaseDock = element({ id: "gp-purchase-dock" });
 const purchaseButton = element({ id: "plus-purchase", text: "Start Gillie Plus" });
@@ -122,7 +124,9 @@ function qs(selector, rootNode) {
 }
 
 function qsa(selector, rootNode) {
-  if (rootNode === overlay && selector === '[data-plus-plan="yearly"] .badge') return yearlyBadge.removed ? [] : [yearlyBadge];
+  if (rootNode === overlay && selector === '[data-plus-plan="yearly"] .badge') {
+    return [yearlyBadge, computedBadge].filter((badge) => !badge.removed);
+  }
   if (selector === ".locked-teaser") return [locked];
   if (selector === ".tag,.badge,[class*='status'],[class*='pill']") return [freeTag, plusTag, lockedTag, liveTag, oversizedStatus].filter((item) => !item.removed);
   if (selector === "#main *") return [planEyebrow, coachEyebrow, lockedTitle, liveTag, largeTrackedHeading, stripedCard, emptyCard, oversizedStatus];
@@ -178,13 +182,14 @@ vm.runInContext(source, context, { filename: "visual-integrity.js" });
   if (emptyCard.dataset.visualEmptySurface !== "true") throw new Error("Oversized empty surface was not collapsed.");
   if (oversizedStatus.dataset.visualCompactStatus !== "true") throw new Error("Oversized status pill was not compacted.");
 
-  if (subtitle.textContent !== "Spot the times cravings may be more likely — and what to do next.") throw new Error("Paywall subtitle still makes an overly certain prediction claim.");
-  if (riskBenefit.textContent !== "See when cravings may be more likely.") throw new Error("Paywall risk benefit still makes an overly certain prediction claim.");
+  if (subtitle.textContent !== "Presenter-owned subtitle copy.") throw new Error("Paywall copy ownership regressed: visual integrity must not rewrite the presenter's subtitle.");
+  if (riskBenefit.textContent !== "Presenter-owned benefit copy.") throw new Error("Paywall copy ownership regressed: visual integrity must not rewrite presenter benefits.");
 
   const disclosure = footer.children.get("#v1-renewal-disclosure");
   if (!disclosure || !/renews automatically/i.test(disclosure.textContent)) throw new Error("Visible auto-renewal disclosure was not installed.");
   if (!yearlyBadge.removed) throw new Error("Hard-coded subscription savings claim was not removed.");
-  if (caption.textContent !== "Apple billing · Manage or cancel in Settings") throw new Error("Paywall billing caption was not clarified.");
+  if (computedBadge.removed) throw new Error("StoreKit-computed savings badge must survive the integrity pass.");
+  if (caption.textContent !== "Secure Apple billing · Cancel anytime") throw new Error("Paywall billing caption ownership regressed: the presenter owns the CTA caption.");
   if (!purchasePanel.children.get("#v1-active-subscription")) throw new Error("Active subscriber status was not added.");
   if (!overlay.classList.contains("v1-plus-active")) throw new Error("Active subscriber paywall did not enter its simplified state.");
   if (purchaseButton.textContent !== "Manage subscription" || purchaseButton.dataset.v1ManageSubscription !== "true") throw new Error("Active subscriber CTA was not converted to management.");

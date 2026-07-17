@@ -28,7 +28,10 @@ function syntaxCheck(relative) {
 }
 
 function run(command, args) {
-  execFileSync(command, args, { cwd: root, stdio: "inherit", env: process.env });
+  // Modern Node refuses to spawn .cmd shims directly on Windows (EINVAL);
+  // npm.cmd must go through the shell there. Behavior is unchanged on macOS CI.
+  const useShell = process.platform === "win32" && command.toLowerCase().endsWith(".cmd");
+  execFileSync(command, args, { cwd: root, stdio: "inherit", env: process.env, shell: useShell });
 }
 
 for (const relative of [
@@ -39,6 +42,7 @@ for (const relative of [
   "scripts/test-theme-access.js",
   "scripts/test-entitlement-sync.js",
   "scripts/test-purchase-director.js",
+  "scripts/test-paywall-presenter.js",
   "scripts/test-launch-experience.js",
   "scripts/write-build-provenance.js",
   "scripts/verify-final-web-assets.js",
@@ -99,8 +103,15 @@ requireMarker("terms.html", "https://lavish9999.github.io/-Gillie/privacy.html",
 forbidMarker("v1/paywall-runtime-fix.js", "bridge()?.setInterfaceStyle?.(", "native root-view mutation");
 forbidMarker("ios/App/App/GilliePurchasesPlugin.swift", "setInterfaceStyle", "obsolete native interface-style bridge");
 
+requireMarker("phase5-paywall.js", "deriveTrialState", "StoreKit-verified trial gating");
+requireMarker("phase5-paywall.js", 'data-gp-computed="true"', "live-price savings marker");
+requireMarker("ios/App/App/GilliePurchasesPlugin.swift", "isEligibleForIntroOffer", "native trial eligibility");
+requireMarker("ios/App/App/GilliePurchasesPlugin.swift", "introductoryOffer", "native introductory-offer payload");
+forbidMarker("phase5-paywall.js", "Save 37%", "hardcoded savings claim");
+
 console.log("Running focused runtime checks for direct-native checkout, Plus restoration, tank themes, audit regressions, subscription compliance, and shell reliability…");
 run(process.execPath, ["scripts/test-purchase-director.js"]);
+run(process.execPath, ["scripts/test-paywall-presenter.js"]);
 run(process.execPath, ["scripts/test-entitlement-sync.js"]);
 run(process.execPath, ["scripts/test-theme-access.js"]);
 run(process.execPath, ["scripts/test-launch-experience.js"]);

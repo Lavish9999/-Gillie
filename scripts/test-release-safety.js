@@ -61,19 +61,25 @@ yearly: { id: "gillie.plus.yearly", name: "Yearly", price: "$29.99", cadence: "/
 monthly: { id: "gillie.plus.monthly", name: "Monthly", price: "$3.99", cadence: "/ month", note: "Full Plus access. Cancel anytime." }
 `;
 const paywallFixture = `
-const nameHtml = \`Yearly <span class="badge">Save 37%</span>\`;
-if (note && note.textContent !== "Best value") note.textContent = "Best value";
-if (note && note.textContent !== "Flexible") note.textContent = "Flexible";
+const badge = state.savings !== null ? ' <span class="badge" data-gp-computed="true">…</span>' : "";
+const percent = savingsPercent(monthly?.price, yearly?.price);
 `;
 const pricingResult = hardenStorePricing(pricingFixture, paywallFixture);
 assert(!pricingResult.html.includes("$29.99"));
 assert(!pricingResult.html.includes("$3.99"));
 assert(!pricingResult.html.includes("Save 37%"));
 assert(pricingResult.html.includes("Loading Apple price…"));
-assert(pricingResult.html.includes("Annual billing"));
-assert(pricingResult.html.includes("Monthly billing"));
-assert(!pricingResult.paywall.includes("Save 37%"));
-assert(pricingResult.paywall.includes('const nameHtml = "Yearly"'));
+assert(pricingResult.html.includes("Best value"));
+assert(pricingResult.html.includes("Cancel anytime"));
+assert(pricingResult.paywall.includes('data-gp-computed="true"'));
+assert.throws(
+  () => hardenStorePricing(pricingFixture, `${paywallFixture}\nconst hardcoded = "Save 37%";`),
+  /hardcoded price claim/,
+);
+assert.throws(
+  () => hardenStorePricing(pricingFixture, "no computed savings marker"),
+  /exactly one source marker|StoreKit-derived pricing marker/,
+);
 
 assert.throws(() => hardenEraseEverything("no reset here"), /exactly one matching handler/);
 assert.throws(() => hardenStartupRecovery("no recovery here"), /exactly one matching handler/);
